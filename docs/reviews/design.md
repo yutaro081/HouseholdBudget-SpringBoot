@@ -2,7 +2,7 @@
 
 [要件定義書](requirements.md) をもとに、何をどう作るかを決めた設計書です。作成の手順は [Phase 1 手順書](../plans/phase-1-design.md) にあります。
 
-- 状態：作成中（章2・章3を記載。章2は確認待ち。他の章は未作成）
+- 状態：作成中（章2・章3・章4を記載。他の章は未作成）
 
 ## 書き方のルール
 
@@ -494,7 +494,215 @@ erDiagram
 
 ## 4. パッケージとクラスの構成
 
-（未作成）
+### 4.1 方針
+
+- ベースパッケージは `io.github.yutaro081.householdbudget`（Q19）。以降のパッケージ名は、この下の名前だけを書く。
+- 層の分け方は **Controller → Service → Repository** の3層（章1で詳しく書く）。
+  - **Controller**：URL を受け取り、入力を Form で受け、Service を呼び、画面（テンプレート）を選ぶ。データベースには直接触らない。
+  - **Service**：処理の中身（入力以外のチェック、持ち主の確認、トランザクション）を行う。
+  - **Repository**：データベースの読み書きだけを行う。
+- **持ち主の確認**（3.9）：Controller は、ログイン中のユーザーのID（`LoginUser` から取り出す）を、Service のメソッドに**必ず渡す**。Service と Repository のメソッドは、すべて `user_id` を受け取って絞る。画面から送られたユーザーIDは使わない。
+- **Entity は 1テーブル 1クラス**（6つ）。入力は Form、画面専用の表示データは DTO で受け渡し、Entity をそのまま入力の受け皿にしない（書き換えさせたくない `user_id` などを守るため）。
+- 要件にないクラスは作らない（4.8）。要件にはないが作るもの（P1〜P8）は、理由とともに 4.9 にまとめた。
+
+### 4.2 パッケージの一覧
+
+| パッケージ | 役割 | 主な置き場所 |
+|---|---|---|
+| （ベース直下） | アプリの起動クラス | `HouseholdBudgetApplication` |
+| `controller` | URL を受け取り、画面を選ぶ | 4.4 |
+| `service` | 処理の中身（登録・変更・削除・集計） | 4.5 |
+| `repository` | データベースの読み書き | 4.6 |
+| `entity` | テーブルに対応するクラス | 4.6 |
+| `form` | 画面の入力を受け取るクラス（入力チェックの印を付ける） | 4.7 |
+| `dto` | 画面に表示するためのデータ（予実比較など） | 4.7 |
+| `security` | ログイン・ログアウト・パスワードのハッシュ化・アクセス制限 | 4.5 |
+| `exception` | 「見つからない」「重複」などの例外と、404 画面への変換 | 4.5 |
+| `domain` | 季節と色の判定など、画面にもデータベースにも依存しない計算（P1） | 4.5 |
+| `config` | アプリ全体の設定（日本時間の「今日」）（P2） | 4.5 |
+
+- `domain` を分ける理由：季節の決定と色の判定は、Phase 7 で単体テストを先に書く対象で、Spring に依存しない純粋な Java にするとテストしやすいため。
+- `config` を分ける理由：日本時間（B6）の「今日」を1か所で決め、テストで日付を固定できるようにするため。
+
+```mermaid
+flowchart LR
+    B[ブラウザ] --> C[controller]
+    C --> F[form / dto]
+    C --> S[service]
+    S --> D[domain]
+    S --> R[repository]
+    R --> E[entity]
+    R --> DB[(MySQL)]
+    SEC[security] -.-> C
+    EX[exception] -.-> C
+```
+
+### 4.3 リソース（`src/main/resources`）の置き場所
+
+| 場所 | 内容 |
+|---|---|
+| `application.properties` | 設定。DB のパスワードは環境変数から読む（Phase 2） |
+| `schema.sql` | テーブル作成の SQL（`CREATE TABLE IF NOT EXISTS`、Q17、章3） |
+| `messages.properties` | エラーメッセージ・画面の文言（章6） |
+| `templates/` | 画面のファイル（Thymeleaf）。4.4.2 に一覧 |
+| `static/css/style.css` | 画面の見た目（CSS）。ログイン前から読める（章2） |
+
+### 4.4 controller と、画面（テンプレート）
+
+#### 4.4.1 Controller と受け持つ URL
+
+| クラス | 役割 | 受け持つ URL（章2） |
+|---|---|---|
+| `HomeController` | トップを取引一覧へ移動する | `GET /` |
+| `AuthController` | ログイン画面と、アカウント登録の画面・処理 | `GET /login`、`GET /register`、`POST /register` |
+| `TransactionController` | 取引の一覧・登録・詳細・編集・削除 | `/transactions`、`/transactions/new`（GET・POST）、`/transactions/{id}`、`/transactions/{id}/edit`（GET・POST）、`/transactions/{id}/delete`（POST） |
+| `CategoryController` | 科目の一覧・追加・変更・削除 | `/categories`（GET・POST）、`/categories/{id}/edit`（GET・POST）、`/categories/{id}/delete`（POST） |
+| `VendorController` | 取引先の一覧・追加・変更・削除 | `/vendors`（GET・POST）、`/vendors/{id}/edit`（GET・POST）、`/vendors/{id}/delete`（POST） |
+| `PaymentMethodController` | 支払方法の一覧・追加・変更・削除 | `/payment-methods`（GET・POST）、`/payment-methods/{id}/edit`（GET・POST）、`/payment-methods/{id}/delete`（POST） |
+| `BudgetController` | 予算設定の表示と保存 | `/budgets`（GET・POST） |
+| `ComparisonController` | 予実比較の表示 | `/comparison`（GET） |
+
+- `POST /login` と `POST /logout` は、Controller を作らず **Spring Security** が処理する（`security`、4.5）。
+- 科目・取引先・支払方法の Controller は、形が同じだが**3つに分ける**。理由：文字数の制限や削除の条件が違い、入門者には3つの独立した同じ形のほうが読みやすいため。
+
+#### 4.4.2 テンプレート（`templates/`）の一覧
+
+| ファイル | 画面（章2） | 使う Controller |
+|---|---|---|
+| `fragments/common.html` | 共通部品：ヘッダー（メニュー、ユーザー名、ログアウト）、成功・エラーメッセージの表示場所 | 全画面 |
+| `login.html` | ログイン | `AuthController` |
+| `register.html` | アカウント登録 | `AuthController` |
+| `transactions/list.html` | 取引一覧 | `TransactionController` |
+| `transactions/form.html` | 取引の登録・編集（共用） | `TransactionController` |
+| `transactions/detail.html` | 取引詳細 | `TransactionController` |
+| `categories/list.html` | 科目一覧（追加フォームを含む） | `CategoryController` |
+| `categories/edit.html` | 科目変更 | `CategoryController` |
+| `vendors/list.html`、`vendors/edit.html` | 取引先の一覧・変更 | `VendorController` |
+| `payment-methods/list.html`、`payment-methods/edit.html` | 支払方法の一覧・変更 | `PaymentMethodController` |
+| `budgets/form.html` | 予算設定 | `BudgetController` |
+| `comparison/index.html` | 予実比較 | `ComparisonController` |
+| `error/404.html` | 404 画面（B7、章2） | Spring Boot が 404 のときに自動で使う。`GlobalExceptionHandler` からも使う |
+
+- 共通部品は Thymeleaf の「フラグメント」（部品の読み込み）で共有する（P5）。理由：追加のライブラリが要らず、標準の機能だけで済むため。
+- 取引の登録と編集は、入力項目が同じなので `form.html` を共用する（章2 の U1：同じ URL に GET・POST）。
+- 科目・取引先・支払方法には、詳細画面を作らない（章2）。
+
+### 4.5 service、security、exception、domain、config
+
+#### service
+
+| クラス | 役割（1行） | 主に扱うテーブル |
+|---|---|---|
+| `RegistrationService` | アカウント登録。ユーザー名の重複確認、パスワードのハッシュ化、ユーザーと初期データ（3.11）を**同じトランザクション**で作る | `users`、`categories`、`budgets`、`vendors`、`payment_methods` |
+| `CategoryService` | 科目の一覧・追加・変更・削除。追加時に予算0円の行を作る（Q3）。削除は「取引で使用中でない」「予算が0円」を確認し、予算の行を先に消してから科目を消す（3.7） | `categories`、`budgets` |
+| `VendorService` | 取引先の一覧・追加・変更・削除（使用中は削除不可） | `vendors` |
+| `PaymentMethodService` | 支払方法の一覧・追加・変更・削除（使用中は削除不可） | `payment_methods` |
+| `BudgetService` | 自分の全科目の予算の取得と、まとめての保存 | `budgets`、`categories` |
+| `TransactionService` | 取引の一覧・詳細・登録・更新・削除。登録・更新のとき、選んだ科目・取引先・支払方法が**自分のものか**を確認する（3.9） | `transactions` |
+| `ComparisonService` | 季節の期間の取引を科目ごとに集計し、予算・実績・差額・色・合計行を作る（`ComparisonResult` を返す） | `categories`、`budgets`、`transactions` |
+
+- 各 Service には、更新を行うメソッドに **トランザクション**（途中で失敗したら全部取り消す）を付ける。
+- 名前の重複や「削除できない」は、Service が下の例外を投げ、Controller がメッセージに変える。
+
+#### security
+
+| クラス | 役割（1行） |
+|---|---|
+| `SecurityConfig` | ログイン必須、`/login`・`/register`・CSS 以外は未ログインで開けない、CSRF 対策、BCrypt のパスワード変換、ログイン成功後は取引一覧、`POST /logout` の設定 |
+| `CustomUserDetailsService` | ログイン時に、ユーザー名から `users` を探して Spring Security に渡す |
+| `LoginUser` | ログイン中のユーザーの情報（ユーザーID、ユーザー名）を持つ。Controller は、ここからユーザーIDを取り出す（P3。理由：毎回データベースを引かずに、安全にユーザーIDを取り出せるため） |
+
+#### exception
+
+| クラス | 役割（1行） |
+|---|---|
+| `NotFoundException` | 存在しない、または他人のデータ。404 にする（B7） |
+| `DuplicateException` | ユーザー名、または科目・取引先・支払方法の名前が重複。入力エラーとして画面に戻す（Q9・Q10） |
+| `DeletionNotAllowedException` | 使用中、または予算が0円でないため削除できない（要件4.3）。理由のメッセージを持つ |
+| `GlobalExceptionHandler` | `NotFoundException` を `error/404.html` に変換する（B7） |
+
+#### domain
+
+| クラス | 役割（1行） |
+|---|---|
+| `Season` | 春・夏・秋・冬と月の対応、URL で使う名前（`spring` など） |
+| `SeasonPeriod` | 年と季節の組み合わせ。今日の日付から季節と年を決める（冬は12月起点）、期間の開始日と終了日の翌日、前の季節・次の季節、2000年春〜2100年冬の範囲の判定（Q7・B15） |
+| `BudgetColor` | 色の種類：赤・青・色なし |
+| `BudgetColorJudge` | 予算と実績から色を決める。次の**順番**で判定する（要件4.4）。①実績 ＞ 予算なら赤（予算が0円でも、実績があれば赤）。②予算が0円なら色なし（実績も0円のとき）。③実績 × 3 ≦ 予算なら青（ちょうど1/3も青）。④それ以外は色なし。合計行にも同じ順番で使う（Q21） |
+
+#### config
+
+| クラス | 役割（1行） |
+|---|---|
+| `AppConfig` | 日本時間の「今日」を返す部品（`Clock`）を用意する（B6） |
+
+### 4.6 entity と repository
+
+#### テーブルとの対応
+
+| テーブル（章3） | Entity | Repository | 主な検索（すべて `user_id` で絞る） |
+|---|---|---|---|
+| `users` | `User` | `UserRepository` | ユーザー名で1件（ログインと重複確認） |
+| `categories` | `Category` | `CategoryRepository` | 自分の科目を `id` 順で全件、ID＋`user_id` で1件、同じ名前があるか |
+| `vendors` | `Vendor` | `VendorRepository` | 同上（取引先） |
+| `payment_methods` | `PaymentMethod` | `PaymentMethodRepository` | 同上（支払方法） |
+| `budgets` | `Budget` | `BudgetRepository` | 自分の予算を全件、科目ごとの予算 |
+| `transactions` | `Transaction` | `TransactionRepository` | 自分の取引を日付の新しい順（同じ日は `id` の新しい順）で全件、ID＋`user_id` で1件、科目／取引先／支払方法が使われているか、期間内の科目ごとの合計 |
+
+- 検索は、**名前付きの検索（Spring Data JPA のメソッド）またはパラメータ付きの検索**で書き、文字列を連結した SQL は使わない（SQL インジェクション対策、章7）。
+- **取引一覧・詳細の検索では、科目・取引先・支払方法もまとめて読み込む**（取引1件ごとに別々に読み込まない）。理由：一覧の件数分だけ追加の検索が走る無駄を避けるため。
+- Entity のつなぎ方（P7）：`Transaction` は科目・取引先・支払方法を関連（`ManyToOne`）として持ち、一覧にそのまま名前を表示できるようにする。`Budget` も科目を関連として持つ。`user_id` は、ユーザーの `Entity` ではなく**数値のID**として持つ。理由：持ち主での絞り込みが簡単で、毎回ユーザーを読み込まずに済むため。
+- 期間内の科目ごとの合計は、Repository が「科目ID と合計」の組（`CategoryActual`、P4）で返す。`dto` に置く。
+
+### 4.7 form と dto
+
+#### form（入力を受け取る）
+
+| クラス | 使う画面 | 入力項目（制限は要件5章、章6） |
+|---|---|---|
+| `RegisterForm` | アカウント登録 | ユーザー名、パスワード |
+| `TransactionForm` | 取引の登録・編集 | 日付、金額、科目ID、摘要、取引先ID、支払方法ID |
+| `CategoryForm` | 科目の追加・変更 | 名前（10文字以下） |
+| `VendorForm` | 取引先の追加・変更 | 名前（20文字以下） |
+| `PaymentMethodForm` | 支払方法の追加・変更 | 名前（10文字以下） |
+| `BudgetForm` | 予算設定 | 科目ごとの予算額の並び（科目IDと金額を1行分とする）。1つでもエラーなら全部保存しない（章2） |
+
+- ログインの入力は、Spring Security が受け取るので Form を作らない。
+- 金額は整数で受け取る（B5）。数字でない入力は入力エラーにする。
+
+#### dto（表示のためのデータ）
+
+| クラス | 役割（1行） |
+|---|---|
+| `ComparisonRow` | 予実比較の1行分：科目名、予算、実績、差額、色。合計行にも使う |
+| `ComparisonResult` | 予実比較の画面全体：見出し（年・季節・期間）、行の並び、合計行、前・次の季節のリンク先（範囲の端では「なし」） |
+| `CategoryActual` | 科目ごとの実績（科目IDと合計）。Repository の集計結果（P4） |
+
+- 取引一覧・詳細は、Entity をそのまま画面に渡して表示する（P6）。理由：項目が Entity とほぼ同じで、専用のクラスを作ると増えるだけなため。
+
+### 4.8 作らないもの
+
+要件にない・今回やらないため、クラスを作らない。
+
+- ユーザーの削除・パスワード再設定・ユーザー情報の変更（要件8章）
+- 季節のテーブルと Entity（季節はプログラムの `Season`、3.1）
+- 権限（管理者など）を表すクラス
+- 取引の検索・絞り込み・ページ分けのクラス（Q5）
+- カロリー管理、アラート、予算の自動設定（要件9章）
+- データを JSON で返す API 用の Controller
+
+### 4.9 要件にはないが作るもの（確定）
+
+| 番号 | 決めたこと | 理由 |
+|---|---|---|
+| P1 | `domain` パッケージを作る（`Season`、`SeasonPeriod`、`BudgetColor`、`BudgetColorJudge`） | 計算だけの部分を単体テストしやすくするため |
+| P2 | `config` パッケージに `AppConfig`（日本時間の「今日」）を置く | 日本時間を1か所で決め、テストで日付を固定するため |
+| P3 | `LoginUser` を作る | ユーザーIDを安全に取り出すため |
+| P4 | `CategoryActual`（集計結果の入れ物）を `dto` に置く | 集計結果を受け取るため |
+| P5 | 共通部品は Thymeleaf のフラグメントで共有する | 追加のライブラリが要らないため |
+| P6 | 取引一覧・詳細は Entity をそのまま画面に渡す | 専用のクラスを増やさないため |
+| P7 | `user_id` は数値で持ち、科目などは関連として持つ | 絞り込みが簡単で、名前を表示しやすいため |
+| P8 | 例外を 3 種類（`NotFoundException`、`DuplicateException`、`DeletionNotAllowedException`）に分ける | 404・入力エラー・削除不可で画面の動きが違うため |
 
 ---
 
