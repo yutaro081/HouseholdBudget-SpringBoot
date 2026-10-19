@@ -2,7 +2,7 @@
 
 [要件定義書](requirements.md) をもとに、何をどう作るかを決めた設計書です。作成の手順は [Phase 1 手順書](../plans/phase-1-design.md) にあります。
 
-- 状態：作成中（章2・章3・章4を記載。他の章は未作成）
+- 状態：作成中（章1〜章4を記載。他の章は未作成）
 
 ## 書き方のルール
 
@@ -17,7 +17,134 @@
 
 ## 1. 全体の構成
 
-（未作成）
+### 1.1 方針
+
+- 画面は**サーバー側で作る**（Thymeleaf が HTML を作ってブラウザへ返す）。画面を JavaScript で組み立てる作りにはしない。理由：要件の機能が「フォームを送って結果を表示する」形で足りるため。
+- 確認ダイアログ（削除前）にだけ、少量の標準の JavaScript を使う（章2）。
+- 利用者ごとのデータ分離は、**すべての検索を `user_id` で絞る**ことで守る（3.9、4.1）。
+- 設定のうち、**パスワードなどの秘密は環境変数から読み、リポジトリに書かない**（1.5）。
+
+### 1.2 使う技術と版
+
+版は、**確認できたものだけ**を書く。Spring Boot が管理する部品は、版を書かずに「Spring Boot が管理する版」とする（Spring Boot の版を決めると自動で決まり、こちらで選ばないため）。
+
+| 技術 | 版 | 役割 | 選んだ理由 |
+|---|---|---|---|
+| Java（JDK） | 25（Eclipse Temurin 25.0.2） | プログラムを書く言語と実行環境 | 要件で指定。導入済みの長期サポート版（Phase 0 で確認済み） |
+| Spring Boot | 4.1.1 | アプリの土台。Web サーバー（組み込み）、設定、起動 | 要件で指定。公式ドキュメントで Java 17〜26 に対応していることを確認済み（Q18） |
+| Maven（`mvnw`） | プロジェクト付属の Maven Wrapper が使う版 | 部品の管理とビルド | 別にインストールせず、`mvnw` で動かせる（Phase 0）。実行計画書の方針 |
+| Thymeleaf | Spring Boot が管理する版 | 画面（HTML）の作成。表示する値は自動で無害化される | Spring Boot の標準的な画面の仕組み。入門者向けで、XSS 対策（章7）が標準で入っている |
+| Spring MVC | Spring Boot が管理する版 | URL を受けて Controller を呼ぶ | Web アプリの基本部品 |
+| Spring Security | Spring Boot が管理する版 | ログイン・ログアウト、ログイン必須、CSRF 対策 | 要件6章のセキュリティを自作せずに実現でき、実績がある |
+| BCrypt | Spring Security に含まれる | パスワードのハッシュ化 | 元に戻せない形で保存する要件（6章）。標準で使える |
+| Spring Data JPA（と Hibernate） | Spring Boot が管理する版 | Entity と Repository によるデータベースの読み書き | SQL を文字列で連結せずに書け、SQL インジェクション対策（要件6章）になる |
+| Bean Validation | Spring Boot が管理する版 | 入力チェック（必須・文字数・範囲） | 項目に印を付けるだけで書け、エラーメッセージを画面に戻しやすい（章6） |
+| MySQL Server | 9.7（確認した版：9.7.2） | データベース | 要件で指定。導入済み（Phase 0） |
+| MySQL 用ドライバ | Spring Boot が管理する版 | アプリから MySQL につなぐ | MySQL を使うために必要 |
+| JUnit など（テスト） | Spring Boot が管理する版 | 単体テスト・自動テスト（Phase 7・8） | Spring Boot の標準のテスト部品 |
+| VS Code / Git / GitHub / Claude Code | 最新版（Phase 0 で確認済み） | 開発の道具 | 要件で指定（7章） |
+
+- パスワードの文字数（8〜30）はハッシュ化の前の入力で確認する（3.2）。
+- 画面の見た目は、自作の CSS 1ファイル（`static/css/style.css`）で作る。CSS の部品集は使わない。（要件にないので、増やさない）
+
+### 1.3 層の分担
+
+詳しいクラスは 4.2〜4.7。ここでは役割だけを短く書く。
+
+| 層・パッケージ | 分担 | 触ってよいもの |
+|---|---|---|
+| `controller` | URL を受け取り、入力を Form で受けて入力チェックの結果を確かめ、Service を呼び、画面を選ぶ。ログイン中のユーザーIDを Service に渡す | Form、Service、DTO |
+| `service` | 処理の中身。持ち主の確認、重複・削除の可否の判断、トランザクション（途中で失敗したら全部取り消す） | Repository、`domain` |
+| `repository` | データベースの読み書きだけ。すべての検索を `user_id` で絞る | Entity |
+| `domain` | 季節の決定と色の判定。画面にもデータベースにも依存しない計算 | （ほかに頼らない） |
+| `security` | ログイン・ログアウト・パスワードのハッシュ化・「ログインしていないと開けない」制限 | Spring Security の部品 |
+| `exception` | 「見つからない」「重複」「削除不可」の例外と、404 画面への変換 | — |
+
+- 守る決まり：Controller は Repository を直接呼ばない。Service は画面（テンプレート）のことを知らない。
+
+### 1.4 リクエストの通る道すじ
+
+どのリクエストも、先に **Spring Security の入口**を通る。ここでログインしているか（未ログインなら `/login` へ）と、POST の CSRF トークンを確かめる（章7）。
+
+#### 例1：取引を登録する（`POST /transactions/new`）
+
+```mermaid
+sequenceDiagram
+    actor U as 利用者
+    participant SEC as Spring Security
+    participant C as TransactionController
+    participant S as TransactionService
+    participant R as Repository
+    participant DB as MySQL
+
+    U->>SEC: フォームを送る（金額・日付・科目など）
+    SEC->>SEC: ログイン中か、CSRFトークンは正しいか
+    SEC->>C: ログイン中のユーザー情報つきで渡す
+    C->>C: TransactionForm に受けて入力チェック
+    alt 入力エラーあり
+        C-->>U: 同じ画面を表示し直す（入力値とエラーを表示）
+    else 入力エラーなし
+        C->>S: ユーザーIDとフォームを渡す
+        S->>R: 科目・取引先・支払方法が自分のものか確認
+        R->>DB: user_id で絞って検索
+        alt 他人のものだった・存在しない
+            S-->>C: NotFoundException
+            C-->>U: 404画面
+        else 自分のもの
+            S->>R: 取引を保存
+            R->>DB: INSERT
+            S-->>C: 完了
+            C-->>U: 取引一覧へリダイレクト（「登録しました」）
+        end
+    end
+```
+
+#### 例2：予実比較を開く（`GET /comparison?year=2026&season=spring`）
+
+```mermaid
+sequenceDiagram
+    actor U as 利用者
+    participant SEC as Spring Security
+    participant C as ComparisonController
+    participant S as ComparisonService
+    participant D as domain
+    participant R as Repository
+    participant DB as MySQL
+
+    U->>SEC: 予実比較を開く
+    SEC->>SEC: ログイン中か
+    SEC->>C: ログイン中のユーザー情報つきで渡す
+    C->>S: ユーザーID、年、季節を渡す（指定なしなら今日）
+    S->>D: 年と季節から期間（開始日〜終了日の翌日）を求める
+    alt 範囲外の年・不正な季節
+        S-->>C: NotFoundException
+        C-->>U: 404画面
+    else 正しい指定
+        S->>R: 自分の科目と予算を取得
+        R->>DB: user_id で絞って検索
+        S->>R: 期間内の科目ごとの取引の合計を取得
+        R->>DB: user_id と期間で絞って集計
+        S->>D: 予算と実績から色を決める（各行と合計行）
+        S-->>C: ComparisonResult（行、合計行、前・次の季節）
+        C-->>U: 予実比較の画面を表示
+    end
+```
+
+- 同じ道すじで、取引の更新・削除、科目などの追加・変更・削除、予算の保存も動く（POST はリダイレクトで戻る、GET は画面を返す）。
+
+### 1.5 設定と秘密情報
+
+- 設定ファイル（`application.properties`）は、リポジトリに入れる。ただし、**データベースのパスワードは書かず、環境変数から読む**。
+- 接続先やユーザー名も、環境変数から読めるようにする（変えられる設定として）。環境変数の名前は Phase 2 で決める。
+- 環境変数は、各自のパソコンで設定する。READMEには「設定する環境変数の名前」だけを書き、値は書かない（Phase 9）。
+- パスワードを含むファイルを作る場合は、`.gitignore` で除外する（Phase 2）。
+- アプリ専用のDBユーザーを作り、このアプリのデータベースだけを操作できるようにする（Phase 2）。`root` はアプリから使わない。（Phase 0 で扱った `root` のパスワードは、リポジトリに書かない）
+
+### 1.6 動かす環境
+
+- 動かす場所は、自分のパソコンだけ（インターネットへの公開は要件9章で対象外）。
+- 起動の流れ：MySQL のサービスが動いている状態で、`mvnw` からアプリを起動し、ブラウザで開く（Phase 2）。起動のたびに `schema.sql` が実行される（Q17、章3）。
+- 日付の基準は日本時間（B6、`AppConfig`、4.5）。
 
 ---
 
