@@ -346,7 +346,7 @@ Select-String -Path src\main\resources\application.properties -Pattern "password
 
 ### 4.8 `schema.sql` を書いて、アプリを起動する
 
-- [ ] `src/main/resources/schema.sql` を作る。次の決まりで、設計書 章3 のとおりに書く
+- [x] `src/main/resources/schema.sql` を作る。次の決まりで、設計書 章3 のとおりに書く
 
 | 決まり | 根拠 |
 |---|---|
@@ -360,18 +360,18 @@ Select-String -Path src\main\resources\application.properties -Pattern "password
 | **各テーブルに `COLLATE utf8mb4_0900_as_ci` を明記する**（データベースの既定に頼らない）。4.5 の結果で決めた | 3.12、Q2-6 |
 | **パスワードや、入力値を含めない**。初期データ（科目など）は入れない（Phase 3 でアプリが作る） | 7.4、7.9、S6、3.11 |
 
-- [ ] アプリを起動する（VS Code のターミナルで、環境変数が入った状態で）
+- [x] アプリを起動する（VS Code のターミナルで、環境変数が入った状態で）
 
 ```powershell
 .\mvnw spring-boot:run
 ```
 
-- [ ] 起動のログを読む。
+- [x] 起動のログを読む。
 
 **確認**：
-- [ ] ログの終わりに `Started HouseholdBudgetApplication`（起動クラス名）が出て、エラーで止まっていない
-- [ ] `schema.sql` の実行でエラー（`Access denied`、`command denied` など）が出ていない。**出たら、足りない権限を確認して追加し（4.4）、追加した権限と理由を記録する**
-- [ ] `schema.sql` を実行した状態で、**もう一度アプリを起動してもエラーにならない**（`IF NOT EXISTS` のため）
+- [x] ログの終わりに `Started HouseholdBudgetApplication`（起動クラス名）が出て、エラーで止まっていない
+- [x] `schema.sql` の実行でエラー（`Access denied`、`command denied` など）が出ていない。**出たら、足りない権限を確認して追加し（4.4）、追加した権限と理由を記録する**
+- [x] `schema.sql` を実行した状態で、**もう一度アプリを起動してもエラーにならない**（`IF NOT EXISTS` のため）
 - [ ] ログに、パスワードやその値が出ていない
 
 > **Spring Security の標準の動き（Q2-8）**：Spring Security は、設定が無い状態では、全 URL をログイン必須にし、起動のたびにコンソールに「生成されたパスワード」（`Using generated security password: ...`）を出します。Phase 2 の確認は、**この標準の動きのまま**行います（全 URL を許可する仮の設定は作らない。置き換え忘れると、ログインなしで全部見られる状態が残るため）。
@@ -380,7 +380,7 @@ Select-String -Path src\main\resources\application.properties -Pattern "password
 >
 > **起動できないとき**は、7. つまずいたとき を見る。
 
-- [ ] アプリを止める（ターミナルで `Ctrl + C`）
+- [x] アプリを止める（ターミナルで `Ctrl + C`）
 
 **自動テスト（`contextLoads`）を実行する（Q2-10）**
 
@@ -388,35 +388,38 @@ Initializr が作った空のテスト（`contextLoads`）は、アプリ全体�
 
 > 環境変数（4.6）を設定したあとで、**VS Code を開き直してから**実行します。開き直す前だと、環境変数が空で失敗します。
 
-- [ ] 新しいターミナルを開き（VS Code を開き直した後）、リポジトリの直下で実行する
+- [x] 新しいターミナルを開き（VS Code を開き直した後）、リポジトリの直下で実行する
 
 ```powershell
 .\mvnw test
 ```
 
 **確認**：
-- [ ] 最後に `BUILD SUCCESS` と、`Tests run: 1, Failures: 0, Errors: 0` が出る
+- [x] 最後に `BUILD SUCCESS` と、`Tests run: 1, Failures: 0, Errors: 0` が出る
 - [ ] 環境変数が空の状態では失敗する（`Failed to configure a DataSource` など）。**失敗の例を一度見ておく必要はない**。成功すればよい
 
 ### 4.9 テーブルが作られたことを、アプリ用ユーザーで確かめる
 
 `root` ではなく、**アプリ用ユーザー**で確かめます（4.4 で作ったユーザーで、必要な操作ができる確認にもなる）。
 
-- [ ] `mysql -u hb_app -p householdbudget` でログインする
-- [ ] 次を実行する
+- [x] `mysql -u hb_app -p householdbudget` でログインする
+- [x] 次を実行する
 
 ```sql
 SHOW TABLES;
 SHOW CREATE TABLE budgets;
 SHOW CREATE TABLE users;
-SELECT TABLE_NAME, CONSTRAINT_NAME FROM INFORMATION_SCHEMA.CHECK_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = 'householdbudget';
+SELECT COUNT(*) FROM users;
+SELECT TABLE_NAME, CONSTRAINT_NAME FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = 'householdbudget' AND CONSTRAINT_TYPE = 'CHECK';
 ```
 
+> `INFORMATION_SCHEMA.CHECK_CONSTRAINTS` には `TABLE_NAME` 列がないため（`ERROR 1054`）、`TABLE_CONSTRAINTS` を使う。
+
 **確認**：
-- [ ] `SHOW TABLES` に6つ出る
-- [ ] `SHOW CREATE TABLE` で、型・制約・文字コード・照合順序が、設計書 章3 と同じ
-- [ ] CHECK 制約が、`budgets` と `transactions` に出る
-- [ ] `users` に、行が1件も入っていない（既定のアカウントを作らない、S6）
+- [x] `SHOW TABLES` に6つ出る
+- [x] `SHOW CREATE TABLE` で、型・制約・文字コード・照合順序が、設計書 章3 と同じ
+- [x] CHECK 制約が、`budgets`（3つ）と `transactions`（2つ）に出る（`ck_budgets_season_year`、`ck_budgets_season`、`ck_budgets_amount`、`ck_transactions_amount`、`ck_transactions_date`）
+- [x] `users` に、行が1件も入っていない（既定のアカウントを作らない、S6）
 
 > `schema.sql` を直して作り直したいときは、`CREATE TABLE IF NOT EXISTS` は、**すでにあるテーブルを変更しません**。開発中に作り直すときは、`root` で `DROP DATABASE`・`CREATE DATABASE`・`GRANT` をやり直します（今は中身が無いので安全です。Phase 3 以降は、データが消えることに注意）。
 
