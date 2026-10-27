@@ -318,11 +318,12 @@ $env:HB_DB_USER
 | DB 接続先・ユーザー・パスワード | `spring.datasource.url` / `username` / `password`。値は `${環境変数名}` の形で、4.6 の名前を参照する | 1.5、D2 |
 | 起動のたびに `schema.sql` を実行 | `spring.sql.init.mode=always` | 1.6、Q17。MySQL のような外部のデータベースでは、これを書かないと `schema.sql` は実行されない |
 | `messages.properties` の文字コード | `spring.messages.encoding=UTF-8` | 6.8、C2 |
+| エラーの詳細を画面に含めない | `server.error.include-stacktrace=never`、`server.error.include-message=never`、`server.error.include-binding-errors=never`、`server.error.include-exception=false` | 7.7、S2、Q2-11 |
 | テーブルの自動作成・変更を止める | `spring.jpa.hibernate.ddl-auto=none`（テーブルは `schema.sql` で作る） | Q17、Q2-8 |
 | SQL の値を表示するログをオンにしない | 特に何も書かない（`spring.jpa.show-sql` などを `true` にしない、ログの `TRACE` 設定を入れない） | S5 |
 
 > **Phase 2 では書かない**（Phase 3 で行う、Q2-8）：セッション Cookie の設定（S1）。
-> **未決（Q2-11）**：エラーの詳細を画面に含めない設定（S2：`server.error.include-stacktrace` など）を Phase 2 で書くか、`spring.jpa.open-in-view` を書くか。決まるまで書きません。
+> **`spring.jpa.open-in-view` は書かない**（Q2-11）。既定のままにする。`true` のままか `false` にするかは、設計書の章8の D5 として **Phase 5 で決める**。
 
 **確認**：
 - [ ] `application.properties` を開いて、パスワード・実際のユーザー名・実際の接続先の値が書かれていない（`${...}` だけ）
@@ -510,7 +511,7 @@ git grep -n -i -e "password" -- . ":(exclude)docs"
 | Q2-8 | **Phase 2 に入れる範囲と、仮のページの扱い**。（a）Spring Security が入ると、全 URL がログイン必須になり、仮のページが見られない。（b）実行計画書の Phase 2 にある「共通の画面の枠（ヘッダー、メニュー）」「404/403/500 画面」（4.4.2）、Cookie の設定（S1、7.10）、Hibernate の `ddl-auto` を Phase 2 に入れるか | （a）<br>A：仮のページのためだけに、全 URL を許可する最小の設定を仮に置き、Phase 3 で本物に置き換える<br>B：Spring Security の標準のログイン画面が出ることをもって「画面が表示された」とする<br>（b）項目ごとに Phase 2／Phase 3 以降 | （a）A（手順書の初版の提案）<br>（b）`ddl-auto` は `none`。それ以外は実行計画書どおり | ☑ **（a）は A にしない**：仮に全 URL を許可する設定は作らない。理由：置き換え忘れると、ログインなしで全部見られる状態が残るため。Phase 2 は **Spring Security の標準の動き**（起動時にコンソールに出る仮のパスワードで、ユーザー名 `user` でログイン）で確認する。仮のページは、ログインしたあとに見る（4.10）<br>**（b）** `ddl-auto` は Phase 2 で `none`（テーブルは `schema.sql` で作るため）。共通の画面の枠、404/403/500 の画面、Cookie の設定（S1）は **Phase 3** で行う |
 | Q2-9 | **空のパッケージの扱い**（4.3） | A：何も置かない（クラスを作ったときにフォルダが入る）<br>B：`.gitkeep` を置く | **A** | ☑ **A**（提案どおり） |
 | Q2-10 | **自動テスト**。Initializr は、アプリ全体を起動する空のテスト（`contextLoads`）を作る。これは DB につながるので、環境変数が無い環境では失敗する | A：そのまま残す（`mvnw test` を実行する人にも、環境変数が必要）<br>B：Phase 8 まで外す／無効にする<br>C：テスト用の DB を別に用意する（設計書に決定なし） | **A** | ☑ **A**：`contextLoads` は残す。理由：アプリが DB につながって起動できることの確認になるため。環境変数を設定したあと、VS Code を開き直してから実行する（4.6、4.8 に手順を入れた） |
-| Q2-11 | **（新しく出た点）エラー詳細を画面に含めない設定（S2）と、`spring.jpa.open-in-view` の扱い**。Q2-8 で「404/403/500 の画面は Phase 3」と決まったが、S2 の設定（`server.error.include-stacktrace=never` など）は画面を作らなくても書ける。`open-in-view` は設計書に記載がない（Spring Boot の既定は `true`） | S2：A：Phase 2 の `application.properties` に書く／B：Phase 3 の 404/403/500 画面と一緒に書く<br>`open-in-view`：A：書かない（既定のまま）／B：`false` にする | S2：**A**（設定の行だけで、早く入れておくほうが安全）<br>`open-in-view`：**A**（設計書にない設定は、足さない） | （未決。4.7 の該当行は、決まるまで書かない） |
+| Q2-11 | **（新しく出た点）エラー詳細を画面に含めない設定（S2）と、`spring.jpa.open-in-view` の扱い**。Q2-8 で「404/403/500 の画面は Phase 3」と決まったが、S2 の設定（`server.error.include-stacktrace=never` など）は画面を作らなくても書ける。`open-in-view` は設計書に記載がない（Spring Boot の既定は `true`） | S2：A：Phase 2 の `application.properties` に書く／B：Phase 3 の 404/403/500 画面と一緒に書く<br>`open-in-view`：A：書かない（既定のまま）／B：`false` にする | S2：**A**（設定の行だけで、早く入れておくほうが安全）<br>`open-in-view`：**A**（設計書にない設定は、足さない） | ☑ **S2：Phase 2 の `application.properties` に書く**（4.7）。**`open-in-view`：Phase 2 では書かない**（既定のまま）。ただし、取引一覧で Entity を画面に渡す（P6）ことと、関連をまとめて読み込む（4.6）ことに関係するため、設計書の章8に **D5** として追加した（Phase 5 で決める） |
 
 > 設計書 1.2 と Phase 1 手順書の Q18 の「4.1.1」は、Q2-1 の決定に従い、**先に 4.1.2 へ直しました**。`docs/reviews/phase-1-review.md` の Q18 の行は、Phase 1 当時のレビュー記録なので、直していません。
 
@@ -559,5 +560,5 @@ git grep -n -i -e "password" -- . ":(exclude)docs"
 
 - Phase 3 では、この土台の上に、`User` の Entity・登録・ログインを作ります。**環境変数が設定された VS Code で作業する**こと、**`root` を使わないこと**を覚えておいてください。
 - Phase 3 で行うこと（Q2-8）：`SecurityConfig`（Phase 2 では作っていない）、共通の画面の枠、404/403/500 の画面、Cookie の設定（S1）。仮の Controller・テンプレート・`check.hello` は、本物の `HomeController` と画面に置き換える。
-- 未決のまま残るもの：Q2-6（照合順序。4.5 のあと）、Q2-11（S2 と `open-in-view`）。
-- 設計書の章8に残るのは、D4（Phase 3 で決める）と C1（Phase 3 で確かめる）です。
+- 未決のまま残るもの：Q2-6（照合順序。4.5 のあと）。
+- 設計書の章8に残るのは、D4（Phase 3）、D5（`open-in-view`、Phase 5）、C1（Phase 3）です。
