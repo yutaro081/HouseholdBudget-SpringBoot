@@ -75,7 +75,7 @@ Repository に足す検索メソッド（名前は作るときに決める。次
 - [x] `feature/phase-4-masters` にいる
 - [x] MySQL のサービス（`MySQL97`）が動いている
 - [x] 環境変数 `HB_DB_URL`、`HB_DB_USER`、`HB_DB_PASSWORD` が設定されている（値は表示しない）
-- [ ] 確認用のアカウントが2つ以上ある（Phase 3 の `test1`、`test2`。データ分離の確認に使う）
+- [x] 確認用のアカウントが2つ以上ある（Phase 3 の `test1`、`test2`。データ分離の確認に使う）
 
 **確認**：
 - [x] `git status` が `On branch feature/phase-4-masters` と `working tree clean` を示す
@@ -124,36 +124,36 @@ Repository に足す検索メソッド（名前は作るときに決める。次
 
 ### 4.5 科目：Repository と Form
 
-- [ ] `CategoryRepository` に、3.1 の検索メソッドを足す（`userId` を引数に取る型）
-- [ ] `BudgetRepository` に、3.1 の2つのメソッドを足す
-- [ ] `form` に `CategoryForm`：`name` の1項目。必須、10文字以下（要件5章、6.2）。注釈は D4 の B（必須は他のエラーと重ねない。文字数は別の注釈）。`user_id` の項目は作らない（6.1）
-- [ ] 前後の空白の取り除き（全角の空白を含む、B9、6.4）：`String.strip()` を使う。**`trim()` と、Spring 標準の `StringTrimmerEditor` は、全角の空白を取らないので使わない**。取り除く仕組みは Q4-3 の決定による
+- [x] `CategoryRepository` に、3.1 の検索メソッドを足す（`userId` を引数に取る型）
+- [x] `BudgetRepository` に、3.1 の2つのメソッドを足す
+- [x] `form` に `CategoryForm`：`name` の1項目。必須、10文字以下（要件5章、6.2）。注釈は D4 の B（必須は他のエラーと重ねない。文字数は別の注釈）。`user_id` の項目は作らない（6.1）
+- [x] 前後の空白の取り除き（全角の空白を含む、B9、6.4）：`String.strip()` を使う。**`trim()` と、Spring 標準の `StringTrimmerEditor` は、全角の空白を取らないので使わない**。取り除く仕組みは Q4-3 の決定による
 
 **確認**：
-- [ ] `CategoryForm` の入力チェックの単体テスト（Spring を使わない）：空、空白だけ（半角・全角）、10文字、11文字、前後に空白（半角・全角）のある名前（取り除かれる）
+- [x] `CategoryForm` の入力チェックの単体テスト（Spring を使わない）：空、空白だけ（半角・全角）、10文字、11文字、前後に空白（半角・全角）のある名前（取り除かれる）
 
 ### 4.6 科目：Service
 
 設計書 5.4、5.5、5.6 のとおりに作る。**すべてのメソッドの最初の引数は `userId`。更新するメソッドは、1つのトランザクションにする。**
 
-- [ ] 一覧：自分の科目を登録順（`id` 順）で返す
-- [ ] 1件取得（変更画面用）：ID と `userId` で探す。なければ `NotFoundException`
-- [ ] 追加：
+- [x] 一覧：自分の科目を登録順（`id` 順）で返す
+- [x] 1件取得（変更画面用）：ID と `userId` で探す。なければ `NotFoundException`
+- [x] 追加：
   1. 自分の中に同じ名前があれば `DuplicateException`（5.6）
   2. 名前を保存（`user_id` はログイン中のユーザー）。同時に追加されて確認をすり抜けた場合は、DB の一意制約のエラーも `DuplicateException`（5.6）
   3. 同じトランザクションで、**今の季節の予算0円の行**を保存する。今の季節は、`SeasonPeriod.from(LocalDate.now(clock))` と `AppConfig` の `Clock` で求める。ほかの季節の予算は作らない（5.4）
-- [ ] 変更：ID と `userId` で探す（なければ `NotFoundException`）。**この行以外**で同じ名前があれば `DuplicateException`。自分自身の今の名前は重複としない（名前を変えずに保存してもエラーにしない、5.6）
-- [ ] 削除（5.5）：
+- [x] 変更：ID と `userId` で探す（なければ `NotFoundException`）。**この行以外**で同じ名前があれば `DuplicateException`。自分自身の今の名前は重複としない（名前を変えずに保存してもエラーにしない、5.6）
+- [x] 削除（5.5）：
   1. ID と `userId` で探す（なければ `NotFoundException`）
   2. その科目が取引で使われていれば `DeletionNotAllowedException`（`error.delete.inUse`）
   3. いずれかの季節に0円でない予算があれば `DeletionNotAllowedException`（`error.delete.budgetNotZero`）
   4. 「使用中」と「0円でない予算」が重なるときは、**「使用中」のメッセージだけ**を出す（F1。上の順番どおりに判定すればそうなる）
   5. 同じトランザクションで、その科目の予算の行（どの季節のものも）をすべて消してから、科目を消す（3.7）
   6. 判定をすり抜けて DB の外部キーに拒否された場合も、`DeletionNotAllowedException`（`error.delete.inUse`）として扱う
-- [ ] 予算が「未設定」の季節（行がない季節）は、0円として扱うので、削除をさまたげない（要件4.3）
+- [x] 予算が「未設定」の季節（行がない季節）は、0円として扱うので、削除をさまたげない（要件4.3）
 
 **確認**：
-- [ ] `.\mvnw test` が成功する（テストは 4.8 で書く）
+- [x] `.\mvnw test` が成功する（テストは 4.8 で書く）
 
 ### 4.7 科目：Controller と画面
 
@@ -182,7 +182,7 @@ Repository に足す検索メソッド（名前は作るときに決める。次
 
 > どこまで書くかは Q4-4 の決定による。下は、**推奨（A）の場合**の内容。各テストはトランザクションで包み、終わると取り消される形にする（Phase 3 の Q3-8 と同じ）。テストに出てくるパスワードは、ダミーの値にする。
 
-**Service のテスト（`CategoryServiceTest`）**
+**Service のテスト（`CategoryServiceTest`）**（4.6 のあとに前倒しで書いた。31件）
 - [ ] 一覧：自分の科目だけが、登録順で返る（他のユーザーの科目は返らない）
 - [ ] 追加：科目が増え、**今の季節の予算0円の行が1つ**できる（`Clock` を固定して、季節を確かめる。冬の1月・2月は前の年）。ほかの季節の行はできない
 - [ ] 追加の重複：同じ名前、大文字・小文字違い（`Food` と `FOOD`）、ひらがなとカタカナ（`ひ` と `ヒ`）、全角と半角（`ｱ` と `ア`）は `DuplicateException`。**濁点違い（`カ` と `ガ`）は別の名前として追加できる**（設計書 3.12）。**他のユーザーが同じ名前を持っていても、追加できる**
