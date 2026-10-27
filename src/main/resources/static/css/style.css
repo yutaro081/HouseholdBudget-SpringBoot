@@ -1,0 +1,81 @@
+/* 画面の見た目（設計書 1.2：自作の CSS 1ファイル）。Phase 3 では最小限だけ。画面が増えるたびに足す。 */
+
+body {
+    font-family: sans-serif;
+    margin: 0;
+    color: #222;
+}
+
+main {
+    padding: 16px;
+    max-width: 960px;
+    margin: 0 auto;
+}
+
+main.narrow {
+    max-width: 420px;
+}
+
+/* ヘッダー（メニュー、ユーザー名、ログアウト） */
+.app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    background: #f0f0f0;
+    border-bottom: 1px solid #ccc;
+}
+
+.menu a {
+    margin-right: 16px;
+}
+
+.user-area {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.logout-form {
+    margin: 0;
+}
+
+/* フォーム */
+.field {
+    margin-bottom: 16px;
+}
+
+.field label {
+    display: block;
+    margin-bottom: 4px;
+}
+
+.field input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 6px;
+}
+
+/* 項目の横（真下）のエラー（赤い文字、6.9） */
+.field-error {
+    color: #c00;
+    font-size: 0.9em;
+    margin-top: 4px;
+}
+
+/* 画面の上部のメッセージ（2.3） */
+.message {
+    padding: 8px 12px;
+    margin: 12px 0;
+    border-radius: 4px;
+}
+
+.message.success {
+    background: #e6f4ea;
+    color: #1e6b32;
+}
+
+.message.error {
+    background: #fdecea;
+    color: #c00;
+}

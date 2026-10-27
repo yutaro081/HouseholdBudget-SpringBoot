@@ -6,6 +6,9 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+import org.springframework.web.servlet.FlashMap;
+import org.springframework.web.servlet.support.SessionFlashMapManager;
 
 /**
  * セキュリティの設定（設計書 4.5、7.2、7.3、7.6、7.10）。
@@ -39,8 +42,9 @@ public class SecurityConfig {
 						.loginPage("/login")
 						// 成功後は、開こうとしていた URL に関係なく、取引一覧へ（U5）
 						.defaultSuccessUrl("/transactions", true)
-						// 失敗後は、ログイン画面へ。ユーザー名の有無に関わらず同じ（B8）
-						.failureUrl("/login?error")
+						// 失敗後は、ログイン画面へ。ユーザー名の有無に関わらず同じ（B8）。
+						// 入力したユーザー名は残し、パスワードは残さない（2.3）
+						.failureHandler(loginFailureHandler())
 						.permitAll())
 				.logout(logout -> logout
 						// POST /logout（CSRF のトークンが要る、7.6）。セッションを捨てて、ログイン画面へ
@@ -48,6 +52,22 @@ public class SecurityConfig {
 						.logoutSuccessUrl("/login?logout")
 						.permitAll());
 		return http.build();
+	}
+
+	/**
+	 * ログイン失敗のとき、/login?error へ移動する。移動先の画面で入力したユーザー名を表示できるように、
+	 * ユーザー名だけを、次の1回の表示に限って渡す（フラッシュ属性）。パスワードは渡さない。
+	 */
+	private AuthenticationFailureHandler loginFailureHandler() {
+		return (request, response, exception) -> {
+			FlashMap flashMap = new FlashMap();
+			String username = request.getParameter("username");
+			if (username != null) {
+				flashMap.put("loginUsername", username);
+			}
+			new SessionFlashMapManager().saveOutputFlashMap(flashMap, request, response);
+			response.sendRedirect(request.getContextPath() + "/login?error");
+		};
 	}
 
 }

@@ -245,25 +245,25 @@ C は、前のグループにエラーがあると、**他の項目のエラー�
 
 設計書 2.2、2.3、2.6、4.4 のとおりに作る。**画面の値は `th:text` で出す。`th:utext` は使わない**（7.5）。フォームは `th:action` で書く（CSRF トークンが自動で入る、7.6）。
 
-- [ ] `controller` に `AuthController`：`GET /login`、`GET /register`、`POST /register`
+- [x] `controller` に `AuthController`：`GET /login`、`GET /register`、`POST /register`
   - `POST /register`：`RegisterForm` の入力チェック → エラーなら**リダイレクトせず**同じ画面を表示し直す（ユーザー名は残し、**パスワードは残さない**、2.3、6.9）→ なければ `RegistrationService` → `DuplicateException` のときは、ユーザー名の項目の横に「このユーザー名はすでに使われています」→ 成功したら `/login` へリダイレクト（「登録しました。ログインしてください」を1回だけ表示、Q11）
   - 登録とログインの URL が、ログイン済みの人にも表示される（特別な動きは作らない、U6）
-- [ ] `controller` に `HomeController`：`GET /` を取引一覧（`/transactions`）へ移動する（Q12）
-- [ ] `templates/login.html`：ユーザー名・パスワード、「アカウント登録」へのリンク。登録成功後・ログアウト後・失敗後のメッセージ（2.3）。**失敗してもユーザー名は残し、パスワードは残さない**
-- [ ] `templates/register.html`：ユーザー名・パスワード、項目の横にエラー、「ログイン」へのリンク
-- [ ] ログイン前の画面には、メニューは出さない（2.3）
+- [x] `controller` に `HomeController`：`GET /` を取引一覧（`/transactions`）へ移動する（Q12）
+- [x] `templates/login.html`：ユーザー名・パスワード、「アカウント登録」へのリンク。登録成功後・ログアウト後・失敗後のメッセージ（2.3）。**失敗してもユーザー名は残し、パスワードは残さない**
+- [x] `templates/register.html`：ユーザー名・パスワード、項目の横にエラー、「ログイン」へのリンク
+- [x] ログイン前の画面には、メニューは出さない（2.3）
 
 **確認**：
-- [ ] `.\mvnw test` が成功する
+- [x] `.\mvnw test` が成功する
 
 ### 4.9 共通の画面の枠、CSS、取引一覧（仮）
 
 > 作る範囲は Q3-1（取引一覧の仮）、Q3-4（メニューの出し方）、Q3-6（CSS）の決定による。
 
-- [ ] `templates/fragments/common.html`（4.4.2、P5）：ヘッダー（メニュー、ログイン中のユーザー名、ログアウトボタン）。ログイン中のユーザー名は、`thymeleaf-extras-springsecurity6` で出す（`th:text` と同じく無害化される。使い方は、Spring Boot 4.1.2 が管理する版の公式ドキュメントで確かめる）、成功メッセージとエラーメッセージの表示場所（画面の上部、2.3）。ログアウトは `POST /logout`（フォーム、CSRF トークン付き）
-- [ ] `static/css/style.css`（最小）：Q3-6 の決定による。ログイン前から読める（`/css/**`、7.3）
-- [ ] 取引一覧（仮）：Q3-1 の決定による
-- [ ] 金額・日付の表示の形（2.3）は、取引を表示する Phase 5 で使う。Phase 3 では不要
+- [x] `templates/fragments/common.html`（4.4.2、P5）：ヘッダー（メニュー、ログイン中のユーザー名、ログアウトボタン）。ログイン中のユーザー名は、`thymeleaf-extras-springsecurity6` で出す（`th:text` と同じく無害化される。使い方は、Spring Boot 4.1.2 が管理する版の公式ドキュメントで確かめる）、成功メッセージとエラーメッセージの表示場所（画面の上部、2.3）。ログアウトは `POST /logout`（フォーム、CSRF トークン付き）
+- [x] `static/css/style.css`（最小）：Q3-6 の決定による。ログイン前から読める（`/css/**`、7.3）
+- [x] 取引一覧（仮）：Q3-1 の決定による
+- [x] 金額・日付の表示の形（2.3）は、取引を表示する Phase 5 で使う。Phase 3 では不要
 
 **確認**：
 - [ ] ログイン後の画面に、共通の枠（ヘッダー）が出る
@@ -295,14 +295,14 @@ C は、前のグループにエラーがあると、**他の項目のエラー�
 
 Phase 2 で作った仮のものを、本物に置き換える。
 
-- [ ] `TemporaryHomeController` を**削除**する（本物の `HomeController` が `GET /` を担当する。4.8）
-- [ ] `templates/temporary.html` を削除する
-- [ ] `messages.properties` の `check.hello` を削除する
-- [ ] コードに「【仮】」のコメントが残っていない（検索して確かめる）
+- [x] `TemporaryHomeController` を**削除**する（本物の `HomeController` が `GET /` を担当する。4.8）
+- [x] `templates/temporary.html` を削除する
+- [x] `messages.properties` の `check.hello` を削除する
+- [x] Phase 2 の仮のもの（`TemporaryHomeController`、`temporary.html`、`check.hello`）が残っていない（検索して確かめる）。Q3-1 の仮の取引一覧（`TemporaryTransactionController`、`transactions/list.html`）の「【仮】」は、Phase 5 まで残る
 
 **確認**：
-- [ ] `.\mvnw test` が成功する
-- [ ] 検索して、`TemporaryHomeController`、`temporary`、`check.hello` が、コードにも画面にも残っていない（`docs/` の記録は除く）
+- [x] `.\mvnw test` が成功する
+- [x] 検索して、`TemporaryHomeController`、`temporary`、`check.hello` が、コードにも画面にも残っていない（`docs/` の記録は除く）
 
 ### 4.13 画面で確かめる
 
