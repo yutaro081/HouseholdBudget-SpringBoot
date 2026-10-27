@@ -72,14 +72,14 @@ Repository に足す検索メソッド（名前は作るときに決める。次
 
 ### 4.1 作業ブランチと土台を確認する
 
-- [ ] `feature/phase-4-masters` にいる
-- [ ] MySQL のサービス（`MySQL97`）が動いている
-- [ ] 環境変数 `HB_DB_URL`、`HB_DB_USER`、`HB_DB_PASSWORD` が設定されている（値は表示しない）
+- [x] `feature/phase-4-masters` にいる
+- [x] MySQL のサービス（`MySQL97`）が動いている
+- [x] 環境変数 `HB_DB_URL`、`HB_DB_USER`、`HB_DB_PASSWORD` が設定されている（値は表示しない）
 - [ ] 確認用のアカウントが2つ以上ある（Phase 3 の `test1`、`test2`。データ分離の確認に使う）
 
 **確認**：
-- [ ] `git status` が `On branch feature/phase-4-masters` と `working tree clean` を示す
-- [ ] `.\mvnw test` が成功する（Phase 3 の 105 件）
+- [x] `git status` が `On branch feature/phase-4-masters` と `working tree clean` を示す
+- [x] `.\mvnw test` が成功する（Phase 3 の 105 件）
 
 ### 4.2 `Transaction` の Entity と `TransactionRepository`（Q4-1）
 
@@ -87,40 +87,40 @@ Repository に足す検索メソッド（名前は作るときに決める。次
 
 > 作る範囲は Q4-1 の決定による。下は、**推奨（A）の場合**の内容。
 
-- [ ] `entity` に `Transaction`：設計書 3.6 の全列（`id`、`user_id`、`transaction_date`、`amount`、`category_id`、`description`、`vendor_id`、`payment_method_id`）。`user_id` は数値のID、科目・取引先・支払方法は関連（`ManyToOne`）で持つ（P7）
-- [ ] `repository` に `TransactionRepository`：**使用中の確認の3メソッドだけ**（3.1 の表）。一覧などの検索は Phase 5 で足す
-- [ ] `EntityMappingTest` に、`Transaction` の保存と読み戻し（列名・型・摘要が NULL になること）の確認を足す
+- [x] `entity` に `Transaction`：設計書 3.6 の全列（`id`、`user_id`、`transaction_date`、`amount`、`category_id`、`description`、`vendor_id`、`payment_method_id`）。`user_id` は数値のID、科目・取引先・支払方法は関連（`ManyToOne`）で持つ（P7）
+- [x] `repository` に `TransactionRepository`：**使用中の確認の3メソッドだけ**（3.1 の表）。一覧などの検索は Phase 5 で足す
+- [x] `TransactionRepositoryTest` で、`Transaction` の保存と読み戻し（列名・型・摘要が NULL／30文字になること）と、使用中の確認の3メソッド（`user_id` でも絞っていること）を確かめる
 
 **確認**：
-- [ ] `.\mvnw test` が成功する（`Transaction` の定義が、表と食い違っていない）
-- [ ] 摘要が空（NULL）の取引が保存でき、読み戻せる（3.6）
+- [x] `.\mvnw test` が成功する（`Transaction` の定義が、表と食い違っていない）
+- [x] 摘要が空（NULL）の取引が保存でき、読み戻せる（3.6）
 
 ### 4.3 例外と 404 の変換（Q3-5）
 
 設計書 4.5、5.1、7.7、7.8、S4 のとおりに作る。
 
-- [ ] `exception` に `NotFoundException`：存在しない、または他人のデータ（B7）
-- [ ] `exception` に `DeletionNotAllowedException`：削除できない理由のメッセージのキー（`error.delete.inUse` など）を持つ
-- [ ] `exception` に `GlobalExceptionHandler`：
+- [x] `exception` に `NotFoundException`：存在しない、または他人のデータ（B7）
+- [x] `exception` に `DeletionNotAllowedException`：削除できない理由のメッセージのキー（`error.delete.inUse` など）を持つ
+- [x] `exception` に `GlobalExceptionHandler`：
   - `NotFoundException` を `error/404.html` に変える。**状態コードも 404 にする**（画面だけ 404 で、状態コードが 200 にならないように、7.7）
   - ID が数字でない URL（例：`/categories/abc`）、数値の範囲を超える ID も、同じ 404 にする（S4）
   - 画面にも、ログにも、他人のデータの有無が分かる情報を出さない（7.8）
-- [ ] `DuplicateException`（Phase 3 で作成済み）と `DeletionNotAllowedException` は、`GlobalExceptionHandler` では扱わない。Controller が受けて、画面の動きに変える（5.1 の表）
+- [x] `DuplicateException`（Phase 3 で作成済み）と `DeletionNotAllowedException` は、`GlobalExceptionHandler` では扱わない。Controller が受けて、画面の動きに変える（5.1 の表）
 
 **確認**：
-- [ ] 例外の変換の単体テスト（または MockMvc のテスト）で、`NotFoundException` と数字でない ID が 404 になる（4.9 で科目の画面と一緒に確かめてもよい）
+- [x] 例外の変換のテスト（`GlobalExceptionHandlerTest`）で、`NotFoundException` と数字でない ID が、画面も状態コードも 404 になる。まだ本物の画面がないので、テスト用の URL（`testsupport.TestErrorEndpoints`。アプリのコンポーネントスキャンの外に置き、テストが読み込んだときだけ有効）を使う。本物の画面での確認は 4.9 で行う
 
 ### 4.4 メッセージ
 
 `messages.properties` に、Phase 4 で使うメッセージを書く（6.2、6.8、2.6）。文末は、ていねいな言い方に統一する。キーの付け方は G6。
 
-- [ ] 入力チェック（Form）：`NotBlank.categoryForm.name`（科目名を入力してください）、`Size.categoryForm.name`（科目名は10文字以内で入力してください）。取引先は `vendorForm`（取引先名… 20文字）、支払方法は `paymentMethodForm`（支払方法名… 10文字）
-- [ ] 重複（Service）：`error.duplicate.category`（その科目名はすでにあります）、`error.duplicate.vendor`（その取引先名はすでにあります）、`error.duplicate.paymentMethod`（その支払方法名はすでにあります）
-- [ ] 削除できない理由：`error.delete.inUse`（取引で使われているため削除できません）、`error.delete.budgetNotZero`（予算が0円ではない季節があるため削除できません）
-- [ ] 成功：「追加しました」「変更しました」「削除しました」のキー（3つのマスタで共通に使う。キー名は作るときに決める）
+- [x] 入力チェック（Form）：`NotBlank.categoryForm.name`（科目名を入力してください）、`Size.categoryForm.name`（科目名は10文字以内で入力してください）。取引先は `vendorForm`（取引先名… 20文字）、支払方法は `paymentMethodForm`（支払方法名… 10文字）
+- [x] 重複（Service）：`error.duplicate.category`（その科目名はすでにあります）、`error.duplicate.vendor`（その取引先名はすでにあります）、`error.duplicate.paymentMethod`（その支払方法名はすでにあります）
+- [x] 削除できない理由：`error.delete.inUse`（取引で使われているため削除できません）、`error.delete.budgetNotZero`（予算が0円ではない季節があるため削除できません）
+- [x] 成功：「追加しました」「変更しました」「削除しました」のキー（3つのマスタで共通に使う。キー名は作るときに決める）
 
 **確認**：
-- [ ] ファイルが UTF-8 で、画面で文字化けしない
+- [x] ファイルが UTF-8 で、画面で文字化けしない
 
 ### 4.5 科目：Repository と Form
 
