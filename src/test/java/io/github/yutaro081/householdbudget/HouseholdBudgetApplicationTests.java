@@ -1,4 +1,4 @@
-package io.github.yutaro081.household_budget;
+package io.github.yutaro081.householdbudget;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

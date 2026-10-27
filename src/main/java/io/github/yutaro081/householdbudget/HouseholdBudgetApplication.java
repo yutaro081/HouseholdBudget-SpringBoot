@@ -1,4 +1,4 @@
-package io.github.yutaro081.household_budget;
+package io.github.yutaro081.householdbudget;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

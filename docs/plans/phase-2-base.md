@@ -58,8 +58,8 @@
 
 ### 4.1 作業ブランチを確認する
 
-- [ ] `feature/phase-2-base` にいる
-- [ ] MySQL のサービス（`MySQL97`）が動いている
+- [x] `feature/phase-2-base` にいる
+- [x] MySQL のサービス（`MySQL97`）が動いている
 
 **確認**：`git status` が `On branch feature/phase-2-base` と `working tree clean` を示す。
 
@@ -69,9 +69,9 @@ Phase 0 で入れた「Spring Boot Extension Pack」の中の Spring Initializr 
 
 > Q2-1（版）、Q2-2（名前）、Q2-3（置き場所）、Q2-4（DevTools）は決定済みです（「5. 決まっていない点」）。**作る場所は、リポジトリの外の空のフォルダ**です（Q2-3）。例：`C:\Users\yutar\dev\hb-initializr-tmp`（この名前は例。作業が終わったら消す）。
 
-- [ ] VS Code でコマンドパレットを開く（`Ctrl + Shift + P`）
-- [ ] `Spring Initializr: Create a Maven Project...` を選ぶ
-- [ ] 次の順に答える。**各画面で、選べる値の一覧を見て、決めた値と同じものがあることを確かめてから選ぶ。**
+- [x] VS Code でコマンドパレットを開く（`Ctrl + Shift + P`）
+- [x] `Spring Initializr: Create a Maven Project...` を選ぶ
+- [x] 次の順に答える。**各画面で、選べる値の一覧を見て、決めた値と同じものがあることを確かめてから選ぶ。**
 
 | 順 | 画面の質問 | 選ぶ・入力する値 |
 |---|---|---|
@@ -102,34 +102,34 @@ Phase 0 で入れた「Spring Boot Extension Pack」の中の Spring Initializr 
 
 Initializr が作ったフォルダの中身を、リポジトリ（`HouseholdBudget-SpringBoot`）の直下にコピーします。**隠しファイル・隠しフォルダ（`.mvn` フォルダ、`.gitignore`、あれば `.gitattributes`）も必ずコピーします。** 隠しファイルは、エクスプローラーや `*` を使ったコピーでは、見えない・コピーされないことがあります。これが抜けると、`mvnw` が動かない（`.mvn`）、`target/` がコミットされる（`.gitignore`）事故になります。
 
-- [ ] まず、コピー元に隠しファイルがあることを確かめる（`-Force` が隠しファイルも表示する印）
+- [x] まず、コピー元に隠しファイルがあることを確かめる（`-Force` が隠しファイルも表示する印）
 
 ```powershell
 Get-ChildItem -Force C:\Users\yutar\dev\hb-initializr-tmp\household-budget
 ```
 
-- [ ] リポジトリの直下で、次のようにコピーする。**`README.md` は上書きしない**。`HELP.md` は不要なのでコピーしない（コピー元に `README.md` があっても除く）
+- [x] リポジトリの直下で、次のようにコピーする。**`README.md` は上書きしない**。`HELP.md` は不要なのでコピーしない（コピー元に `README.md` があっても除く）
 
 ```powershell
 Get-ChildItem -Force C:\Users\yutar\dev\hb-initializr-tmp\household-budget | Where-Object { $_.Name -notin 'HELP.md', 'README.md' } | Copy-Item -Destination . -Recurse -Force
 ```
 
-- [ ] コピーした後、隠しファイルが入ったかを確かめる
+- [x] コピーした後、隠しファイルが入ったかを確かめる
 
 ```powershell
 Get-ChildItem -Force | Select-Object Name
 ```
 
-- [ ] コピーが終わったら、リポジトリの外の作業用フォルダ（`hb-initializr-tmp`）を消す
+- [x] コピーが終わったら、リポジトリの外の作業用フォルダ（`hb-initializr-tmp`）を消す
 
 **確認**：
-- [ ] リポジトリの直下に **`.mvn` フォルダ**（中に `wrapper`）と **`.gitignore`** がある（`.gitattributes` は、コピー元にあれば）
-- [ ] `README.md` の中身が変わっていない（`git diff README.md` に何も出ない）
-- [ ] リポジトリの直下に `pom.xml`、`mvnw`、`mvnw.cmd`、`src/main/java`、`src/main/resources/application.properties` がある
-- [ ] `pom.xml` の Spring Boot の版（`<parent>` の `<version>`）が **4.1.2**
-- [ ] `pom.xml` の `<java.version>` が `25`
-- [ ] 起動クラスの名前を見る。設計書 4.2 は `HouseholdBudgetApplication`、パッケージは `io.github.yutaro081.householdbudget`。**違っていたら、名前とパッケージを設計書に合わせて直す**（クラス名とパッケージを直したら、起動クラスのファイル名・`package` 行・テストクラスの `package` 行も合わせる）
-- [ ] ターミナルで `.\mvnw -v` を実行し、Maven と Java 25 が表示される（初回は Maven のダウンロードで少し時間がかかる）
+- [x] リポジトリの直下に **`.mvn` フォルダ**（中に `wrapper`）と **`.gitignore`** がある（`.gitattributes` は、コピー元にあれば）
+- [x] `README.md` の中身が変わっていない（`git diff README.md` に何も出ない）
+- [x] リポジトリの直下に `pom.xml`、`mvnw`、`mvnw.cmd`、`src/main/java`、`src/main/resources/application.properties` がある
+- [x] `pom.xml` の Spring Boot の版（`<parent>` の `<version>`）が **4.1.2**
+- [x] `pom.xml` の `<java.version>` が `25`
+- [x] 起動クラスの名前を見る。設計書 4.2 は `HouseholdBudgetApplication`、パッケージは `io.github.yutaro081.householdbudget`。**違っていたら、名前とパッケージを設計書に合わせて直す**（クラス名とパッケージを直したら、起動クラスのファイル名・`package` 行・テストクラスの `package` 行も合わせる）
+- [x] ターミナルで `.\mvnw -v` を実行し、Maven と Java 25 が表示される（初回は Maven のダウンロードで少し時間がかかる）
 
 > Initializr は `.gitignore` と `HELP.md` を作ります。`.gitignore` は 4.9 で整えます。`HELP.md` は説明書なので、不要なら消します（コミットしない）。
 
@@ -137,9 +137,11 @@ Get-ChildItem -Force | Select-Object Name
 
 設計書 4.2 のパッケージを、`io.github.yutaro081.householdbudget` の下に作る。
 
-- [ ] `controller`、`service`、`repository`、`entity`、`form`、`dto`、`security`、`exception`、`domain`、`config`
+- [x] `controller`、`service`、`repository`、`entity`、`form`、`dto`、`security`、`exception`、`domain`、`config`
 
 > Git は空のフォルダを記録しません。何も入っていないフォルダは、コミットしても GitHub に出ません。これは問題ありません（Phase 3 以降でクラスを置いたときに入ります。`.gitkeep` は置かない、Q2-9）。別のパソコンで clone したときは、フォルダが無くてもかまいません。
+
+> 実際に作ったとき、Initializr が作ったパッケージは `io.github.yutaro081.household_budget`（アンダースコア付き）だった。設計書 Q19 の `householdbudget` に合わせて、フォルダ名と `package` 行（起動クラス・テストクラス）を直した。
 
 **確認**：VS Code のエクスプローラーで、10個のパッケージが見える。
 
