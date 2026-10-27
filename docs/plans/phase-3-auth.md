@@ -226,20 +226,20 @@ C は、前のグループにエラーがあると、**他の項目のエラー�
 
 設計書 4.5、5.2、7.2、7.3、7.6、7.10 のとおりに作る。
 
-- [ ] `security` に `LoginUser`：ログイン中のユーザーの情報（ユーザーID、ユーザー名、ハッシュ）を持つ（P3）。Spring Security が扱える形にする
-- [ ] `security` に `CustomUserDetailsService`：ユーザー名から `users` を探して `LoginUser` を返す。見つからないときは「見つからない」（5.2）
-- [ ] `security` に `SecurityConfig`：
+- [x] `security` に `LoginUser`：ログイン中のユーザーの情報（ユーザーID、ユーザー名、ハッシュ）を持つ（P3）。Spring Security が扱える形にする
+- [x] `security` に `CustomUserDetailsService`：ユーザー名から `users` を探して `LoginUser` を返す。見つからないときは「見つからない」（5.2）
+- [x] `security` に `SecurityConfig`：
   - `PasswordEncoder`（BCrypt）を**1つだけ**用意する（7.2）
   - すべての URL でログイン必須。例外は `/login`、`/register`、`/css/**`、`/error` だけ（7.3）
   - ログイン画面は自作の `/login`。ログイン成功後は、開こうとしていた URL に関係なく取引一覧（`/transactions`）へ移動（U5）。失敗したらログイン画面に戻る
   - `POST /logout`：セッションを捨てて `/login` へ移動。ログアウト後に「ログアウトしました」を表示（2.3）
   - **CSRF 対策は無効にしない**（7.6）
   - ログイン失敗の回数制限は付けない、ログイン状態の維持（Remember-me）も付けない（B12）
-- [ ] **Phase 2 で決めたとおり、全 URL を許可する仮の設定は作らない**（Q2-8）
+- [x] **Phase 2 で決めたとおり、全 URL を許可する仮の設定は作らない**（Q2-8）
 
 **確認**：
-- [ ] `.\mvnw test` が成功する
-- [ ] コード内に `csrf().disable()` などの CSRF の無効化がない（検索して確かめる）
+- [x] `.\mvnw test` が成功する
+- [x] コード内に `csrf().disable()` などの CSRF の無効化がない（検索して確かめる）
 
 ### 4.8 画面と Controller：ログイン、登録、トップ
 
