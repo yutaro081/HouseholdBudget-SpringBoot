@@ -186,6 +186,7 @@ flowchart LR
 **Phase 3 から引き継ぐこと**
 - [ ] 仮の取引一覧（`TemporaryTransactionController`、`templates/transactions/list.html` の「【仮】」）を、本物の `TransactionController` と取引一覧に置き換える（Q3-1）。ログイン成功後の移動先 `/transactions` は、`SecurityConfig` のまま変えない
 - [ ] 画面に取引を表示するときも、`th:utext` を使わず `th:text` で出す（XSS 対策、設計書 7.5）
+- [ ] 取引の登録ができたら、「取引で使用中の科目・取引先・支払方法は削除できない」を**画面から**確かめ直す（Phase 4 では SQL で取引を入れて確かめた、Q4-2 の C）。取引を登録して、削除すると「取引で使われているため削除できません」が出て、その取引を削除すると削除できるようになること
 
 **成果物**：取引の一覧・登録・詳細・編集・削除
 
