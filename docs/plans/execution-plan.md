@@ -128,7 +128,7 @@ flowchart LR
 - [ ] 仮の `TemporaryHomeController`、`templates/temporary.html`、`messages.properties` の `check.hello` を、本物の `HomeController`（`GET /` を取引一覧へ移動する）と画面に置き換える
 - [ ] `SecurityConfig` を作る（Phase 2 では作っていない。全 URL を許可する仮の設定は作らない）
 - [ ] 共通の画面の枠（`fragments/common.html`：ヘッダー、メニュー、成功・エラーメッセージの表示場所）を作る
-- [ ] 404 / 403 / 500 の画面（`error/404.html`、`error/403.html`、`error/500.html`）を作る
+- [ ] 404 / 403 / その他の 4xx / 5xx の画面（`error/404.html`、`error/403.html`、`error/4xx.html`、`error/5xx.html`）を作る
 - [ ] セッション Cookie の設定（`HttpOnly`、`SameSite=Lax`、S1）を `application.properties` に書く
 - [x] D4（エラーの重なりの扱い）を `RegisterForm` で決める → B に決定（必須は他と重ねない、他は全部出す。設計書 6.9、6.10 の G7）
 - [ ] C1（ログイン後にセッションIDが新しくなるか）を確かめる（設計書 8.3）

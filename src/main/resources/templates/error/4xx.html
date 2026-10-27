@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head('操作を完了できませんでした')}"></head>
+<body>
+<!--/*
+  400 番台（4xx）のその他のエラーの専用画面（設計書 7.7、S9）。Spring Boot が、状態コードが 400 番台のとき
+  （404・403 の専用の画面があるものを除く。例：400、405）に自動で使う。
+  ・エラーの詳しい中身は、一切出さない。英語の標準ページ（Whitelabel）を出さないために用意する。
+  ・ログイン前でも表示できる。そのため、ログイン中のユーザー名は出さない。
+*/-->
+<main class="narrow">
+    <h1 th:text="#{error.page.clientError}">操作を完了できませんでした。もう一度やり直してください</h1>
+    <p><a th:href="@{/transactions}" th:text="#{error.page.backToTransactions}">取引一覧へ戻る</a></p>
+</main>
+</body>
+</html>

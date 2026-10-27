@@ -5,14 +5,14 @@
 <main class="narrow">
     <h1>ログイン</h1>
 
-    <!-- ?error・?logout のメッセージと、登録成功のあとの「登録しました。ログインしてください」 -->
+    <!--/* ?error・?logout のメッセージと、登録成功のあとの「登録しました。ログインしてください」 */-->
     <div th:replace="~{fragments/common :: messages}"></div>
 
-    <!-- POST /login は Spring Security が処理する。項目名は username と password -->
+    <!--/* POST /login は Spring Security が処理する。項目名は username と password */-->
     <form th:action="@{/login}" method="post">
         <div class="field">
             <label for="username">ユーザー名</label>
-            <!-- 失敗したときは、入力したユーザー名を残す。パスワードは残さない -->
+            <!--/* 失敗したときは、入力したユーザー名を残す。パスワードは残さない */-->
             <input type="text" id="username" name="username" th:value="${loginUsername}" autofocus>
         </div>
         <div class="field">

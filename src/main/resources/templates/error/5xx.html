@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head('エラーが発生しました')}"></head>
+<body>
+<!--/*
+  500 番台（5xx）の予期しないエラーの専用画面（設計書 7.7、S3、S9）。Spring Boot が、状態コードが 500 番台のとき（404 などの専用の画面がないもの）に自動で使う。
+  ・エラーの詳しい中身（スタックトレース、例外の名前・メッセージ、SQL、ファイルのパス、DB の情報）は、一切出さない。
+    詳しい中身は、サーバーのログ（開発中はコンソール）にだけ出る。
+  ・ログイン前でも表示できる。そのため、ログイン中のユーザー名は出さない。
+*/-->
+<main class="narrow">
+    <h1 th:text="#{error.page.serverError}">エラーが発生しました。しばらくしてからもう一度お試しください</h1>
+    <p><a th:href="@{/transactions}" th:text="#{error.page.backToTransactions}">取引一覧へ戻る</a></p>
+</main>
+</body>
+</html>

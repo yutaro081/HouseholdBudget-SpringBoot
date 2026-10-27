@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
-<!--
+<!--/*
   共通の画面の枠（設計書 4.4.2、P5）。Thymeleaf のフラグメント（部品の読み込み）で、全画面が共有する。
   ・利用者が入力した値は、すべて th:text（または sec:authentication）で表示する。th:utext は使わない（7.5）。
--->
+*/-->
 <head th:fragment="head(title)">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -12,8 +12,8 @@
 </head>
 <body>
 
-<!-- ヘッダー（ログイン後の全画面）：メニュー、ログイン中のユーザー名、ログアウトボタン（2.3）。
-     メニューは、作った画面の分だけ出す（Q3-4）。ログアウトは POST のフォーム。th:action で CSRF のトークンが自動で入る（7.6） -->
+<!--/* ヘッダー（ログイン後の全画面）：メニュー、ログイン中のユーザー名、ログアウトボタン（2.3）。
+     メニューは、作った画面の分だけ出す（Q3-4）。ログアウトは POST のフォーム。th:action で CSRF のトークンが自動で入る（7.6） */-->
 <header th:fragment="header" class="app-header">
     <nav class="menu">
         <a th:href="@{/transactions}">取引一覧</a>
@@ -26,8 +26,8 @@
     </div>
 </header>
 
-<!-- 成功メッセージ・エラーメッセージの表示場所（画面の上部、2.3）。
-     Controller が、messages.properties のキーを successMessageKey / errorMessageKey で渡す -->
+<!--/* 成功メッセージ・エラーメッセージの表示場所（画面の上部、2.3）。
+     Controller が、messages.properties のキーを successMessageKey / errorMessageKey で渡す */-->
 <div th:fragment="messages">
     <div class="message success" th:if="${successMessageKey}" th:text="${#messages.msg(successMessageKey)}">成功メッセージ</div>
     <div class="message error" th:if="${errorMessageKey}" th:text="${#messages.msg(errorMessageKey)}">エラーメッセージ</div>
