@@ -46,4 +46,9 @@ public class PaymentMethod {
 		return name;
 	}
 
+	/** 名前を変える（変更、設計書 5.6）。持ち主（user_id）は変えない。 */
+	public void rename(String name) {
+		this.name = name;
+	}
+
 }
