@@ -148,6 +148,18 @@ class CategoryServiceTest {
 		assertThat(budgets.get(0).getAmount()).isZero();
 	}
 
+	/** 上限ちょうど（10文字）の名前が保存できる（取引先・支払方法のテストとそろえる） */
+	@Test
+	void addAcceptsTheMaximumLength() {
+		Long userId = createUser("cattest26");
+		String max = "あ".repeat(10);
+
+		Category category = service().add(userId, form(max));
+
+		assertThat(service().list(userId)).extracting(Category::getName).containsExactly(max);
+		assertThat(budgetsOf(userId, category.getId())).hasSize(1);       // 予算0円の行も、いつもどおりできる
+	}
+
 	@ParameterizedTest(name = "[{0}] の後に [{1}] は重複")
 	@CsvSource({
 			"食費, 食費",

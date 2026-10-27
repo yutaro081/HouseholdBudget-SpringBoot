@@ -254,6 +254,17 @@ class CategoryControllerTest {
 		assertThat(categoryService.list(aId)).hasSize(1);
 	}
 
+	/** 上限ちょうど（10文字）の名前が追加できる（取引先・支払方法のテストとそろえる） */
+	@Test
+	void addWithTheMaximumLengthSucceeds() throws Exception {
+		String max = "あ".repeat(10);
+
+		mockMvc.perform(post("/categories").with(asA).with(csrf()).param("name", max))
+				.andExpect(redirectedUrl("/categories"));
+
+		assertThat(categoryService.list(aId)).extracting(Category::getName).containsExactly(max);
+	}
+
 	@ParameterizedTest(name = "追加の重複 [{0}]")
 	@ValueSource(strings = { "食費", " 食費 ", "　食費　" })
 	void addDuplicateShowsErrorAndKeepsTheInput(String name) throws Exception {
