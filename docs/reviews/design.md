@@ -34,6 +34,7 @@
 | Spring Boot | 4.1.2 | アプリの土台。Web サーバー（組み込み）、設定、起動 | 要件で指定。4.1.1 が Java 17〜26 に対応していることは公式ドキュメントで確認済み（Q18）。4.1.2 は 4.1.1 の不具合修正版で、Spring Initializr で選べる安定版のため、こちらを使う |
 | Maven（`mvnw`） | プロジェクト付属の Maven Wrapper が使う版 | 部品の管理とビルド | 別にインストールせず、`mvnw` で動かせる（Phase 0）。実行計画書の方針 |
 | Thymeleaf | Spring Boot が管理する版 | 画面（HTML）の作成。表示する値は自動で無害化される | Spring Boot の標準的な画面の仕組み。入門者向けで、XSS 対策（章7）が標準で入っている |
+| Thymeleaf Extras Spring Security（`thymeleaf-extras-springsecurity6`） | Spring Boot が管理する版 | 画面にログイン中のユーザー名を出す（ヘッダー、2.3） | Spring Security の情報を Thymeleaf から読める。Initializr が Spring Security と Thymeleaf の組み合わせで自動で足す部品で、ユーザー名を出すのに使うため残す（Phase 3 で決定） |
 | Spring MVC | Spring Boot が管理する版 | URL を受けて Controller を呼ぶ | Web アプリの基本部品 |
 | Spring Security | Spring Boot が管理する版 | ログイン・ログアウト、ログイン必須、CSRF 対策 | 要件6章のセキュリティを自作せずに実現でき、実績がある |
 | BCrypt | Spring Security に含まれる | パスワードのハッシュ化 | 元に戻せない形で保存する要件（6章）。標準で使える |
@@ -1292,6 +1293,7 @@ flowchart TD
 - 文字列の入力は、**前後の空白（全角の空白を含む）を取り除いてから**判定し、保存する（B9）。例：「 食費 」→「食費」。
 - 取り除いた結果が空なら、必須の項目は「必須」エラー。摘要は空欄とみなして NULL で保存する（3.6）。
 - ユーザー名は、取り除いたあとに半角英数字だけなら可。途中に空白があれば形式エラー（Q20）。
+- 取り除く方法は、Java の `String.strip()` を使う（Phase 3 で決定）。`String.trim()` は半角の空白などしか取らず、全角の空白（U+3000）を取らないため使わない。Spring 標準の `StringTrimmerEditor` も `trim()` と同じ動きなので、そのままでは使えない。
 - **パスワードは前後の空白を取り除かない**（G2）。理由：入力したとおりの文字列を、ハッシュ化して照合する必要があるため。空白は使えない文字なので、前後であっても途中であっても、空白が1つでもあれば「半角の英数字と記号」の形式エラーになる（H1）。
 
 ### 6.5 数字でない値が金額に入ったとき
