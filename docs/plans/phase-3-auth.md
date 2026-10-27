@@ -91,13 +91,13 @@
 | `PaymentMethod` | `payment_methods` | 同上（3.5） |
 | `Budget` | `budgets` | `user_id` は数値、`category` は関連（`ManyToOne`、P7）、`season_year`、`season`（`Season` の名前を文字で保存、Q27 の a）、`amount`（3.6） |
 
-- [ ] 5つの Entity と、それぞれの Repository を作る。**Repository の検索メソッドは、Phase 3 で使うものだけ**（`UserRepository` のユーザー名での検索など）。それ以外（一覧、重複確認など）は、Phase 4〜6 で足す
-- [ ] 検索は、名前付きの検索（Spring Data JPA のメソッド）かパラメータ付きの検索で書き、文字列を連結した SQL は使わない（7.4）
-- [ ] `ddl-auto=none` のまま動くこと（Entity の定義がテーブルと食い違っても、テーブルは変わらない。Phase 2 の決定）
+- [x] 5つの Entity と、それぞれの Repository を作る。**Repository の検索メソッドは、Phase 3 で使うものだけ**（`UserRepository` のユーザー名での検索など）。それ以外（一覧、重複確認など）は、Phase 4〜6 で足す
+- [x] 検索は、名前付きの検索（Spring Data JPA のメソッド）かパラメータ付きの検索で書き、文字列を連結した SQL は使わない（7.4）
+- [x] `ddl-auto=none` のまま動くこと（Entity の定義がテーブルと食い違っても、テーブルは変わらない。Phase 2 の決定）
 
 **確認**：
-- [ ] `.\mvnw test` が成功する（`contextLoads` が、Entity の定義を読み込んで起動できる）
-- [ ] Entity の `user_id` が、ユーザーの Entity ではなく数値になっている（P7）
+- [x] `.\mvnw test` が成功する（`contextLoads` が、Entity の定義を読み込んで起動できる）
+- [x] Entity の `user_id` が、ユーザーの Entity ではなく数値になっている（P7）
 
 ### 4.4 メッセージを `messages.properties` に書く
 
