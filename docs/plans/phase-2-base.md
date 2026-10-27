@@ -499,7 +499,7 @@ git grep -n -i -e "password" -- . ":(exclude)docs"
 
 ### 4.14 README に起動方法を書く
 
-- [ ] `README.md` に、次を書く（実行計画書の Phase 2 のタスク。Phase 9 で仕上げる）。
+- [x] `README.md` に、次を書く（実行計画書の Phase 2 のタスク。Phase 9 で仕上げる）。
   - 必要な環境（JDK 25、MySQL 9.7）
   - 設定する環境変数の**名前**（値は書かない）
   - データベースとユーザーの作り方の概要（**パスワードは書かない**）
