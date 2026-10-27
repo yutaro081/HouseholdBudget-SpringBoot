@@ -31,3 +31,11 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### 秘密情報・バックアップ（設計書 7.9、S7）。schema.sql は除外しない ###
+backup/
+*.dump
+*.dump.sql
+*.bak
+.env
+application-local.properties
