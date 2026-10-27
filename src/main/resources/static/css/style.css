@@ -79,3 +79,29 @@ main.narrow {
     background: #fdecea;
     color: #c00;
 }
+
+/* 一覧の表（科目・取引先・支払方法など） */
+table.list {
+    border-collapse: collapse;
+    width: 100%;
+    margin-top: 16px;
+}
+
+table.list th,
+table.list td {
+    border-bottom: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+table.list td.actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* ボタンだけのフォームや、横に並べるフォーム */
+.inline-form {
+    display: inline-block;
+    margin: 0;
+}
