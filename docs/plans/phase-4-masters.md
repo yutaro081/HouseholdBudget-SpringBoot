@@ -214,7 +214,7 @@ Repository に足す検索メソッド（名前は作るときに決める。次
 
 - [x] `test1` でログインし、メニューの「科目」を開く。交通費、食費、雑費が、この順で出る
 - [x] 「間食」を追加する。「追加しました」が出て、一覧の最後に出る。**今の季節の予算0円の行ができている**（SQL で確かめる、下の(4)）
-- [ ] 入力エラー（空、11文字）：項目の横にエラーが出て、**入力した値が残る**
+- [x] 入力エラー（空、11文字）：項目の横にエラーが出て、**入力した値が残る**（自動テストで確認（`CategoryControllerTest`：空・空白だけ・11文字のとき、エラーが出て、11文字の入力値が残り、一覧も表示される））
 - [x] 重複（`食費`、`食費 `（後ろに半角の空白）、`食費`（前に全角の空白））：「その科目名はすでにあります」。前後の空白は取り除かれて比べられる
 - [x] 変更：「間食」→「おやつ」に変更できる。名前を変えずに保存してもエラーにならない。他の科目と同じ名前（`交通費`）に変えると、エラー（入力値が残る）
 - [x] 確認ダイアログ：削除ボタンを押すと「削除しますか？」が出る。「キャンセル」で削除されない
@@ -247,10 +247,10 @@ SELECT COUNT(*) FROM transactions;
 
 #### (3) 別ユーザーのデータが見えない・触れない
 
-- [ ] `test2` でログインし、科目の一覧に `test1` の科目（「おやつ」など）が出ない
+- [x] `test2` でログインし、科目の一覧に `test1` の科目（「おやつ」など）が出ない（自動テストで確認（`CategoryControllerTest.listShowsOwnCategoriesInOrderAndNotOthers`、`CategoryServiceTest.listReturnsOwnCategoriesInRegistrationOrder`））
 - [x] `test1` の科目の `id` を調べ（SQL）、`test2` でログインしたまま、`/categories/<test1 の科目の id>/edit` を開くと、**404 の専用画面**（状態コードも 404）。存在しない `id`（例：`999999`）、`/categories/abc` も同じ 404 画面
-- [ ] `test2` の画面から、`test1` の科目の削除や変更を送れない（フォームの `action` の ID を書き換えて送っても 404 になる。開発者ツールで `action` を書き換えて試す）。`test1` の科目は変わっていない
-- [ ] `test2` が、`test1` と同じ名前（例：「おやつ」）の科目を追加できる（ユーザーごとに別。重複にならない）
+- [x] `test2` の画面から、`test1` の科目の削除や変更を送れない（フォームの `action` の ID を書き換えて送っても 404 になる。開発者ツールで `action` を書き換えて試す）。`test1` の科目は変わっていない（自動テストで確認（`CategoryControllerTest.otherUsersCategoryIsNotFoundForViewEditAndDelete`：他人のIDへの変更・削除の送信は 404 で、相手の科目は変わらない。`CategoryServiceTest.otherUsersCategoryIsNotFound`））
+- [x] `test2` が、`test1` と同じ名前（例：「おやつ」）の科目を追加できる（ユーザーごとに別。重複にならない）（自動テストで確認（`CategoryControllerTest.addDuplicateIgnoresCaseAndOtherUsersNames`、`CategoryServiceTest.sameNameIsAllowedForDifferentUsers`））
 
 #### (4) MySQL で確認（`hb_app` でログイン。読むだけ）
 
@@ -259,12 +259,12 @@ SELECT id, user_id, name FROM categories ORDER BY id;
 SELECT user_id, category_id, season_year, season, amount FROM budgets ORDER BY id;
 ```
 
-- [ ] 追加した科目の予算が、**今の季節（今日の日付の季節と年）、0円**で1件できている
-- [ ] 削除した科目の予算の行が、残っていない（`budgets` にその `category_id` がない）
+- [x] 追加した科目の予算が、**今の季節（今日の日付の季節と年）、0円**で1件できている（自動テストで確認（`CategoryServiceTest.addCreatesCategoryAndBudgetOfZeroForCurrentSeasonOnly`、`addUsesCurrentSeason`：日付を固定した `Clock` で、今の季節の予算0円の行がちょうど1つできる））
+- [x] 削除した科目の予算の行が、残っていない（`budgets` にその `category_id` がない）（自動テストで確認（`CategoryServiceTest.deleteRemovesTheCategoryAndAllItsBudgets`、`CategoryControllerTest.deleteSucceedsAndRedirectsToList`））
 
 #### (5) 状態コードと画面（7.7）
 
-- [ ] 開発者ツールの「ネットワーク」で、他人のID・存在しないID・`abc` の URL が、画面だけでなく**状態コードも 404** になっている
+- [x] 開発者ツールの「ネットワーク」で、他人のID・存在しないID・`abc` の URL が、画面だけでなく**状態コードも 404** になっている（自動テストで確認（`CategoryControllerTest`：他人のID・存在しないID・数字でないIDが、状態コード 404、画面は `error/404`。`otherUsersNonexistentAndNonNumericLookTheSame` で画面の中身も同じ。MockMvc の状態コードで、開発者ツールでの確認ではない））
 - [x] 404 の画面に、他人のデータがあるかどうかが分かる情報が出ていない（他人のIDと存在しないIDで、画面も状態コードも同じ）
 
 ### 4.10 取引先に応用する
