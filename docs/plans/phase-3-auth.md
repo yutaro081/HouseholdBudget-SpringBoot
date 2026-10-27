@@ -53,14 +53,14 @@
 
 ### 4.1 作業ブランチと土台を確認する
 
-- [ ] `feature/phase-3-auth` にいる
-- [ ] MySQL のサービス（`MySQL97`）が動いている
-- [ ] 環境変数 `HB_DB_URL`、`HB_DB_USER`、`HB_DB_PASSWORD` が設定されている（新しいターミナルで、値は表示せず確かめる。Phase 2 の 4.6）
+- [x] `feature/phase-3-auth` にいる
+- [x] MySQL のサービス（`MySQL97`）が動いている
+- [x] 環境変数 `HB_DB_URL`、`HB_DB_USER`、`HB_DB_PASSWORD` が設定されている（新しいターミナルで、値は表示せず確かめる。Phase 2 の 4.6）
 
 **確認**：
-- [ ] `git status` が `On branch feature/phase-3-auth` と `working tree clean` を示す
-- [ ] `.\mvnw test` が成功する（Phase 2 の `contextLoads`。Phase 3 の変更前の土台が動いている）
-- [ ] `pom.xml` の依存関係に、Spring Web、Thymeleaf、Spring Security、Spring Data JPA、Validation、MySQL Driver がある。Initializr が自動で足した `thymeleaf-extras-springsecurity6` は**残す**（ヘッダーにログイン中のユーザー名を出すために使う。設計書 1.2 に1行足した）。テスト用の部品（`spring-boot-starter-*-test`）も入っている。これら以外に、設計書 1.2 にない部品が増えていない
+- [x] `git status` が `On branch feature/phase-3-auth` と `working tree clean` を示す
+- [x] `.\mvnw test` が成功する（Phase 2 の `contextLoads`。Phase 3 の変更前の土台が動いている）
+- [x] `pom.xml` の依存関係に、Spring Web、Thymeleaf、Spring Security、Spring Data JPA、Validation、MySQL Driver がある。Initializr が自動で足した `thymeleaf-extras-springsecurity6` は**残す**（ヘッダーにログイン中のユーザー名を出すために使う。設計書 1.2 に1行足した）。テスト用の部品（`spring-boot-starter-*-test`）も入っている。これら以外に、設計書 1.2 にない部品が増えていない
 
 ### 4.2 季節と「日本時間の今日」を作る（Q3-2）
 
@@ -68,14 +68,14 @@
 
 > 作る範囲は Q3-2 の決定による。下は、**推奨（A）の場合**の内容。
 
-- [ ] `config` に `AppConfig` を作る：日本時間（`Asia/Tokyo`）の `Clock` を用意する（4.5、B6）
-- [ ] `domain` に `Season` を作る：春・夏・秋・冬、月との対応、URL で使う名前（`spring` など、4.5）
-- [ ] `domain` に `SeasonPeriod` を作る：**今日の日付から季節と年を決める**部分（冬は12月がある年。1月・2月は前の年、5.8）。期間の求め方、前・次の季節、範囲の判定は、Phase 6・7 で足す
-- [ ] 単体テストを書く：5.8 の表（2027年2月28日→2026年の冬、2027年1月15日→2026年の冬、2026年12月1日→2026年の冬、2026年11月30日→2026年の秋、2027年3月1日→2027年の春）と、季節の境目（2月28日と3月1日、11月30日と12月1日、5月31日と6月1日、8月31日と9月1日）。うるう日（2月29日）も含める
+- [x] `config` に `AppConfig` を作る：日本時間（`Asia/Tokyo`）の `Clock` を用意する（4.5、B6）
+- [x] `domain` に `Season` を作る：春・夏・秋・冬、月との対応、URL で使う名前（`spring` など、4.5）
+- [x] `domain` に `SeasonPeriod` を作る：**今日の日付から季節と年を決める**部分（冬は12月がある年。1月・2月は前の年、5.8）。期間の求め方、前・次の季節、範囲の判定は、Phase 6・7 で足す
+- [x] 単体テストを書く：5.8 の表（2027年2月28日→2026年の冬、2027年1月15日→2026年の冬、2026年12月1日→2026年の冬、2026年11月30日→2026年の秋、2027年3月1日→2027年の春）と、季節の境目（2月28日と3月1日、11月30日と12月1日、5月31日と6月1日、8月31日と9月1日）。うるう日（2月29日）も含める
 
 **確認**：
-- [ ] `.\mvnw test` が成功し、季節のテストが全部合格する
-- [ ] `domain` のクラスが、Spring・データベースに依存していない（`import` に `org.springframework` や `jakarta.persistence` がない。4.2、P1）
+- [x] `.\mvnw test` が成功し、季節のテストが全部合格する
+- [x] `domain` のクラスが、Spring・データベースに依存していない（`import` に `org.springframework` や `jakarta.persistence` がない。4.2、P1）
 
 ### 4.3 Entity と Repository を作る（Q3-3）
 
