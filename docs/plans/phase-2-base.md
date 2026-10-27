@@ -335,8 +335,8 @@ $env:HB_DB_USER
 > **`spring.jpa.open-in-view` は書かない**（Q2-11）。既定のままにする。`true` のままか `false` にするかは、設計書の章8の D5 として **Phase 5 で決める**。
 
 **確認**：
-- [ ] `application.properties` を開いて、パスワード・実際のユーザー名・実際の接続先の値が書かれていない（`${...}` だけ）
-- [ ] ファイルを検索して確認する（結果が空であること）
+- [x] `application.properties` を開いて、パスワード・実際のユーザー名・実際の接続先の値が書かれていない（`${...}` だけ）
+- [x] ファイルを検索して確認する（結果が空であること）
 
 ```powershell
 Select-String -Path src\main\resources\application.properties -Pattern "password" -SimpleMatch
@@ -354,7 +354,7 @@ Select-String -Path src\main\resources\application.properties -Pattern "password
 | すべて `CREATE TABLE IF NOT EXISTS`。**`DROP TABLE` は入れない** | Q17、3.1 |
 | 作る順番：外部キーの参照先から（`users` → `categories`・`vendors`・`payment_methods` → `budgets`・`transactions`） | 3.7 |
 | InnoDB、文字コード `utf8mb4`、`id` は `BIGINT` の `AUTO_INCREMENT` | 3.1 |
-| 各列の型・NULL 可否・制約は 3.2〜3.6 の表のとおり。CHECK 制約（`budgets` の年・季節・額、`transactions` の金額）も入れる | 3.6 |
+| 各列の型・NULL 可否・制約は 3.2〜3.6 の表のとおり。CHECK 制約（`budgets` の年・季節・額、`transactions` の金額・日付（`ck_transactions_date`））も入れる | 3.6 |
 | 一意制約と索引：`users.username`、各マスタの `(user_id, name)`、`budgets` の `(category_id, season_year, season)`、`budgets` の `(user_id, season_year, season)`、`transactions` の `(user_id, transaction_date)` | 3.2〜3.6 |
 | 外部キーの削除時の動きは、すべて `RESTRICT` | 3.7 |
 | **各テーブルに `COLLATE utf8mb4_0900_as_ci` を明記する**（データベースの既定に頼らない）。4.5 の結果で決めた | 3.12、Q2-6 |
@@ -487,7 +487,7 @@ git check-ignore -v target/x
 git grep -n -i -e "password" -- . ":(exclude)docs"
 ```
 
-（`password_hash` の列名と、`${HB_DB_PASSWORD}` の参照だけが出るのが正常）
+（`password_hash` の列名と、`${HB_DB_PASSWORD}` の参照が出るのが正常。ほかに、`mvnw`・`mvnw.cmd` の `MVNW_PASSWORD` などの行も出るが、Maven Wrapper の標準の記述で、パスワードの値ではない。それ以外の行が出たら、値が書かれていないか確かめる）
 
 - [ ] 1つのタスクごとにコミットする（例：プロジェクト作成、`.gitignore`、`schema.sql`、`messages.properties`、設計書の反映）
 - [ ] `git push` する
