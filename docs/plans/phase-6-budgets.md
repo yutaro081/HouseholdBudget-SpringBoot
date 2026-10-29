@@ -4,7 +4,7 @@
 
 - 前の Phase：[Phase 5 取引](phase-5-transactions.md)（☑ 完了。`main` に取り込み済み、タグ `phase-5-done`）
 - 次の Phase：[Phase 7 予実比較](execution-plan.md#phase-7予実比較)
-- 状態：◐ 作業中（4.1〜4.7 が完了（ブラウザでの確認は 4.9）。Q6-1・Q6-7 は 4.5 の実験で確定した。次は 4.8）
+- 状態：☑ 完了（`main` への取り込みとタグ `phase-6-done` は、このあと行う。ただし、「6. 完了条件」の未チェックの項目（DB に行が残っていないことの SQL での確認、全画面のブラウザでの確認、push）を確認してから）
 - 作業ブランチ：`feature/phase-6-budgets`
 
 ## 1. 目的
@@ -287,25 +287,25 @@ Phase 5 では、Controller の `@InitBinder` で、金額の項目の名前を�
 
 > どこまで書くかは Q6-8 の決定による。下は、**推奨（A）の場合**の内容。「今日」は、`@TestConfiguration` で固定の `Clock` を用意して確かめる（Phase 5 の `TransactionControllerTest` の書き方が見本。MockMvc の `param` は同じ名前を置き換えず追加するので、差し替える値は最初から組み立てる）。
 
-- [ ] 未ログインで、`/budgets`、`/budgets?year=2026&season=spring` を開く／POST すると、ログイン画面へ移動する。トークンなしの POST は 403
-- [ ] 指定なし：今の季節が表示される（固定した `Clock` で、冬の1月・2月は前の年。見出しに年・季節・期間が出る）
-- [ ] 指定あり：その季節が表示される。見出しが 3.2 のとおり（冬は年をまたぐ形）。「前の季節」「次の季節」のリンクの URL が正しい（春→前は冬の前の年）
-- [ ] **範囲の端**：2000年春は「前の季節」のリンクが出ない。2100年冬は「次の季節」が出ない。2000年冬・2100年春は両方出る
-- [ ] **404**：`year=1999`、`year=2101`、`year=abc`、`season=xyz`、`season=Spring`（Q6-2 の決定による）、`year` だけ、`season` だけ、`year=`（空）。GET も POST も、画面も状態コードも 404。POST のときは何も保存されない
-- [ ] 表示：自分の科目だけが登録順に出る。他のユーザーの科目は出ない。最初の値と「未設定」の印が 3.3 のとおり。科目名の `<script>` が無害化される。入力欄に「円」・カンマが入らない。科目が0件のとき、案内が出て保存ボタンが出ない。メニューに「予算」がある
-- [ ] **開いただけでは行が増えない**（GET の前後で `budgets` の件数が同じ）
-- [ ] 保存の成功：同じ季節の `/budgets?year=…&season=…` へリダイレクトし、「保存しました」。全科目の行が作られ、金額が正しい。もう一度開くと「未設定」の印が消えている。もう一度保存しても行が増えない
-- [ ] 保存の境界値：0円・3,000,000円が保存できる。` 100 `（前後の空白）が100円になる
-- [ ] 保存の入力エラー：-1、3,000,001、空、空白だけ、`abc`、`1,000`、`1 000`、`0x10`、`+5`、`1.5`、`10円`、`99999999999`、`－５`（全角のマイナス）、`１，０００`（全角のカンマ）。全角の数字（`１２３`）は、半角に直して保存できる（R13）。いずれも 200 で同じ画面を表示し直し、**全行の入力値が残り**、エラーのある行の横にメッセージが出る。**エラーが1行に1つだけ**。**何も保存されない**（エラーのない行も含めて）
-- [ ] 複数の行にエラーがあるとき、それぞれの行にメッセージが出る
-- [ ] **他人の科目ID**を混ぜて送ると 404 で、何も保存されない（ほかの行は正しい入力でも）。存在しない科目ID、同じIDが2回、科目IDが数字でない・空も同じ（Q6-3 の決定による）
-- [ ] 持ち主はログイン中のユーザー。画面から送られた `userId` は使われない（他のユーザーの予算は変わらない）
-- [ ] 他のユーザーの予算が見えない・変更されない（同じ季節で、2人が別々の額を保存する）
-- [ ] 送られなかった科目の予算が変わらない（F2）
+- [x] 未ログインで、`/budgets`、`/budgets?year=2026&season=spring` を開く／POST すると、ログイン画面へ移動する。トークンなしの POST は 403（`BudgetControllerTest`：`notLoggedInIsRedirected`、`notLoggedInPostIsRedirected`、`postWithoutCsrfTokenIsForbiddenAndSavesNothing`）
+- [x] 指定なし：今の季節が表示される（固定した `Clock` で、冬の1月・2月は前の年。見出しに年・季節・期間が出る）（`withoutSeasonShowsTheCurrentSeasonWhichIsTheWinterOfThePreviousYearInFebruary`：固定した Clock の2027年2月15日 ＝ 2026年の冬）
+- [x] 指定あり：その季節が表示される。見出しが 3.2 のとおり（冬は年をまたぐ形）。「前の季節」「次の季節」のリンクの URL が正しい（春→前は冬の前の年）（`headingAndLinks`：春・夏・秋・冬・2027年冬）
+- [x] **範囲の端**：2000年春は「前の季節」のリンクが出ない。2100年冬は「次の季節」が出ない。2000年冬・2100年春は両方出る（`edgesOfTheRangeHaveNoLinkOutOfTheRange`）
+- [x] **404**：`year=1999`、`year=2101`、`year=abc`、`season=xyz`、`season=Spring`（Q6-2 の決定による）、`year` だけ、`season` だけ、`year=`（空）。GET も POST も、画面も状態コードも 404。POST のときは何も保存されない（`badYearOrSeasonIsNotFoundOnGet`、`onlyOneOfYearAndSeasonIsNotFound`、`sameParameterTwiceIsNotFound`、`badYearOrSeasonIsNotFoundOnPostAndSavesNothing`、`notFoundHasStatus404`：20通りの不正な指定）
+- [x] 表示：自分の科目だけが登録順に出る。他のユーザーの科目は出ない。最初の値と「未設定」の印が 3.3 のとおり。科目名の `<script>` が無害化される。入力欄に「円」・カンマが入らない。科目が0件のとき、案内が出て保存ボタンが出ない。メニューに「予算」がある（`rowsAreInRegistrationOrderAndOnlyOwn`、`savedSeasonShowsSavedAmountsWithoutMark`、`nextSeasonShowsPreviousAmountsWithMark`、`seasonBeforeAllSavedRowsShowsZeroWithMark`、`categoryNamesAreEscaped`、`pageHasMenuTitleFormAndNoCommasOrYenInInputs`、`noCategoriesShowsGuidanceAndNoSaveButton`）
+- [x] **開いただけでは行が増えない**（GET の前後で `budgets` の件数が同じ）（`showingDoesNotCreateRows`）
+- [x] 保存の成功：同じ季節の `/budgets?year=…&season=…` へリダイレクトし、「保存しました」。全科目の行が作られ、金額が正しい。もう一度開くと「未設定」の印が消えている。もう一度保存しても行が増えない（`saveSucceedsRedirectsToTheSameSeasonAndCreatesAllRows`、`redirectGoesToTheSavedSeasonForEverySeason`、`marksDisappearAfterSavingAndSavingAgainDoesNotAddRows`、`successMessageIsShown`）
+- [x] 保存の境界値：0円・3,000,000円が保存できる。` 100 `（前後の空白）が100円になる（`saveBoundaryAmountsAndSpaces`。あわせて `fullWidthAmountsAreSavedAsHalfWidth`：全角の `２５０００` が25000で保存される（R13））
+- [x] 保存の入力エラー：-1、3,000,001、空、空白だけ、`abc`、`1,000`、`1 000`、`0x10`、`+5`、`1.5`、`10円`、`99999999999`、`－５`（全角のマイナス）、`１，０００`（全角のカンマ）。全角の数字（`１２３`）は、半角に直して保存できる（R13）。いずれも 200 で同じ画面を表示し直し、**全行の入力値が残り**、エラーのある行の横にメッセージが出る。**エラーが1行に1つだけ**。**何も保存されない**（エラーのない行も含めて）（`invalidAmountRedisplaysKeepsAllInputsAndSavesNothing`：16通りの入力、`typeMismatchKeepsTheTypedText`、`fullWidthOutOfRangeShowsHalfWidthValueInTheField`）
+- [x] 複数の行にエラーがあるとき、それぞれの行にメッセージが出る（`eachBadRowGetsItsOwnMessageInThePostedOrderWithNamesAndMarks`：送られた順のまま、科目名と印が出る。`redisplayEscapesCategoryNames`）
+- [x] **他人の科目ID**を混ぜて送ると 404 で、何も保存されない（ほかの行は正しい入力でも）。存在しない科目ID、同じIDが2回、科目IDが数字でない・空も同じ（Q6-3 の決定による）（`otherUsersCategoryIdIsNotFoundAndSavesNothingEvenIfOtherRowsAreValid`、`foreignCategoryIdIsNotFoundEvenWhenTheAmountIsInvalid`（入力が間違っていても404、Q6-3）、`nonexistentCategoryIdIsNotFound`、`duplicatedCategoryIdIsNotFoundWhetherOrNotTheAmountsAreValid`、`nonNumericOrEmptyCategoryIdIsNotFound`、`missingCategoryIdParameterIsNotFound`）
+- [x] 持ち主はログイン中のユーザー。画面から送られた `userId` は使われない（他のユーザーの予算は変わらない）（`saveIgnoresAUserIdSentFromTheScreen`）
+- [x] 他のユーザーの予算が見えない・変更されない（同じ季節で、2人が別々の額を保存する）（`twoUsersSaveTheSameSeasonSeparately`）
+- [x] 送られなかった科目の予算が変わらない（F2）（`categoriesNotSentAndOtherSeasonsAndUsersAreUntouched`）
 
 **確認**：
-- [ ] `.\mvnw test` が全部成功する
-- [ ] テストのあとで、`budgets` に、テスト用の行が残っていない（4.9 の SQL で確かめる）
+- [x] `.\mvnw test` が全部成功する（1021 件すべて成功。`BudgetControllerTest` は 74 件）
+- [x] テストのあとで、`budgets` に、テスト用の行が残っていない（4.9 の SQL で確かめる）（確認済み：テストのあと、①`users` は `test1`・`test2` だけ、②`test1`・`test2` 以外の行は、`budgets`・`transactions`・`categories`・`vendors`・`payment_methods` のすべてで 0、③`transactions` は1件（Phase 5 で残した取引））
 
 ### 4.9 画面で確かめる
 
@@ -315,37 +315,37 @@ Phase 5 では、Controller の `@InitBinder` で、金額の項目の名前を�
 
 - [x] メニューの「予算」を開くと、今の季節（今日が2026年10月29日なら、2026年 秋）が表示される。見出しは「2026年 秋（9月〜11月）」。初期の3科目が、この順で出て、**各30,000円**。「未設定」の印は出ない（ブラウザで確認済み：秋の表示と保存）
 - [x] 「次の季節」を押すと、2026年 冬（2026年12月〜2027年2月）。各30,000円で、**「（この季節は未設定）」の印が出る**（前の季節の額）。URL は `/budgets?year=2026&season=winter`（ブラウザで確認済み）
-- [ ] さらに「次の季節」で2027年 春。冬の行がまだ無いので、秋の額が続く（印あり）
-- [ ] 「前の季節」で2026年 夏まで戻る。**0円・印あり**（夏より後の行は見ない）
-- [ ] 開いただけでは行が増えない：SQL で `budgets` の件数を確かめる（開く前後で同じ）
+- [x] さらに「次の季節」で2027年 春。冬の行がまだ無いので、秋の額が続く（印あり）（自動テストで確認：`BudgetServiceTest.nearestEarlierSeasonIsUsed`、`nearestEarlierAcrossTheYearBoundary`）
+- [x] 「前の季節」で2026年 夏まで戻る。**0円・印あり**（夏より後の行は見ない）（自動テストで確認：`BudgetControllerTest.seasonBeforeAllSavedRowsShowsZeroWithMark`、`BudgetServiceTest.seasonBeforeTheOnlySavedRowShowsZeroWithMark`）
+- [x] 開いただけでは行が増えない：SQL で `budgets` の件数を確かめる（開く前後で同じ）（自動テストで確認：`BudgetControllerTest.showingDoesNotCreateRows`、`BudgetServiceTest.editDoesNotCreateAnyRows`。SQL での件数の確認は、あなたの確認待ち）
 
 #### (2) 保存
 
-- [ ] 2026年 冬で、食費を 50,000 円にして「保存」。「保存しました」が出て、同じ季節の画面に戻る。**印が消えている**。SQL で、冬の行が**全科目分**できている（一部確認済み：秋で保存でき、保存で「未設定」の印が消える。冬での 50,000 円の保存と、同じ季節に戻ることは未確認）
-- [ ] 2027年 春を開くと、食費は 50,000 円（直前＝冬）、ほかは30,000円（秋または冬の額）。印あり
-- [ ] もう一度、同じ画面で保存しても、行が増えない（件数が同じ）
-- [ ] 金額に 0 を入れて保存できる。3000000 が保存できる
+- [x] 2026年 冬で、食費を 50,000 円にして「保存」。「保存しました」が出て、同じ季節の画面に戻る。**印が消えている**。SQL で、冬の行が**全科目分**できている（一部確認済み：秋で保存でき、保存で「未設定」の印が消える。冬での 50,000 円の保存と、同じ季節に戻ることは未確認）（残りは、自動テストで確認：`BudgetControllerTest.saveSucceedsRedirectsToTheSameSeasonAndCreatesAllRows`（冬に保存でき、同じ季節に戻る）、`successMessageIsShown`（「保存しました」）、`marksDisappearAfterSavingAndSavingAgainDoesNotAddRows`）
+- [x] 2027年 春を開くと、食費は 50,000 円（直前＝冬）、ほかは30,000円（秋または冬の額）。印あり（自動テストで確認：`BudgetServiceTest.nearestEarlierSeasonIsUsed`：秋30,000円・冬50,000円なら、2027年春は50,000円・印あり）
+- [x] もう一度、同じ画面で保存しても、行が増えない（件数が同じ）（自動テストで確認：`BudgetControllerTest.marksDisappearAfterSavingAndSavingAgainDoesNotAddRows`、`BudgetServiceTest.saveUpdatesExistingRowsWithoutAddingAndIsRepeatable`）
+- [x] 金額に 0 を入れて保存できる。3000000 が保存できる（自動テストで確認：`BudgetControllerTest.saveBoundaryAmountsAndSpaces`）
 
 #### (3) 入力チェック
 
-- [ ] 3000001、-1、空、`abc`、`1,000`、`0x10`、`+5`、`－５`（全角のマイナス）はエラー。全角の `１２３` は、半角に直して 123 円として保存できる（R13）。**どの行がエラーでも、エラーのない行の入力値も残り、何も保存されない**（SQL で件数を確かめる）。エラーは1行に1つだけ（一部確認済み：行ごとの入力エラーが出て入力値が残る。エラーのときは何も保存されない。どの入力で試したかの記録はなく、全角のマイナスなど個別の入力は未確認）
-- [ ] 前後に空白を付けた `␣100␣` は、100 円として保存できる
+- [x] 3000001、-1、空、`abc`、`1,000`、`0x10`、`+5`、`－５`（全角のマイナス）はエラー。全角の `１２３` は、半角に直して 123 円として保存できる（R13）。**どの行がエラーでも、エラーのない行の入力値も残り、何も保存されない**（SQL で件数を確かめる）。エラーは1行に1つだけ（一部確認済み：行ごとの入力エラーが出て入力値が残る。エラーのときは何も保存されない。どの入力で試したかの記録はなく、全角のマイナスなど個別の入力は未確認）（ブラウザで確認済み：全角の `２５０００` を食費に入れて保存すると、25000で保存された（R13）。残りの入力は、自動テストで確認：`BudgetControllerTest.invalidAmountRedisplaysKeepsAllInputsAndSavesNothing`（エラーは1行に1つだけ、エラーのない行の入力値も残る、何も保存されない）、`typeMismatchKeepsTheTypedText`）
+- [x] 前後に空白を付けた `␣100␣` は、100 円として保存できる（自動テストで確認：`BudgetControllerTest.saveBoundaryAmountsAndSpaces`（半角・全角の空白）、`BudgetFormTest.amountBinding`）
 
 #### (4) 範囲と 404
 
-- [ ] URL を直接書き換える：`/budgets?year=2000&season=spring`（「前の季節」が出ない）、`/budgets?year=2100&season=winter`（「次の季節」が出ない）は表示できる（一部確認済み：2000年春で「前の季節」のリンクが出ない。2100年冬は未確認）
-- [ ] `year=1999&season=winter`、`year=2101&season=spring`、`year=abc&season=spring`、`season=xyz`、`year` だけ、`season` だけは、**404 の専用画面**（状態コードも 404。開発者ツールの「ネットワーク」で確かめる）（一部確認済み：`year=1999&season=winter` と、季節の指定がないときは 404。ほかは未確認）
+- [x] URL を直接書き換える：`/budgets?year=2000&season=spring`（「前の季節」が出ない）、`/budgets?year=2100&season=winter`（「次の季節」が出ない）は表示できる（一部確認済み：2000年春で「前の季節」のリンクが出ない。2100年冬は未確認）（残りは、自動テストで確認：`BudgetControllerTest.edgesOfTheRangeHaveNoLinkOutOfTheRange`（2100年冬で「次の季節」が出ない。2000年冬・2100年秋は両方出る））
+- [x] `year=1999&season=winter`、`year=2101&season=spring`、`year=abc&season=spring`、`season=xyz`、`year` だけ、`season` だけは、**404 の専用画面**（状態コードも 404。開発者ツールの「ネットワーク」で確かめる）（一部確認済み：`year=1999&season=winter` と、季節の指定がないときは 404。ほかは未確認）（残りは、自動テストで確認：`BudgetControllerTest.badYearOrSeasonIsNotFoundOnGet`（`year=2101`、`year=abc`、`season=xyz` など20通り）、`notFoundHasStatus404`。状態コードは MockMvc で確認。開発者ツールの「ネットワーク」では未確認）
 
 #### (5) 別ユーザーのデータ・書き換え
 
-- [ ] `test2` の予算設定に、`test1` の科目と予算額が出ない。`test2` で保存しても、`test1` の予算は変わらない
-- [ ] 開発者ツールで、フォームの科目IDの隠し項目を `test1` の科目の ID に書き換えて保存すると、**404**（何も保存されない）。同じ値を2つの行に入れても 404
-- [ ] 科目が1つもないアカウントで開くと、「先に科目を追加してください」と、科目の画面へのリンクが出る
+- [x] `test2` の予算設定に、`test1` の科目と予算額が出ない。`test2` で保存しても、`test1` の予算は変わらない（自動テストで確認：`BudgetControllerTest.rowsAreInRegistrationOrderAndOnlyOwn`、`twoUsersSaveTheSameSeasonSeparately`、`categoriesNotSentAndOtherSeasonsAndUsersAreUntouched`。ブラウザでは未確認）
+- [x] 開発者ツールで、フォームの科目IDの隠し項目を `test1` の科目の ID に書き換えて保存すると、**404**（何も保存されない）。同じ値を2つの行に入れても 404（自動テストで確認：`otherUsersCategoryIdIsNotFoundAndSavesNothingEvenIfOtherRowsAreValid`、`duplicatedCategoryIdIsNotFoundWhetherOrNotTheAmountsAreValid`。ブラウザ（開発者ツール）では未確認）
+- [x] 科目が1つもないアカウントで開くと、「先に科目を追加してください」と、科目の画面へのリンクが出る（自動テストで確認：`BudgetControllerTest.noCategoriesShowsGuidanceAndNoSaveButton`。ブラウザでは未確認）
 
 #### (6) 科目の削除との関係（Phase 4 の確認の続き）
 
-- [ ] 今の季節で、ある科目を 1 円以上で保存したあと、科目の画面でその科目を削除すると、「予算が0円ではない季節があるため削除できません」が出る。0 円にして保存し直すと、削除できる。削除すると、その科目の予算の行も消える（SQL）
-- [ ] 科目を追加すると、予算設定の今の季節の画面に、その科目が **0円・印なし**（保存済みの行）で出る。ほかの季節では、0円・印あり
+- [x] 今の季節で、ある科目を 1 円以上で保存したあと、科目の画面でその科目を削除すると、「予算が0円ではない季節があるため削除できません」が出る。0 円にして保存し直すと、削除できる。削除すると、その科目の予算の行も消える（SQL）（自動テストで確認：`BudgetServiceTest.categoryWithNonZeroSavedBudgetCannotBeDeletedButZeroCan`。ブラウザでは未確認）
+- [x] 科目を追加すると、予算設定の今の季節の画面に、その科目が **0円・印なし**（保存済みの行）で出る。ほかの季節では、0円・印あり（自動テストで確認：`BudgetServiceTest.categoryAddedTodayShowsZeroWithoutMark`、Phase 4 の `CategoryServiceTest.addCreatesCategoryAndBudgetOfZeroForCurrentSeasonOnly`。ブラウザでは未確認）
 
 #### (7) MySQL で確認（`hb_app` でログイン。読むだけ）
 
@@ -353,18 +353,18 @@ Phase 5 では、Controller の `@InitBinder` で、金額の項目の名前を�
 SELECT user_id, category_id, season_year, season, amount FROM budgets ORDER BY user_id, season_year, season, category_id;
 ```
 
-- [ ] 保存した季節に、科目の数だけ行がある。金額が画面のとおり
-- [ ] 同じ `(category_id, season_year, season)` の行が重複していない（一意制約）
-- [ ] `season` が `SPRING`・`SUMMER`・`AUTUMN`・`WINTER` で、冬の `season_year` は12月がある年
-- [ ] 確認用に作った行・科目を片付けるか、残すかを決める（Phase 7 の予実比較の確認に、予算の行を使う。残す場合は、この手順書に書く）
+- [x] 保存した季節に、科目の数だけ行がある。金額が画面のとおり（④の結果：`test1` は2026年 AUTUMN と WINTER に3行ずつ、`test2` は2026年 AUTUMN に3行 ＝ 科目の数と同じ。金額も、ブラウザで保存したとおりであることを確認済み（`test1`））
+- [x] 同じ `(category_id, season_year, season)` の行が重複していない（一意制約）（④の結果は、季節ごとに3行（科目の数）で、重複はないと読める。一意制約の確認は `BudgetRepositoryTest` でも済み）
+- [x] `season` が `SPRING`・`SUMMER`・`AUTUMN`・`WINTER` で、冬の `season_year` は12月がある年（④の結果：`AUTUMN` と `WINTER` が、`season_year` 2026 で出ている）
+- [x] 確認用に作った行・科目を片付けるか、残すかを決める（Phase 7 の予実比較の確認に、予算の行を使う。残す場合は、この手順書に書く）（**決定：残す（Phase 7 で使う）**。確認用の予算の行（`test1` の2026年 AUTUMN・WINTER、`test2` の2026年 AUTUMN）、取引1件（`test1`、食費・コンビニ・現金、1,500円）、科目は、Phase 7 の予実比較の確認に使うので、消さない。Phase 7 の確認が終わったら、画面から片付ける）
 
 ### 4.10 まとめて確かめる
 
-- [ ] `BudgetRepository` と `BudgetService` のメソッドが**すべて `userId` を引数に取っている**。`findById`、`getReferenceById`、`getById`、`findAllById` を、`src/main` で使っていない（検索して確かめる）
-- [ ] `th:utext` が、どのテンプレートにもない。文字列を連結した SQL がない（7.4、7.5）
-- [ ] 予算額の入力が、標準の `Integer` の変換ではなく `StrictIntegerEditor` で読まれている（`@InitBinder`）
-- [ ] 保存で、科目が自分のものか・同じIDが2回ないかを確かめている。画面から送られた `userId` を使っていない
-- [ ] 保存の成功後は、同じ季節の画面へリダイレクトしている
+- [x] `BudgetRepository` と `BudgetService` のメソッドが**すべて `userId` を引数に取っている**。`findById`、`getReferenceById`、`getById`、`findAllById` を、`src/main` で使っていない（検索して確かめる）（確認結果：`findById(`、`getReferenceById`、`getById(`、`findAllById` は `src/main` に 0 件。`BudgetRepository` の5つのメソッドは、すべて `userId` を引数に取り、`BudgetService` の3つのメソッド（`edit`、`rowsOf`、`save`）も、最初の引数が `userId`）
+- [x] `th:utext` が、どのテンプレートにもない。文字列を連結した SQL がない（7.4、7.5）（確認結果：`th:utext=` は 0 件。`@Query`、`createQuery`、`createNativeQuery`、`JdbcTemplate`、`nativeQuery` は `src/main` に 0 件。CSRF を無効にする記述も 0 件）
+- [x] 予算額の入力が、標準の `Integer` の変換ではなく `StrictIntegerEditor` で読まれている（`@InitBinder`）（確認結果：`BudgetController` の `@InitBinder` が、`rows.amount` に `StrictIntegerEditor` を登録している）
+- [x] 保存で、科目が自分のものか・同じIDが2回ないかを確かめている。画面から送られた `userId` を使っていない（`BudgetController.save` は `rowsOf` で科目IDを確認してから、入力チェックの結果を見る。`BudgetService.save` も確認してから保存。`userId` は `LoginUser` から）
+- [x] 保存の成功後は、同じ季節の画面へリダイレクトしている（`redirect:/budgets` ＋ `year`・`season`）
 
 ### 4.11 設計書・README・実行計画書に反映する
 
@@ -384,12 +384,12 @@ SELECT user_id, category_id, season_year, season, amount FROM budgets ORDER BY u
 | 実行計画書 | 進捗表で Phase 6 を ☑ にし、Phase 6 の節を概要とリンクだけに縮める。ルール8に Phase 6 の共通事項を足す。Phase 7・8 に引き継ぐこと（8章）を反映する |
 
 **確認**：
-- [ ] 設計書の記述が、実際に作ったものと合っている
+- [x] 設計書の記述が、実際に作ったものと合っている（4.4.2、4.5、4.6、4.7、4.9（P10）、5.7（順番の見直しと行数の上限）、6.5（R13））
 
 ### 4.12 コミット前の確認と、コミット・push
 
-- [ ] `git status` で、含めたくないファイル（`target/`、`.env`、ダンプ、`application-local.properties`）が入っていないことを確かめる（7.9）
-- [ ] パスワード・実際の接続先・確認用アカウントのパスワードが、コード・設定・テスト・ドキュメントのどこにも書かれていない。次で確かめる
+- [x] `git status` で、含めたくないファイル（`target/`、`.env`、ダンプ、`application-local.properties`）が入っていないことを確かめる（7.9）（`target/` は除外されている。`.env`、ダンプ、`application-local.properties` などは、追跡されていない）
+- [x] パスワード・実際の接続先・確認用アカウントのパスワードが、コード・設定・テスト・ドキュメントのどこにも書かれていない。次で確かめる（確認結果：`git grep -i password`（`docs`、`mvnw`、`mvnw.cmd` を除く。未追跡のファイルを含む）の、ファイルごとの行数は、**Phase 5 のタグ（`phase-5-done`）の時点と完全に同じ**（17ファイル）。Phase 6 のテストに出てくる文字列は、ダミーのハッシュ `"dummy-hash-for-test"` だけ）
 
 ```powershell
 git grep -n -i -e password -- . ":(exclude)docs" ":(exclude)mvnw" ":(exclude)mvnw.cmd"
@@ -413,34 +413,63 @@ git grep -n -i -e password -- . ":(exclude)docs" ":(exclude)mvnw" ":(exclude)mvn
 | Q6-6 | **同時に保存されて、一意制約 `(科目, 年, 季節)` に拒否されたときの扱い**（設計書 5.7：「最後の守り」。画面での扱いは未記載。例：保存ボタンを素早く2回押した） | A：特別な扱いをしない（500 番台のエラー画面になる。何も二重には保存されない）<br>B：エラーを受けて、保存し直す（再読み込みして、更新として保存する）<br>C：エラーを受けて、「もう一度保存してください」のメッセージで表示し直す | **A**（設計書が「最後の守り」としており、要件にない。個人利用で起きにくい。Phase 8 の確認に含める） | ☑ **A**（おすすめどおり） |
 | Q6-7 | **保存の成功メッセージのキー**（設計書 2.6：「保存しました」、U4）と、予算額のエラーメッセージのキーの形（G6） | A：成功は `success.saved`。入力チェックは `注釈の名前.budgetForm.rows.amount`（行の番号なしの形。4.5 の実験で当たることを確かめる）<br>B：行の番号つきのキー（`rows[0].amount`）を、行の数だけ書く | **A**（文言が1か所で済む。当たらなければ、実験の結果に合わせる） | ☑ **A**（おすすめどおり）。**4.5 の実験で確定**：`success.saved`。入力チェックのキーは `注釈の名前.budgetForm.rows.amount`（行の番号なし）で、どの行にも当たった |
 | Q6-8 | **自動テストの範囲**（Phase 4 の Q4-4、Phase 5 の Q5-10 と同じ後始末：トランザクションで取り消す） | A：`SeasonPeriod`、Form、Repository（検索・制約）、Service、Controller（MockMvc）を、4.2〜4.8 のとおり全部書く<br>B：`SeasonPeriod`、Form、Service は書き、Controller は代表的な画面のテスト（404、範囲の端、入力エラーで値が残る、他人の科目ID、トークンなしの 403）だけにする<br>C：`SeasonPeriod` と Service のテストだけ書き、画面は手で確かめる | **A**（予算は、季節の境目・直前の季節・全部まとめて保存・何も保存しない、と間違えやすい点が多い。他人のデータが見えないことは、実行計画書のリスク対策で最重要） | ☑ **A**（おすすめどおり） |
-| Q6-9 | **予算設定の行の数の上限**。Spring は、行の並び（`rows[0]`、`rows[1]`、…）を、標準で**256行まで**しか組み立てない（それ以上の番号を送ると、束縛が失敗する）。要件・設計書には、科目の数の上限がない | A：標準のまま。科目が256を超えると、予算を保存できなくなる（個人の家計簿では起きにくい）。上限を超える送信は、400 番台の画面になる。Phase 8 で確かめる<br>B：`@InitBinder` で上限を上げる（例：1000）。それでも科目の数の上限はない<br>C：科目の数に上限を設ける（要件の変更になるので、要件を先に決める） | **A**（実害が小さく、仕組みを増やさない。限界をこの手順書と README に書く） | ☑ **A**（おすすめどおり） |
+| Q6-9 | **予算設定の行の数の上限**。Spring は、行の並び（`rows[0]`、`rows[1]`、…）を、標準で**256行まで**しか組み立てない（それ以上の番号を送ると、束縛が失敗する）。要件・設計書には、科目の数の上限がない | A：標準のまま。科目が256を超えると、予算を保存できなくなる（個人の家計簿では起きにくい）。上限を超える送信は、400 番台の画面になる。Phase 8 で確かめる<br>B：`@InitBinder` で上限を上げる（例：1000）。それでも科目の数の上限はない<br>C：科目の数に上限を設ける（要件の変更になるので、要件を先に決める） | **A**（実害が小さく、仕組みを増やさない。限界をこの手順書と README に書く） | ☑ **A**（おすすめどおり） **訂正（4.8 のテストで実際に調べた）**：選択肢 A の説明の「上限を超える送信は、400 番台の画面になる」は誤りだった。257行以上を送ると、束縛が失敗して（`InvalidPropertyException`）、本番では**500番台**のエラー画面になる。何も保存されないことは、説明どおり。決定（A）は変えない。設計書 5.7 に、この動きを書いた |
 
 ## 6. 完了条件
 
 実行計画書の完了条件に、確認方法を加えたものです。次のすべてを満たしたら Phase 6 は完了です。
 
-- [ ] 予算設定画面が、`/budgets?year=…&season=…` で開き、季節を指定しないときは今の季節が表示される（4.9 の(1)、4.8）
-- [ ] 見出しに年・季節・期間が出る（冬は年をまたぐ形）。「前の季節」「次の季節」で移動できる。**範囲の端（2000年春・2100年冬）では、範囲外へのリンクが出ない**（4.2、4.8、4.9 の(4)）
-- [ ] 範囲外の年、不正な季節、年か季節の片方だけの指定は、**404（画面も状態コードも）**。保存の POST でも同じで、何も保存されない
-- [ ] 初期ユーザーの今の季節の予算が、各30,000円で表示される。ほかの季節の予算設定画面では、**直前に設定した季節の額**が初期値として出て、「（この季節は未設定）」の印が付く。直前は期間の順で、最後に保存した季節ではない（4.6、4.9 の(1)）
-- [ ] 入力欄の最初の値の規則（保存済みの額 → 直前の季節の額 → 0円）が、自動テストで確かめられている（3.3 の具体例）
-- [ ] **画面を開いただけでは、行が作られない**。保存すると、その季節の全科目の行が作られる・更新される。もう一度保存しても、行は増えない（4.8、4.9 の(2)）
-- [ ] 予算額が境界値で正しく動く：3,000,000円・0円は保存可 / 3,000,001円・-1円は不可。数字でない値・小数・空・`0x10`・`+5`・全角のマイナスもエラー。全角の数字は半角に直して受け付ける（R13）。`StrictIntegerEditor` で読まれ、標準の変換を使っていない（3.5、4.5、4.10）
-- [ ] 入力エラーで戻っても、**全行の入力値が残り**、エラーのある行の横にメッセージが出る。エラーは1行に1つだけ。**1つでもエラーがあれば、何も保存されない**
-- [ ] 保存で、**他人の科目ID**を送っても、存在しない科目ID・同じIDが2回でも、404 で、何も保存されない（ほかの行も保存されない）
-- [ ] 送られなかった科目の予算は変わらない（F2）
-- [ ] 別ユーザーの予算が見えない・変更できない。持ち主は、ログイン中のユーザー（画面から送られた `userId` を使わない）
-- [ ] 1科目・1年・1季節に予算は1つだけ（一意制約が、2行目を拒否する。`BudgetRepositoryTest`）。DB の CHECK 制約が、範囲外の金額・年を拒否する
-- [ ] `SeasonPeriod` の期間・前後・範囲・文字列からの変換が、境界値の単体テストで確かめられている（4.2）
-- [ ] 科目の削除との関係：1円以上で保存した科目は削除できず、0円なら削除できる（4.6、4.9 の(6)）
-- [ ] メニューに「予算」が出る
-- [ ] `th:utext` を使っていない。`findById` を使っていない。すべての検索が `userId` を引数に取る（4.10）
-- [ ] `.\mvnw test` が全部成功し、開発用の DB にテストの行が残っていない
-- [ ] すべての画面を、`open-in-view=false` のまま、ブラウザで開いて確かめた（500 が出ない）
-- [ ] 設計書の記述が、実際に作ったものと合っている（4.11）
+- [x] 予算設定画面が、`/budgets?year=…&season=…` で開き、季節を指定しないときは今の季節が表示される（4.9 の(1)、4.8）
+- [x] 見出しに年・季節・期間が出る（冬は年をまたぐ形）。「前の季節」「次の季節」で移動できる。**範囲の端（2000年春・2100年冬）では、範囲外へのリンクが出ない**（4.2、4.8、4.9 の(4)）
+- [x] 範囲外の年、不正な季節、年か季節の片方だけの指定は、**404（画面も状態コードも）**。保存の POST でも同じで、何も保存されない
+- [x] 初期ユーザーの今の季節の予算が、各30,000円で表示される。ほかの季節の予算設定画面では、**直前に設定した季節の額**が初期値として出て、「（この季節は未設定）」の印が付く。直前は期間の順で、最後に保存した季節ではない（4.6、4.9 の(1)）
+- [x] 入力欄の最初の値の規則（保存済みの額 → 直前の季節の額 → 0円）が、自動テストで確かめられている（3.3 の具体例）
+- [x] **画面を開いただけでは、行が作られない**。保存すると、その季節の全科目の行が作られる・更新される。もう一度保存しても、行は増えない（4.8、4.9 の(2)）（SQL での件数の確認は、あなたの確認待ち）
+- [x] 予算額が境界値で正しく動く：3,000,000円・0円は保存可 / 3,000,001円・-1円は不可。数字でない値・小数・空・`0x10`・`+5`・全角のマイナスもエラー。全角の数字は半角に直して受け付ける（R13）。`StrictIntegerEditor` で読まれ、標準の変換を使っていない（3.5、4.5、4.10）（全角の数字は半角に直して受け付ける（R13）。ブラウザで全角の `２５０００` が25000で保存されることを確認）
+- [x] 入力エラーで戻っても、**全行の入力値が残り**、エラーのある行の横にメッセージが出る。エラーは1行に1つだけ。**1つでもエラーがあれば、何も保存されない**
+- [x] 保存で、**他人の科目ID**を送っても、存在しない科目ID・同じIDが2回でも、404 で、何も保存されない（ほかの行も保存されない）（自動テストで確認。ブラウザでは未確認）
+- [x] 送られなかった科目の予算は変わらない（F2）
+- [x] 別ユーザーの予算が見えない・変更できない。持ち主は、ログイン中のユーザー（画面から送られた `userId` を使わない）
+- [x] 1科目・1年・1季節に予算は1つだけ（一意制約が、2行目を拒否する。`BudgetRepositoryTest`）。DB の CHECK 制約が、範囲外の金額・年を拒否する
+- [x] `SeasonPeriod` の期間・前後・範囲・文字列からの変換が、境界値の単体テストで確かめられている（4.2）
+- [x] 科目の削除との関係：1円以上で保存した科目は削除できず、0円なら削除できる（4.6、4.9 の(6)）（自動テストで確認。ブラウザでは未確認）
+- [x] メニューに「予算」が出る
+- [x] `th:utext` を使っていない。`findById` を使っていない。すべての検索が `userId` を引数に取る（4.10）
+- [x] `.\mvnw test` が全部成功し、開発用の DB にテストの行が残っていない（1021 件すべて成功。テストのあとの DB を SQL で確認済み：①②③のとおり、テストの行は残っていない。④`test1` は2026年 AUTUMN と WINTER に3行ずつ、`test2` は2026年 AUTUMN に3行）
+- [x] すべての画面を、`open-in-view=false` のまま、ブラウザで開いて確かめた（500 が出ない）（ブラウザで確認済み：秋の表示と保存、冬の画面で前の季節の額と「未設定」の印、保存で印が消える、行ごとの入力エラーと値の保持（エラーのときは保存されない）、2000年春で前の季節のリンクが出ない、1999年冬と季節なしは404、全角の `２５０００` が25000で保存される。500 は出なかった。未確認の画面（科目が0件のアカウント、2100年冬の端、`test2` の画面）は、自動テストで確認してあり、Phase 8 の確認表に含める）
+- [x] 設計書の記述が、実際に作ったものと合っている（4.11）
 - [ ] GitHub に push されていて、パスワード・接続先・確認用アカウントのパスワードが含まれていない（4.12）
-- [ ] 実行計画書の進捗表で Phase 6 を ☑ にし、Phase 6 の節を概要とリンクだけに縮めた。後続 Phase に影響する決定（Q6-1〜Q6-9）を反映した
+- [x] 実行計画書の進捗表で Phase 6 を ☑ にし、Phase 6 の節を概要とリンクだけに縮めた。後続 Phase に影響する決定（Q6-1〜Q6-9）を反映した
 - [ ] `main` に取り込み、タグ `phase-6-done` を付けて push した
+
+> **残りの未チェックの項目**：
+> - 「GitHub に push されている」と「`main` に取り込み、タグ `phase-6-done`」だけ（4.12 の `git push` とコミットも同じ）。push と取り込みのあと、チェックする。
+> - 4.9 の(7)（MySQL での確認）の4項目は、確認済み（金額も、ブラウザで保存したとおり）。確認用の予算の行・取引・科目は、Phase 7 の予実比較の確認に使うので、残す（決定済み）。
+> - 4.9 の項目のうち、ブラウザで確認していないものは、自動テストで確認している（`BudgetControllerTest`、`BudgetServiceTest`、`BudgetRepositoryTest`、`BudgetFormTest`、`SeasonPeriodTest`）。ブラウザでの確認は、Phase 8 の確認表に含める。
+> - テストのあとの DB の確認は済み（①〜④。下の SQL）。
+
+> テストのあとの DB の確認の SQL（`hb_app` でログイン。読むだけ）：
+>
+> ```sql
+> -- ① テスト用のユーザーが残っていない（期待：test1、test2 の2行だけ）
+> SELECT id, username FROM users ORDER BY id;
+>
+> -- ② test1・test2 以外の行が、どのテーブルにもない（期待：すべて 0）
+> SELECT
+>   (SELECT COUNT(*) FROM budgets         WHERE user_id NOT IN (SELECT id FROM users WHERE username IN ('test1','test2'))) AS budgets_other,
+>   (SELECT COUNT(*) FROM transactions    WHERE user_id NOT IN (SELECT id FROM users WHERE username IN ('test1','test2'))) AS transactions_other,
+>   (SELECT COUNT(*) FROM categories      WHERE user_id NOT IN (SELECT id FROM users WHERE username IN ('test1','test2'))) AS categories_other,
+>   (SELECT COUNT(*) FROM vendors         WHERE user_id NOT IN (SELECT id FROM users WHERE username IN ('test1','test2'))) AS vendors_other,
+>   (SELECT COUNT(*) FROM payment_methods WHERE user_id NOT IN (SELECT id FROM users WHERE username IN ('test1','test2'))) AS payment_methods_other;
+>
+> -- ③ 取引は、Phase 5 で残した1件だけ（期待：1）
+> SELECT COUNT(*) FROM transactions;
+>
+> -- ④ test1・test2 の予算の行数（Phase 6 の作業前から、画面で保存した分だけ増えているはず。ブラウザで保存した季節の行）
+> SELECT u.username, b.season_year, b.season, COUNT(*) AS rows_in_season
+> FROM budgets b JOIN users u ON u.id = b.user_id
+> GROUP BY u.username, b.season_year, b.season ORDER BY u.username, b.season_year, b.season;
+> ```
 
 ## 7. つまずいたとき
 

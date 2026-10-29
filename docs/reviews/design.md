@@ -732,7 +732,8 @@ flowchart LR
 
 | ファイル | 画面（章2） | 使う Controller |
 |---|---|---|
-| `fragments/common.html` | 共通部品：ヘッダー（メニュー、ユーザー名、ログアウト）、成功・エラーメッセージの表示場所 | 全画面 |
+| `fragments/common.html` | 共通部品：ヘッダー（メニュー、ユーザー名、ログアウト）、成功・エラーメッセージの表示場所 | 全画面。メニューは、取引一覧、科目、取引先、支払方法、予算（、予実比較）の順 |
+| `fragments/season.html` | 共通部品：季節の見出し（「2026年 春（3月〜5月）」、冬は年をまたぐ形）と、「前の季節」「次の季節」のリンク。範囲の端（2000年春の前、2100年冬の次）ではリンクを出さない。リンクの先の URL は引数で渡す。予算設定と予実比較で共有する（P10、Q6-5） | `BudgetController`、`ComparisonController` |
 | `login.html` | ログイン | `AuthController` |
 | `register.html` | アカウント登録 | `AuthController` |
 | `transactions/list.html` | 取引一覧 | `TransactionController` |
@@ -742,7 +743,7 @@ flowchart LR
 | `categories/edit.html` | 科目変更 | `CategoryController` |
 | `vendors/list.html`、`vendors/edit.html` | 取引先の一覧・変更 | `VendorController` |
 | `payment-methods/list.html`、`payment-methods/edit.html` | 支払方法の一覧・変更 | `PaymentMethodController` |
-| `budgets/form.html` | 予算設定 | `BudgetController` |
+| `budgets/form.html` | 予算設定 | `BudgetController`。入力欄は行ごと（`rows[0].amount` …）。見出しと前後リンクは `fragments/season.html` を使う |
 | `comparison/index.html` | 予実比較 | `ComparisonController` |
 | `error/404.html` | 404 画面（B7、章2） | Spring Boot が 404 のときに自動で使う。`GlobalExceptionHandler` からも使う |
 | `error/403.html` | 403 画面（CSRF のトークン不正など、7.7、S3） | Spring Boot が 403 のときに自動で使う |
@@ -763,7 +764,7 @@ flowchart LR
 | `CategoryService` | 科目の一覧・追加・変更・削除。追加時に、**今の季節**の予算0円の行を作る（Q3、R11）。削除は「取引で使用中でない」「すべての季節の予算が0円または未設定」を確認し、その科目の予算の行をすべて先に消してから科目を消す（3.7） | `categories`、`budgets` |
 | `VendorService` | 取引先の一覧・追加・変更・削除（使用中は削除不可） | `vendors` |
 | `PaymentMethodService` | 支払方法の一覧・追加・変更・削除（使用中は削除不可） | `payment_methods` |
-| `BudgetService` | 指定した季節の、自分の全科目の予算の取得（保存済みの額がなければ、直前の設定のある季節の額、それもなければ0円を初期値にする、Q23・Q24）と、その季節の全科目のまとめての保存（作る・更新する、Q25） | `budgets`、`categories` |
+| `BudgetService` | 指定した季節の、自分の全科目の予算の取得（保存済みの額がなければ、直前の設定のある季節の額、それもなければ0円を初期値にする、Q23・Q24）と、その季節の全科目のまとめての保存（作る・更新する、Q25） | `budgets`、`categories`。**Phase 6 で作ったメソッド**：`edit`（表示用の行。何も書かない）、`rowsOf`（入力エラーで表示し直すための行。科目IDの確認を先に行い、送られた順のまま科目名と印を引く）、`save`（まとめて保存。科目IDの確認を先に行い、だめなら何も保存しない）。範囲外の季節は、どれも `NotFoundException` |
 | `TransactionService` | 取引の一覧・詳細・登録・更新・削除。登録・更新のとき、選んだ科目・取引先・支払方法が**自分のものか**を確認する（3.9） | `transactions` |
 | `ComparisonService` | 季節の期間の取引を科目ごとに集計し、予算（未設定なら「未設定」）・実績・差額（未設定なら空欄）・色・合計行を作る（`ComparisonResult` を返す、5.9） | `categories`、`budgets`、`transactions` |
 
@@ -791,8 +792,8 @@ flowchart LR
 
 | クラス | 役割（1行） |
 |---|---|
-| `Season` | 春・夏・秋・冬と月の対応、URL で使う名前（`spring` など） |
-| `SeasonPeriod` | 年と季節の組み合わせ。今日の日付から季節と年を決める（冬は12月起点）、期間の開始日と終了日の翌日、前の季節・次の季節、2000年春〜2100年冬の範囲の判定（Q7・B15）。**予実比較と予算設定の両方**で使う。アカウント登録と科目の追加で「今の季節」を求めるのにも使う（R11） |
+| `Season` | 春・夏・秋・冬と月の対応、URL で使う名前（`spring` など）。`fromUrlName`（小文字の4つだけを受け付ける）、`earlierInYear`（同じ年の中で、ある季節より前の季節。DB の検索に使う）。列挙の宣言の順（春→夏→秋→冬）が期間の順 |
+| `SeasonPeriod` | 年と季節の組み合わせ。今日の日付から季節と年を決める（冬は12月起点）、期間の開始日と終了日の翌日、前の季節・次の季節、2000年春〜2100年冬の範囲の判定（Q7・B15）。**予実比較と予算設定の両方**で使う。アカウント登録と科目の追加で「今の季節」を求めるのにも使う（R11）。**Phase 6 で足したもの**：`startDate`・`endDateExclusive`、`previous`・`next`（範囲の端では空）、`isInRange`、`isBefore`（期間の順の比べ方。DB の季節の文字の順 `AUTUMN` < `SPRING` < `SUMMER` < `WINTER` とは違う）、`parse`（URL の年と季節の文字列から季節を求める。年は半角の数字4桁だけで2000〜2100、季節は小文字の4つだけ。不正・片方だけは空で、呼ぶ側が 404 にする、Q6-2） |
 | `BudgetColor` | 色の種類：赤・青・色なし |
 | `BudgetColorJudge` | 予算と実績から色を決める。**予算が未設定なら、色なし**。設定されていれば、次の**順番**で判定する（要件4.4）。①実績 ＞ 予算なら赤（予算が0円でも、実績があれば赤）。②予算が0円なら色なし（実績も0円のとき）。③実績 × 3 ≦ 予算なら青（ちょうど1/3も青）。④それ以外は色なし。合計行にも同じ順番で使う（Q21、Q22） |
 
@@ -812,7 +813,7 @@ flowchart LR
 | `categories` | `Category` | `CategoryRepository` | 自分の科目を `id` 順で全件、ID＋`user_id` で1件、同じ名前があるか |
 | `vendors` | `Vendor` | `VendorRepository` | 同上（取引先） |
 | `payment_methods` | `PaymentMethod` | `PaymentMethodRepository` | 同上（支払方法） |
-| `budgets` | `Budget` | `BudgetRepository` | 指定した季節の自分の予算を全件、科目ごとの、表示季節より前で設定のある最も近い季節の予算（初期値用）、科目に0円でない予算がある季節があるか、科目の予算をすべて削除、科目・年・季節で1件（保存の作成・更新用） |
+| `budgets` | `Budget` | `BudgetRepository` | 指定した季節の自分の予算を全件、科目ごとの、表示季節より前で設定のある最も近い季節の予算（初期値用）、科目に0円でない予算がある季節があるか、科目の予算をすべて削除、科目・年・季節で1件（保存の作成・更新用）。**Phase 6 で足した検索**（Q6-4 の A）：`findByUserIdAndSeasonYearAndSeason`（その季節）、`findByUserIdAndSeasonYearLessThan`（年が前）、`findByUserIdAndSeasonYearAndSeasonIn`（同じ年で季節が前）。いずれも科目を一緒に読み込み（`@EntityGraph`）、科目ごとにいちばん近い季節を選ぶのは Service が期間の順で行う。`Budget` には `changeAmount` を足した |
 | `transactions` | `Transaction` | `TransactionRepository` | 自分の取引を日付の新しい順（同じ日は `id` の新しい順）で全件、ID＋`user_id` で1件、科目／取引先／支払方法が使われているか、期間内の科目ごとの合計 |
 
 - **Phase 4 で前倒しで作ったもの**：`Transaction` の Entity（3.6 の全列、P7 の関連つき）と、`TransactionRepository` の「使用中の確認」の3メソッド（`existsByUserIdAndCategoryId`、`existsByUserIdAndVendorId`、`existsByUserIdAndPaymentMethodId`。科目・取引先・支払方法の削除の判定に使う、5.5）。一覧・1件取得・集計などの検索は、Phase 5・7 で足す。
@@ -837,7 +838,7 @@ flowchart LR
 | `CategoryForm` | 科目の追加・変更 | 名前（10文字以下） |
 | `VendorForm` | 取引先の追加・変更 | 名前（20文字以下） |
 | `PaymentMethodForm` | 支払方法の追加・変更 | 名前（10文字以下） |
-| `BudgetForm` | 予算設定 | 科目ごとの予算額の並び（科目IDと金額を1行分とする）。年と季節は URL で受け取る（2.4）。1つでもエラーなら全部保存しない（章2） |
+| `BudgetForm` | 予算設定 | 科目ごとの予算額の並び（科目IDと金額を1行分とする）。年と季節は URL で受け取る（2.4）。1つでもエラーなら全部保存しない（章2）。**形**：`rows`（行の並び）。各行は `BudgetForm.Row`（科目ID、予算額）。予算額は `rows.amount`（行の番号を除いた名前）で `StrictIntegerEditor` を登録すると、全行に効く（Phase 6 の実験、Q6-1。行の番号つき `rows[0].amount` で登録すると、その行にしか効かない）。メッセージのキーも `rows.amount` の形でどの行にも当たる（Q6-7） |
 
 - ログインの入力は、Spring Security が受け取るので Form を作らない。
 - 金額は整数で受け取る（B5）。数字でない入力は入力エラーにする。
@@ -849,7 +850,7 @@ flowchart LR
 | `ComparisonRow` | 予実比較の1行分：科目名、予算（**未設定のときは空**）、実績、差額（**予算が空なら空**）、色。合計行にも使う |
 | `ComparisonResult` | 予実比較の画面全体：見出し（年・季節・期間）、行の並び、合計行、前・次の季節のリンク先（範囲の端では「なし」） |
 | `CategoryActual` | 科目ごとの実績（科目IDと合計）。Repository の集計結果（P4） |
-| `BudgetEditView` | 予算設定画面の表示データ：見出し（年・季節・期間）、前・次の季節のリンク先、各行（科目、初期値の額、「未設定」の印の有無）（Q26） |
+| `BudgetEditView` | 予算設定画面の表示データ：見出し（年・季節・期間）、前・次の季節のリンク先、各行（科目、初期値の額、「未設定」の印の有無）（Q26）。**形**：期間（`SeasonPeriod`）、前・次の季節（範囲の端では null）、行（`BudgetEditView.Row`：科目ID、科目名、最初の値、「未設定」の印）。入力エラーで表示し直すときの行は、最初の値が null（値は送られた値を使う） |
 
 - 取引一覧・詳細は、Entity をそのまま画面に渡して表示する（P6）。理由：項目が Entity とほぼ同じで、専用のクラスを作ると増えるだけなため。画面が読む科目・取引先・支払方法は、Repository が一緒に読み込んで渡す（4.6、D5 で `open-in-view=false`）。
 - 取引の登録・編集の入力は `TransactionForm` で受ける。金額は、専用の変換クラス `StrictIntegerEditor` で読み（6.5）、日付の範囲は自作の注釈 `TransactionDateRange` で確かめる（6.6）。どちらも `form` パッケージに置いた（P9）。
@@ -878,6 +879,7 @@ flowchart LR
 | P7 | `user_id` は数値で持ち、科目などは関連として持つ | 絞り込みが簡単で、名前を表示しやすいため |
 | P8 | 例外を 3 種類（`NotFoundException`、`DuplicateException`、`DeletionNotAllowedException`）に分ける | 404・入力エラー・削除不可で画面の動きが違うため |
 | P9 | `form` パッケージに、金額（予算額）を整数に読む専用の変換クラス `StrictIntegerEditor` と、取引の日付の範囲の注釈 `TransactionDateRange`（と、その確認クラス）を置く（Phase 5、Q5-1 の C、Q5-2 の A。のちに R13 で、全角の数字は半角に直して受け付けるよう変更） | Spring 標準の変換が全角数字・途中の空白・16 進を通すため（6.5）。Bean Validation に日付の範囲の注釈がないため（6.6） |
+| P10 | `templates/fragments/season.html`（季節の見出しと前後リンク）を、共有の部品として作る（Phase 6、Q6-5 の A）。季節の名前（春・夏・秋・冬）は `messages.properties`（`season.*`）に置く | 予算設定と予実比較で同じ形を使い、書き写さないため。画面の文言は `messages.properties` に置く（6.8） |
 
 ---
 
@@ -1089,6 +1091,7 @@ flowchart TD
 - 送られなかった科目の、その季節の予算は変えない（F2）。
 - 一意制約 `(category_id, season_year, season)`（3.6）が、同時操作で同じ行が2つできるのを防ぐ最後の守りになる。拒否されたときは、特別な扱いをせず、500 番台のエラー画面になる（Q6-6 の A。何も二重には保存されない。二重送信などで起きうるが、個人用の家計簿では起きにくい）。
 - 別の季節へ移動するリンクを押したとき、保存していない入力は確認なしで捨てられる（Q27 の d）。
+- **行の数の上限**（Phase 6、Q6-9 の A）：行の並び（`rows[0]`、`rows[1]`、…）は、Spring の標準で**256行まで**しか組み立てられない。257行以上を送ると、束縛そのものが失敗して（`InvalidPropertyException`）、本番では500番台のエラー画面になる（400番台ではない。実際に調べた）。何も保存されない。科目が257以上あると、予算を保存できない。要件・設計書には科目の数の上限がなく、個人の家計簿では起きにくいため、標準のままにした（Phase 8 で確かめる）。
 
 ### 5.8 季節の決定と期間
 
@@ -1587,7 +1590,7 @@ Spring 標準の変換（`Integer` の項目に何も足さない場合）は、
 
 ### 8.1 この章の決まり
 
-- Phase 1 の間に決めた点（Q1〜Q27、B1〜B15、要件定義書の修正 R1〜R12（Phase 1 のあとの R13 は、6.5）、U1〜U7、P1〜P8、F1〜F4、G1〜G7、H1、S1〜S7）は、すべて章1〜7に反映した。ここには**書かない**。
+- Phase 1 の間に決めた点（Q1〜Q27、B1〜B15、要件定義書の修正 R1〜R12（Phase 1 のあとの R13 は、6.5）、U1〜U7、P1〜P8（のちの P9・P10 は 4.9）、F1〜F4、G1〜G7、H1、S1〜S7）は、すべて章1〜7に反映した。ここには**書かない**。
 - ここに残すのは、**Phase 1 では決めず、後の Phase で決める（または確かめる）と決めた点だけ**。決めたら、結果を該当する章に書き、この章から消す。
 - 「いつまでに」の Phase に着手する前に、その Phase の手順書へ移す。
 
