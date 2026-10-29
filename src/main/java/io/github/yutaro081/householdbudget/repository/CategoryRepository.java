@@ -22,6 +22,9 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
 	/** ID と user_id の両方で1件探す。他人のものや、存在しない ID は見つからない。 */
 	Optional<Category> findByIdAndUserId(Long id, Long userId);
 
+	/** 自分のものの個数。追加のとき、1人あたりの上限（Limits、256個）に達していないかの確認に使う（R14）。 */
+	long countByUserId(Long userId);
+
 	/** 自分の中に、同じ名前があるか。追加の重複確認に使う（設計書 5.6）。 */
 	boolean existsByUserIdAndName(Long userId, String name);
 

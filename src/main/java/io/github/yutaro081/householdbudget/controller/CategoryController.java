@@ -13,6 +13,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import io.github.yutaro081.householdbudget.entity.Category;
 import io.github.yutaro081.householdbudget.exception.DeletionNotAllowedException;
 import io.github.yutaro081.householdbudget.exception.DuplicateException;
+import io.github.yutaro081.householdbudget.exception.LimitExceededException;
 import io.github.yutaro081.householdbudget.form.CategoryForm;
 import io.github.yutaro081.householdbudget.security.LoginUser;
 import io.github.yutaro081.householdbudget.service.CategoryService;
@@ -60,6 +61,8 @@ public class CategoryController {
 				categoryService.add(userId, categoryForm);
 				redirectAttributes.addFlashAttribute("successMessageKey", "success.added");
 				return "redirect:/categories";
+			} catch (LimitExceededException e) {
+				bindingResult.rejectValue("name", "error.limit.category");
 			} catch (DuplicateException e) {
 				bindingResult.rejectValue("name", "error.duplicate.category");
 			}

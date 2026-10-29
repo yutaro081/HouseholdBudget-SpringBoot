@@ -60,7 +60,10 @@ class MessagesTest {
 			"season.spring|春",
 			"season.summer|夏",
 			"season.autumn|秋",
-			"season.winter|冬"
+			"season.winter|冬",
+			"error.limit.category|科目は256個までです",
+			"error.limit.vendor|取引先は256個までです",
+			"error.limit.paymentMethod|支払方法は256個までです"
 	})
 	void messageText(String key, String expected) {
 		assertThat(messageSource.getMessage(key, null, Locale.JAPAN)).isEqualTo(expected);

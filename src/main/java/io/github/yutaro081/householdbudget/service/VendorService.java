@@ -6,9 +6,11 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import io.github.yutaro081.householdbudget.domain.Limits;
 import io.github.yutaro081.householdbudget.entity.Vendor;
 import io.github.yutaro081.householdbudget.exception.DeletionNotAllowedException;
 import io.github.yutaro081.householdbudget.exception.DuplicateException;
+import io.github.yutaro081.householdbudget.exception.LimitExceededException;
 import io.github.yutaro081.householdbudget.exception.NotFoundException;
 import io.github.yutaro081.householdbudget.form.VendorForm;
 import io.github.yutaro081.householdbudget.repository.VendorRepository;
@@ -49,11 +51,16 @@ public class VendorService {
 	/**
 	 * 取引先を追加する。
 	 *
+	 * @throws LimitExceededException 自分の取引先が、すでに1人あたりの上限（256個）あるとき（256個目までは追加でき、257個目は追加できない）
 	 * @throws DuplicateException 自分の中に、同じ名前がすでにあるとき
 	 */
 	@Transactional
 	public Vendor add(Long userId, VendorForm form) {
 		String name = form.getName();
+		// 1人あたりの上限（256個）に達していたら、追加できない（同じ名前の確認より先に確かめる。設計書 5.4、R14）
+		if (vendorRepository.countByUserId(userId) >= Limits.MAX_MASTERS_PER_USER) {
+			throw new LimitExceededException("vendor limit exceeded");
+		}
 		if (vendorRepository.existsByUserIdAndName(userId, name)) {
 			throw new DuplicateException("vendor name already exists");
 		}

@@ -13,6 +13,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import io.github.yutaro081.householdbudget.entity.Vendor;
 import io.github.yutaro081.householdbudget.exception.DeletionNotAllowedException;
 import io.github.yutaro081.householdbudget.exception.DuplicateException;
+import io.github.yutaro081.householdbudget.exception.LimitExceededException;
 import io.github.yutaro081.householdbudget.form.VendorForm;
 import io.github.yutaro081.householdbudget.security.LoginUser;
 import io.github.yutaro081.householdbudget.service.VendorService;
@@ -60,6 +61,8 @@ public class VendorController {
 				vendorService.add(userId, vendorForm);
 				redirectAttributes.addFlashAttribute("successMessageKey", "success.added");
 				return "redirect:/vendors";
+			} catch (LimitExceededException e) {
+				bindingResult.rejectValue("name", "error.limit.vendor");
 			} catch (DuplicateException e) {
 				bindingResult.rejectValue("name", "error.duplicate.vendor");
 			}
