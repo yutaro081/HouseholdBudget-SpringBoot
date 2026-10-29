@@ -114,33 +114,33 @@
 
 ### 4.1 作業ブランチと土台を確認する
 
-- [ ] `feature/phase-5-transactions` にいる
-- [ ] MySQL のサービス（`MySQL97`）が動いている
-- [ ] 環境変数 `HB_DB_URL`、`HB_DB_USER`、`HB_DB_PASSWORD` が設定されている（値は表示しない）
-- [ ] 確認用のアカウントが2つ以上ある（`test1`、`test2`。データ分離の確認に使う）
-- [ ] 開発用の DB の `transactions` が 0 件（Phase 4 の SQL で入れた取引が残っていない）
+- [x] `feature/phase-5-transactions` にいる
+- [x] MySQL のサービス（`MySQL97`）が動いている
+- [x] 環境変数 `HB_DB_URL`、`HB_DB_USER`、`HB_DB_PASSWORD` が設定されている（値は表示しない）
+- [ ] 確認用のアカウントが2つ以上ある（`test1`、`test2`。データ分離の確認に使う）（同上）
+- [ ] 開発用の DB の `transactions` が 0 件（Phase 4 の SQL で入れた取引が残っていない）（Claude Code では確認できないので、自分で SQL を実行して確かめる）
 
 **確認**：
-- [ ] `git status` が `On branch feature/phase-5-transactions` と `working tree clean` を示す
-- [ ] `.\mvnw test` が全部成功する（Phase 4 完了時の状態）
+- [x] `git status` が `On branch feature/phase-5-transactions` と `working tree clean` を示す
+- [x] `.\mvnw test` が全部成功する（Phase 4 完了時の状態。378 件が成功）
 
 ### 4.2 メッセージ
 
 `messages.properties` に、取引で使うメッセージを足す（6.2、6.8、2.6）。文末は、ていねいな言い方に統一する。
 
-- [ ] 入力チェック（3.3 の表）：`NotNull`、`typeMismatch`、`Min`、`Max`、`Size` などの、`transactionForm` の各項目のキー。日付の範囲のキーは Q5-2 の決定による
-- [ ] 科目・取引先・支払方法の型変換（数字でない値）：未選択と同じ文言にする（G5）
-- [ ] 成功：「登録しました」「更新しました」（U2）。「削除しました」は `success.deleted` を使う。キーの名前は Q5-8 の決定による
-- [ ] 既存のメッセージ（科目など）を変えない
+- [x] 入力チェック（3.3 の表）：`NotNull`、`typeMismatch`、`Min`、`Max`、`Size` などの、`transactionForm` の各項目のキー。日付の範囲のキーは Q5-2 の決定による
+- [x] 科目・取引先・支払方法の型変換（数字でない値）：未選択と同じ文言にする（G5）
+- [x] 成功：「登録しました」「更新しました」（U2）。「削除しました」は `success.deleted` を使う。キーの名前は Q5-8 の決定による
+- [x] 既存のメッセージ（科目など）を変えない
 
 **確認**：
-- [ ] ファイルが UTF-8 で、`MessagesTest` が成功する
+- [x] ファイルが UTF-8 で、`MessagesTest` が成功する
 
 ### 4.3 Entity と Repository
 
-- [ ] `Transaction` に、更新用のメソッドを足す（日付、金額、科目、摘要、取引先、支払方法を入れ替える。`user_id` と `id` は変えない）。`setUserId` のような、持ち主を変えられるメソッドは作らない（3.9）
-- [ ] `TransactionRepository` に、3.1 の2つの検索を足す。関連（科目・取引先・支払方法）を同時に読み込む方法は Q5-5 の決定による
-- [ ] `TransactionRepositoryTest` に足す：
+- [x] `Transaction` に、更新用のメソッドを足す（日付、金額、科目、摘要、取引先、支払方法を入れ替える。`user_id` と `id` は変えない）。`setUserId` のような、持ち主を変えられるメソッドは作らない（3.9）
+- [x] `TransactionRepository` に、3.1 の2つの検索を足す。関連（科目・取引先・支払方法）を同時に読み込む方法は Q5-5 の決定による
+- [x] `TransactionRepositoryTest` に足す：
   - 一覧が、日付の新しい順、同じ日は `id` の新しい順で返る。**他のユーザーの取引は返らない**
   - `findByIdAndUserId`：自分のものは見つかる。他人の ID と、存在しない ID は見つからない
   - **まとめて読み込めている**：保存したあと `flush` と `clear` をして、検索の結果の科目・取引先・支払方法が読み込み済みであること（`PersistenceUnitUtil.isLoaded`）。件数が増えても、実行される SQL の数が増えないこと（Hibernate の統計を、このテストだけで有効にする）
@@ -148,8 +148,8 @@
   - 摘要が NULL の取引を保存して読み戻せる（Phase 4 のテストにあれば、重ねない）
 
 **確認**：
-- [ ] `.\mvnw test` が成功する
-- [ ] `findById` を使っていない（検索して確かめる）
+- [x] `.\mvnw test` が成功する
+- [x] `findById` を使っていない（検索して確かめる）
 
 ### 4.4 `TransactionForm`
 

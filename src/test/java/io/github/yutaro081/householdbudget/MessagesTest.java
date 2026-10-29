@@ -11,7 +11,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.MessageSource;
 
 /**
- * messages.properties の、科目・取引先・支払方法のメッセージが、設計書 6.2、2.6 の文のとおりかの確認。
+ * messages.properties の、科目・取引先・支払方法・取引のメッセージが、設計書 6.2、2.6 の文のとおりかの確認。
  * キーの綴り違いや、文字化けに気づくためのテスト。
  */
 @SpringBootTest
@@ -35,7 +35,23 @@ class MessagesTest {
 			"error.delete.budgetNotZero|予算が0円ではない季節があるため削除できません",
 			"success.added|追加しました",
 			"success.updated|変更しました",
-			"success.deleted|削除しました"
+			"success.deleted|削除しました",
+			"NotNull.transactionForm.transactionDate|日付を入力してください",
+			"typeMismatch.transactionForm.transactionDate|日付を正しく入力してください",
+			"TransactionDateRange.transactionForm.transactionDate|日付は2000年1月1日から2100年12月31日までで入力してください",
+			"NotNull.transactionForm.amount|金額を入力してください",
+			"typeMismatch.transactionForm.amount|金額は整数で入力してください",
+			"Min.transactionForm.amount|金額は1円以上1,000,000円以下で入力してください",
+			"Max.transactionForm.amount|金額は1円以上1,000,000円以下で入力してください",
+			"NotNull.transactionForm.categoryId|科目を選択してください",
+			"typeMismatch.transactionForm.categoryId|科目を選択してください",
+			"NotNull.transactionForm.vendorId|取引先を選択してください",
+			"typeMismatch.transactionForm.vendorId|取引先を選択してください",
+			"NotNull.transactionForm.paymentMethodId|支払方法を選択してください",
+			"typeMismatch.transactionForm.paymentMethodId|支払方法を選択してください",
+			"Size.transactionForm.description|摘要は30文字以内で入力してください",
+			"success.registered|登録しました",
+			"success.transactionUpdated|更新しました"
 	})
 	void messageText(String key, String expected) {
 		assertThat(messageSource.getMessage(key, null, Locale.JAPAN)).isEqualTo(expected);
