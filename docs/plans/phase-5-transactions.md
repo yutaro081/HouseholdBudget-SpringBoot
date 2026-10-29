@@ -206,7 +206,7 @@ Spring 標準の変換（`Integer` の項目）を、MVC が使うのと同じ�
 
 設計書 2.2、2.3、2.6、4.4 のとおりに作る。**画面の値は `th:text` で出す。`th:utext` は使わない**（7.5）。フォームは `th:action` で書く（7.6）。
 
-- [ ] `controller` に `TransactionController`（受け持つ URL は 4.4.1）。ログイン中のユーザーのIDを `LoginUser` から取り出して、Service に渡す
+- [x] `controller` に `TransactionController`（受け持つ URL は 4.4.1）。ログイン中のユーザーのIDを `LoginUser` から取り出して、Service に渡す
   - `GET /transactions`：一覧（`model` に取引の並びを入れる）
   - `GET /transactions/new`：登録フォーム。日付の初期値は今日（U7。`Clock` から求める）
   - `POST /transactions/new`：登録。入力エラーのときは、**リダイレクトせず**フォームを表示し直す（入力値を残し、プルダウンの選択肢を取り直して、**選んだ値を残す**、6.7、6.9）。成功したら `/transactions` へリダイレクト（「登録しました」）
@@ -216,22 +216,22 @@ Spring 標準の変換（`Integer` の項目）を、MVC が使うのと同じ�
   - `POST /transactions/{id}/delete`：削除。成功したら `/transactions` へリダイレクト（「削除しました」）
   - `/transactions/new` が、`{id}` として読まれないこと（「new」が ID の URL に取られない）
   - プルダウンの選択肢を入れる処理は、4か所（登録・編集の、表示と表示し直し）で同じなので、Controller の中の1つのメソッドにまとめる
-- [ ] `TemporaryTransactionController` を**削除する**。`SecurityConfig` のログイン成功後の移動先（`/transactions`）は変えない
-- [ ] `templates/transactions/list.html`：仮の本文と「【仮】」の説明コメントを消して、本物に置き換える
+- [x] `TemporaryTransactionController` を**削除する**。`SecurityConfig` のログイン成功後の移動先（`/transactions`）は変えない
+- [x] `templates/transactions/list.html`：仮の本文と「【仮】」の説明コメントを消して、本物に置き換える
   - 列：日付、科目、取引先、支払方法、摘要、金額。行ごとに「詳細」リンク。編集・削除のボタンは置かない（U3）
   - 「取引を登録」ボタン（`/transactions/new` へ）
   - 0件のときは「取引はまだありません」
   - 日付と金額の表示の形は 2.3（`2026/10/19`、`30,000円`）。整形の方法は Q5-9 の決定による
   - 摘要が NULL のときは空欄（`null` という文字が出ない）
-- [ ] `templates/transactions/form.html`（登録・編集で共用）：日付（日付入力）、金額（文字として受け付ける、G1）、科目・取引先・支払方法（プルダウン。先頭は「選択してください」、値は空）、摘要。各項目の横にエラーを表示。「戻る」リンク（一覧へ）。**入力欄には、カンマも「円」も使わない**（2.3）
+- [x] `templates/transactions/form.html`（登録・編集で共用）：日付（日付入力）、金額（文字として受け付ける、G1）、科目・取引先・支払方法（プルダウン。先頭は「選択してください」、値は空）、摘要。各項目の横にエラーを表示。「戻る」リンク（一覧へ）。**入力欄には、カンマも「円」も使わない**（2.3）
   - **プルダウンが空のとき（B2）**の表示は Q5-7 の決定による
   - 画面（HTML）側では、必須や文字数の制限を付けない（G1）。フォームに `novalidate` を付ける（Phase 4 の画面と同じ）
-- [ ] `templates/transactions/detail.html`：日付、科目、取引先、支払方法、摘要（なければ空欄）、金額。「編集」ボタン、「削除」ボタン（`onsubmit` に固定の文言で `return confirm('削除しますか？')`。利用者の入力は埋め込まない、2.1、7.5）、「一覧に戻る」リンク
-- [ ] 共通の枠のメニューの「取引一覧」は、そのままにする（取引の登録へのリンクは、一覧の画面に置く）
+- [x] `templates/transactions/detail.html`：日付、科目、取引先、支払方法、摘要（なければ空欄）、金額。「編集」ボタン、「削除」ボタン（`onsubmit` に固定の文言で `return confirm('削除しますか？')`。利用者の入力は埋め込まない、2.1、7.5）、「一覧に戻る」リンク
+- [x] 共通の枠のメニューの「取引一覧」は、そのままにする（取引の登録へのリンクは、一覧の画面に置く）
 
 **確認**：
-- [ ] `.\mvnw test` が成功する
-- [ ] `th:utext` を使っていない（検索して確かめる）
+- [x] `.\mvnw test` が成功する
+- [x] `th:utext` を使っていない（検索して確かめる）
 
 ### 4.7 `TransactionController` の自動テスト（MockMvc）
 

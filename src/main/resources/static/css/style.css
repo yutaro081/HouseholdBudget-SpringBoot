@@ -105,3 +105,48 @@ table.list td.actions {
     display: inline-block;
     margin: 0;
 }
+
+/* フォームのプルダウン（取引の登録・編集） */
+.field select {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 6px;
+}
+
+/* 金額の列（右寄せ） */
+table.list td.num,
+table.list th.num {
+    text-align: right;
+}
+
+/* 登録できないときの説明（プルダウンが空のとき、B2） */
+.notice {
+    background: #fff8e1;
+    border: 1px solid #f0d58c;
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin: 12px 0;
+}
+
+/* 詳細画面の項目 */
+dl.detail {
+    display: grid;
+    grid-template-columns: 8em 1fr;
+    gap: 8px 12px;
+    margin: 16px 0;
+}
+
+dl.detail dt {
+    font-weight: bold;
+}
+
+dl.detail dd {
+    margin: 0;
+}
+
+.button-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 16px 0;
+}
