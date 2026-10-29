@@ -11,7 +11,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.MessageSource;
 
 /**
- * messages.properties の、科目・取引先・支払方法・取引のメッセージが、設計書 6.2、2.6 の文のとおりかの確認。
+ * messages.properties の、科目・取引先・支払方法・取引・予算のメッセージが、設計書 6.2、2.6 の文のとおりかの確認。
  * キーの綴り違いや、文字化けに気づくためのテスト。
  */
 @SpringBootTest
@@ -51,7 +51,16 @@ class MessagesTest {
 			"typeMismatch.transactionForm.paymentMethodId|支払方法を選択してください",
 			"Size.transactionForm.description|摘要は30文字以内で入力してください",
 			"success.registered|登録しました",
-			"success.transactionUpdated|更新しました"
+			"success.transactionUpdated|更新しました",
+			"NotNull.budgetForm.rows.amount|予算額を入力してください",
+			"typeMismatch.budgetForm.rows.amount|予算額は整数で入力してください",
+			"Min.budgetForm.rows.amount|予算額は0円以上3,000,000円以下で入力してください",
+			"Max.budgetForm.rows.amount|予算額は0円以上3,000,000円以下で入力してください",
+			"success.saved|保存しました",
+			"season.spring|春",
+			"season.summer|夏",
+			"season.autumn|秋",
+			"season.winter|冬"
 	})
 	void messageText(String key, String expected) {
 		assertThat(messageSource.getMessage(key, null, Locale.JAPAN)).isEqualTo(expected);
