@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head('取引の詳細')}"></head>
+<body>
+<header th:replace="~{fragments/common :: header}"></header>
+<main class="narrow">
+    <div th:replace="~{fragments/common :: messages}"></div>
+
+    <h1>取引の詳細</h1>
+
+    <!--/* 利用者が入力した値（摘要、科目名など）は th:text で出す。th:utext は使わない（設計書 7.5）。摘要がなければ空欄 */-->
+    <dl class="detail">
+        <dt>日付</dt>
+        <dd th:text="${#temporals.format(transaction.transactionDate, 'yyyy/MM/dd')}">2026/10/19</dd>
+        <dt>科目</dt>
+        <dd th:text="${transaction.category.name}">食費</dd>
+        <dt>取引先</dt>
+        <dd th:text="${transaction.vendor.name}">コンビニ</dd>
+        <dt>支払方法</dt>
+        <dd th:text="${transaction.paymentMethod.name}">現金</dd>
+        <dt>摘要</dt>
+        <dd th:text="${transaction.description}">昼食</dd>
+        <dt>金額</dt>
+        <dd th:text="|${#numbers.formatInteger(transaction.amount, 1, 'COMMA')}円|">30,000円</dd>
+    </dl>
+
+    <!--/* 編集・削除のボタンは、この画面にだけ置く（U3）。
+         削除の確認ダイアログの文言は固定。利用者の入力は埋め込まない（設計書 2.1、7.5）。th:action でトークンが入る（7.6） */-->
+    <div class="button-row">
+        <a th:href="@{/transactions/{id}/edit(id=${transaction.id})}">編集</a>
+        <form th:action="@{/transactions/{id}/delete(id=${transaction.id})}" method="post"
+              class="inline-form" onsubmit="return confirm('削除しますか？')">
+            <button type="submit">削除</button>
+        </form>
+    </div>
+
+    <p><a th:href="@{/transactions}">一覧に戻る</a></p>
+</main>
+</body>
+</html>

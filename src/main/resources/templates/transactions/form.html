@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head(${pageTitle})}"></head>
+<body>
+<header th:replace="~{fragments/common :: header}"></header>
+<main class="narrow">
+    <div th:replace="~{fragments/common :: messages}"></div>
+
+    <h1 th:text="${pageTitle}">取引の登録</h1>
+
+    <!--/* 登録（transactionId がない）と編集（transactionId がある）で共用する（設計書 4.4.2、U1：表示と送信は同じ URL）。
+         プルダウンが空のとき（B2、Q5-7 の A）は、足りない種類の説明とマスタの画面へのリンクを出し、フォームは出さない。
+         入力欄には、カンマも「円」も使わない（2.3）。金額は文字として受け付ける（G1）。
+         エラーで戻ったときも、入力値と選んでいた値が残る（th:field）。利用者の入力は th:field / th:text で出す。th:utext は使わない（7.5） */-->
+    <div class="notice" th:if="${#lists.isEmpty(categories) or #lists.isEmpty(vendors) or #lists.isEmpty(paymentMethods)}">
+        <p th:if="${#lists.isEmpty(categories)}">先に科目を追加してください。<a th:href="@{/categories}">科目の画面へ</a></p>
+        <p th:if="${#lists.isEmpty(vendors)}">先に取引先を追加してください。<a th:href="@{/vendors}">取引先の画面へ</a></p>
+        <p th:if="${#lists.isEmpty(paymentMethods)}">先に支払方法を追加してください。<a th:href="@{/payment-methods}">支払方法の画面へ</a></p>
+    </div>
+
+    <form th:unless="${#lists.isEmpty(categories) or #lists.isEmpty(vendors) or #lists.isEmpty(paymentMethods)}"
+          th:action="${transactionId == null} ? @{/transactions/new} : @{/transactions/{id}/edit(id=${transactionId})}"
+          th:object="${transactionForm}" method="post" novalidate>
+        <div class="field">
+            <label for="transactionDate">日付</label>
+            <input type="date" th:field="*{transactionDate}">
+            <div class="field-error" th:each="message : ${#fields.errors('transactionDate')}" th:text="${message}">エラー</div>
+        </div>
+
+        <div class="field">
+            <label for="amount">金額（円。1〜1000000の整数）</label>
+            <input type="text" inputmode="numeric" th:field="*{amount}">
+            <div class="field-error" th:each="message : ${#fields.errors('amount')}" th:text="${message}">エラー</div>
+        </div>
+
+        <div class="field">
+            <label for="categoryId">科目</label>
+            <select th:field="*{categoryId}">
+                <option value="">選択してください</option>
+                <option th:each="category : ${categories}" th:value="${category.id}" th:text="${category.name}">食費</option>
+            </select>
+            <div class="field-error" th:each="message : ${#fields.errors('categoryId')}" th:text="${message}">エラー</div>
+        </div>
+
+        <div class="field">
+            <label for="description">摘要（任意。30文字以内）</label>
+            <input type="text" th:field="*{description}">
+            <div class="field-error" th:each="message : ${#fields.errors('description')}" th:text="${message}">エラー</div>
+        </div>
+
+        <div class="field">
+            <label for="vendorId">取引先</label>
+            <select th:field="*{vendorId}">
+                <option value="">選択してください</option>
+                <option th:each="vendor : ${vendors}" th:value="${vendor.id}" th:text="${vendor.name}">コンビニ</option>
+            </select>
+            <div class="field-error" th:each="message : ${#fields.errors('vendorId')}" th:text="${message}">エラー</div>
+        </div>
+
+        <div class="field">
+            <label for="paymentMethodId">支払方法</label>
+            <select th:field="*{paymentMethodId}">
+                <option value="">選択してください</option>
+                <option th:each="paymentMethod : ${paymentMethods}" th:value="${paymentMethod.id}" th:text="${paymentMethod.name}">現金</option>
+            </select>
+            <div class="field-error" th:each="message : ${#fields.errors('paymentMethodId')}" th:text="${message}">エラー</div>
+        </div>
+
+        <button type="submit" th:text="${transactionId == null} ? '登録' : '更新'">登録</button>
+    </form>
+
+    <p><a th:href="@{/transactions}">戻る</a></p>
+</main>
+</body>
+</html>

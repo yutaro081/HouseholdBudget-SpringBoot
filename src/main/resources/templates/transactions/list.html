@@ -2,15 +2,43 @@
 <html lang="ja" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/common :: head('取引一覧')}"></head>
 <body>
-<!--/*
-  【仮】Phase 3 の取引一覧（Q3-1 の A）。Phase 5 で、本物の取引一覧に置き換える。
-  ログイン成功後の移動先（/transactions）が開けるようにするためだけの画面。
-*/-->
 <header th:replace="~{fragments/common :: header}"></header>
 <main>
+    <!--/* 成功メッセージの表示場所（画面の上部、設計書 2.3） */-->
     <div th:replace="~{fragments/common :: messages}"></div>
+
     <h1>取引一覧</h1>
-    <p>【仮】取引一覧は Phase 5 で作ります。</p>
+
+    <p><a th:href="@{/transactions/new}">取引を登録</a></p>
+
+    <p th:if="${#lists.isEmpty(transactions)}">取引はまだありません</p>
+
+    <!--/* 日付の新しい順（同じ日は登録の新しい順）。編集・削除のボタンは置かない（U3）。
+         日付は 2026/10/19、金額は 30,000円 の形（2.3、Q5-9）。利用者が入力した値は th:text で出す。th:utext は使わない（7.5） */-->
+    <table class="list" th:unless="${#lists.isEmpty(transactions)}">
+        <thead>
+        <tr>
+            <th>日付</th>
+            <th>科目</th>
+            <th>取引先</th>
+            <th>支払方法</th>
+            <th>摘要</th>
+            <th class="num">金額</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="transaction : ${transactions}">
+            <td th:text="${#temporals.format(transaction.transactionDate, 'yyyy/MM/dd')}">2026/10/19</td>
+            <td th:text="${transaction.category.name}">食費</td>
+            <td th:text="${transaction.vendor.name}">コンビニ</td>
+            <td th:text="${transaction.paymentMethod.name}">現金</td>
+            <td th:text="${transaction.description}">昼食</td>
+            <td class="num" th:text="|${#numbers.formatInteger(transaction.amount, 1, 'COMMA')}円|">30,000円</td>
+            <td><a th:href="@{/transactions/{id}(id=${transaction.id})}">詳細</a></td>
+        </tr>
+        </tbody>
+    </table>
 </main>
 </body>
 </html>

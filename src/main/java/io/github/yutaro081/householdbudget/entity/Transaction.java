@@ -18,7 +18,7 @@ import jakarta.persistence.Table;
  * 摘要（description）だけ NULL を許す（要件4.2）。
  * <p>
  * 【Phase 4 の時点】科目・取引先・支払方法の「使用中」の確認のために前倒しで作った。
- * 取引の登録・一覧・編集・削除は Phase 5 で作る。
+ * 【Phase 5】更新用の update を足した。持ち主（user_id）と id を変えるメソッドは作らない。
  */
 @Entity
 @Table(name = "transactions")
@@ -59,6 +59,20 @@ public class Transaction {
 	public Transaction(Long userId, LocalDate transactionDate, int amount, Category category,
 			String description, Vendor vendor, PaymentMethod paymentMethod) {
 		this.userId = userId;
+		this.transactionDate = transactionDate;
+		this.amount = amount;
+		this.category = category;
+		this.description = description;
+		this.vendor = vendor;
+		this.paymentMethod = paymentMethod;
+	}
+
+	/**
+	 * 取引の値を入れ替える（更新用）。持ち主（user_id）と id は変えない（設計書 3.9）。
+	 * 科目・取引先・支払方法は、呼ぶ側（Service）が「自分のもの」と確かめたものを渡す。
+	 */
+	public void update(LocalDate transactionDate, int amount, Category category,
+			String description, Vendor vendor, PaymentMethod paymentMethod) {
 		this.transactionDate = transactionDate;
 		this.amount = amount;
 		this.category = category;
