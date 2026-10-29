@@ -558,6 +558,102 @@ class BudgetServiceTest {
 	}
 
 	// ================================================================
+	// null の守り（issue 002）：Form・行の並び・行・金額が null のときは NotFoundException。
+	// 画面（HTTP）からは到達しないが、Controller の入力チェックに頼らず、Service でも守る（二重の守り）
+	// ================================================================
+
+	private static final SeasonPeriod WINTER_2026 = new SeasonPeriod(2026, Season.WINTER);
+
+	private static BudgetForm formWithNullRows() {
+		BudgetForm form = new BudgetForm();
+		form.setRows(null);
+		return form;
+	}
+
+	@Test
+	void nullFormIsNotFound() {
+		Long u = createUser("bsvc40");
+		category(u, "食費");
+
+		assertThatThrownBy(() -> service.rowsOf(u, WINTER_2026, null)).isInstanceOf(NotFoundException.class);
+		assertThatThrownBy(() -> service.save(u, WINTER_2026, null)).isInstanceOf(NotFoundException.class);
+		assertThat(allBudgetsOf(u)).isEmpty();
+	}
+
+	@Test
+	void nullRowsIsNotFound() {
+		Long u = createUser("bsvc41");
+		category(u, "食費");
+		BudgetForm form = formWithNullRows();
+
+		assertThatThrownBy(() -> service.rowsOf(u, WINTER_2026, form)).isInstanceOf(NotFoundException.class);
+		assertThatThrownBy(() -> service.save(u, WINTER_2026, form)).isInstanceOf(NotFoundException.class);
+		assertThat(allBudgetsOf(u)).isEmpty();
+	}
+
+	/** 行そのものが null：先頭・途中・末尾のどこにあっても NotFoundException。ほかの正しい行も保存されない */
+	@Test
+	void nullRowIsNotFoundWherever() {
+		Long u = createUser("bsvc42");
+		Category food = category(u, "食費");
+		Category fare = category(u, "交通費");
+		BudgetForm.Row ok1 = new BudgetForm.Row(food.getId(), 100);
+		BudgetForm.Row ok2 = new BudgetForm.Row(fare.getId(), 200);
+
+		for (List<BudgetForm.Row> rows : List.of(
+				java.util.Arrays.asList((BudgetForm.Row) null),
+				java.util.Arrays.asList(null, ok1, ok2),
+				java.util.Arrays.asList(ok1, null, ok2),
+				java.util.Arrays.asList(ok1, ok2, null))) {
+			BudgetForm form = new BudgetForm(rows);
+			assertThatThrownBy(() -> service.rowsOf(u, WINTER_2026, form)).isInstanceOf(NotFoundException.class);
+			assertThatThrownBy(() -> service.save(u, WINTER_2026, form)).isInstanceOf(NotFoundException.class);
+		}
+		assertThat(allBudgetsOf(u)).isEmpty();
+	}
+
+	/** 保存のとき、金額が null の行があれば NotFoundException。ほかの正しい行も、すでにある行も、変わらない */
+	@Test
+	void nullAmountInSaveIsNotFoundAndChangesNothing() {
+		Long u = createUser("bsvc43");
+		Category food = category(u, "食費");
+		Category fare = category(u, "交通費");
+		saved(u, food, 2026, Season.WINTER, 30000);
+
+		assertThatThrownBy(() -> service.save(u, WINTER_2026, form(food.getId(), 999, fare.getId(), null)))
+				.isInstanceOf(NotFoundException.class);
+		assertThatThrownBy(() -> service.save(u, WINTER_2026, form(food.getId(), null)))
+				.isInstanceOf(NotFoundException.class);
+
+		List<Budget> winter = budgetRepository.findByUserIdAndSeasonYearAndSeason(u, 2026, Season.WINTER);
+		assertThat(winter).hasSize(1);
+		assertThat(winter.get(0).getAmount()).isEqualTo(30000);        // 先頭の正しい行（999）も保存されていない
+	}
+
+	/** 表示し直すとき（rowsOf）は、金額が null でも、よい（入力エラーで金額が null のまま来るため） */
+	@Test
+	void nullAmountIsAllowedWhenRedisplaying() {
+		Long u = createUser("bsvc44");
+		Category food = category(u, "食費");
+
+		BudgetEditView view = service.rowsOf(u, WINTER_2026, form(food.getId(), null));
+
+		assertThat(view.rows()).hasSize(1);
+		assertThat(view.rows().get(0).categoryName()).isEqualTo("食費");
+	}
+
+	/** 行がまったくない（空の並び）は、null ではない。何も保存せず、そのまま成功（これまでどおり） */
+	@Test
+	void emptyRowsAreStillFine() {
+		Long u = createUser("bsvc45");
+		category(u, "食費");
+
+		service.save(u, WINTER_2026, new BudgetForm());
+		assertThat(service.rowsOf(u, WINTER_2026, new BudgetForm()).rows()).isEmpty();
+		assertThat(allBudgetsOf(u)).isEmpty();
+	}
+
+	// ================================================================
 	// 科目の削除との関係（要件4.3：いずれかの季節に0円でない予算がある科目は削除できない）
 	// ================================================================
 

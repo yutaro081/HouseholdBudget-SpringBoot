@@ -8,11 +8,13 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import io.github.yutaro081.householdbudget.domain.Limits;
 import io.github.yutaro081.householdbudget.domain.SeasonPeriod;
 import io.github.yutaro081.householdbudget.entity.Budget;
 import io.github.yutaro081.householdbudget.entity.Category;
 import io.github.yutaro081.householdbudget.exception.DeletionNotAllowedException;
 import io.github.yutaro081.householdbudget.exception.DuplicateException;
+import io.github.yutaro081.householdbudget.exception.LimitExceededException;
 import io.github.yutaro081.householdbudget.exception.NotFoundException;
 import io.github.yutaro081.householdbudget.form.CategoryForm;
 import io.github.yutaro081.householdbudget.repository.BudgetRepository;
@@ -63,11 +65,16 @@ public class CategoryService {
 	/**
 	 * 科目を追加する。同じトランザクションで、今の季節の予算0円の行も作る（ほかの季節は作らない）。
 	 *
+	 * @throws LimitExceededException 自分の科目が、すでに1人あたりの上限（256個）あるとき（256個目までは追加でき、257個目は追加できない）
 	 * @throws DuplicateException 自分の中に、同じ名前がすでにあるとき
 	 */
 	@Transactional
 	public Category add(Long userId, CategoryForm form) {
 		String name = form.getName();
+		// 1人あたりの上限（256個）に達していたら、追加できない（同じ名前の確認より先に確かめる。設計書 5.4、R14）
+		if (categoryRepository.countByUserId(userId) >= Limits.MAX_MASTERS_PER_USER) {
+			throw new LimitExceededException("category limit exceeded");
+		}
 		if (categoryRepository.existsByUserIdAndName(userId, name)) {
 			throw new DuplicateException("category name already exists");
 		}

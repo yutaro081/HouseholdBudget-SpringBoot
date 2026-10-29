@@ -1,7 +1,6 @@
 package io.github.yutaro081.householdbudget.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -658,24 +657,100 @@ class BudgetControllerTest {
 		assertThat(seasonOf(a, 2026, Season.WINTER)).isEmpty();
 	}
 
-	/**
-	 * 行の数の上限（Q6-9 の A）：Spring は、行の並びを 256 行までしか組み立てない。
-	 * 255 番目までは使えるが、256 番目（257 行目）を送ると、束縛そのものが失敗する（InvalidPropertyException）。
-	 * 実際の画面（本番）では、500 番台のエラー画面になる。何も保存されない。科目が 257 以上あると保存できない。
-	 * （実際に調べて、400 番台ではなく、この動きだと分かった。Phase 8 で確認する）
-	 */
+	// ================================================================
+	// 行の数の上限と、束縛の失敗は 400（R14、issue 002、設計書 5.7、7.7）
+	// 科目は1人あたり256個まで。予算の画面が受け取れる行は、Spring の標準の256行（変えない）。
+	// ================================================================
+
+	/** 科目をちょうど count 個もつ新しいユーザーを作る（科目の名前は 「k0」「k1」…） */
+	private Owner ownerWithCategories(String username, int count) {
+		Long id = userRepository.save(new User(username, "dummy-hash-for-test")).getId();
+		List<Category> list = new java.util.ArrayList<>();
+		for (int i = 0; i < count; i++) {
+			list.add(new Category(id, "k" + i));
+		}
+		categoryRepository.saveAll(list);
+		entityManager.flush();
+		entityManager.clear();
+		return new Owner(id, username, null, null);
+	}
+
+	/** そのユーザーの科目（登録順）の ID と、金額（行の番号）を、rows[0]…rows[n-1] として組み立てる */
+	private MockHttpServletRequestBuilder saveAllRows(Owner o, RequestPostProcessor who, int extraRows) {
+		List<Category> categories = categoryRepository.findByUserIdOrderByIdAsc(o.userId());
+		MockHttpServletRequestBuilder builder = post("/budgets").with(who).with(csrf())
+				.param("year", "2026").param("season", "winter");
+		for (int i = 0; i < categories.size(); i++) {
+			builder.param("rows[" + i + "].categoryId", String.valueOf(categories.get(i).getId()));
+			builder.param("rows[" + i + "].amount", String.valueOf(i));
+		}
+		for (int i = 0; i < extraRows; i++) {
+			int row = categories.size() + i;
+			builder.param("rows[" + row + "].categoryId", String.valueOf(categories.get(0).getId() + 1_000_000 + i));
+			builder.param("rows[" + row + "].amount", "1");
+		}
+		return builder;
+	}
+
+	/** 256行の予算を保存できる（科目は256個まで、R14。256行は、予算の画面で受け取れる標準の行数ちょうど） */
 	@Test
-	void moreThan256RowsFailsBindingAndSavesNothing() throws Exception {
-		// 255 番目：組み立てられるので、科目IDの確認まで進み、他人の科目IDで 404
+	void saving256RowsWorks() throws Exception {
+		Owner c = ownerWithCategories("ctrlbud4", 256);
+		RequestPostProcessor asC = user(new LoginUser(c.userId(), c.username(), "x"));
+
+		mockMvc.perform(saveAllRows(c, asC, 0))
+				.andExpect(status().is3xxRedirection())
+				.andExpect(redirectedUrl("/budgets?year=2026&season=winter"));
+
+		List<Budget> winter = seasonOf(c, 2026, Season.WINTER);
+		assertThat(winter).hasSize(256);
+		assertThat(winter).extracting(Budget::getAmount).contains(0, 1, 255);
+	}
+
+	/** 257行を送ると 400（束縛が失敗する）。500 ではなく、400 番台の画面（error/4xx）。何も保存されない */
+	@Test
+	void sending257RowsIs400AndSavesNothing() throws Exception {
+		Owner c = ownerWithCategories("ctrlbud5", 256);
+		RequestPostProcessor asC = user(new LoginUser(c.userId(), c.username(), "x"));
+
+		String body = body(mockMvc.perform(saveAllRows(c, asC, 1))
+				.andExpect(status().isBadRequest())
+				.andExpect(view().name("error/4xx"))
+				.andReturn());
+
+		assertThat(body).contains("操作を完了できませんでした");
+		assertThat(body).doesNotContain("InvalidProperty").doesNotContain("rows[").doesNotContain("Exception");   // 詳しい中身を出さない
+		assertThat(seasonOf(c, 2026, Season.WINTER)).isEmpty();
+	}
+
+	/** 255番目（256行目）までは、束縛できるので、科目IDの確認まで進む（他人の科目IDなら 404） */
+	@Test
+	void row255IsStillBoundSoTheCategoryIdIsChecked() throws Exception {
 		mockMvc.perform(save("2026", "winter", a.food().getId(), 1).with(asA)
 				.param("rows[255].categoryId", String.valueOf(b.food().getId())).param("rows[255].amount", "1"))
 				.andExpect(status().isNotFound());
-
-		// 256 番目：束縛が失敗する
-		assertThatThrownBy(() -> mockMvc.perform(save("2026", "winter", a.food().getId(), 1).with(asA)
-				.param("rows[256].categoryId", String.valueOf(a.fare().getId())).param("rows[256].amount", "1")))
-				.hasStackTraceContaining("InvalidPropertyException").hasStackTraceContaining("rows[256]");
 		assertThat(seasonOf(a, 2026, Season.WINTER)).isEmpty();
+	}
+
+	/** 行の番号を書き換えた送信（束縛の失敗）は、500 ではなく 400。何も保存されない */
+	@ParameterizedTest(name = "{0} を送ると 400")
+	@ValueSource(strings = { "rows[-1].categoryId", "rows[abc].categoryId", "rows[256].categoryId", "rows[300].categoryId",
+			"rows[1.5].categoryId", "rows[99999999999].categoryId", "rows[-1].amount", "rows[abc].amount", "rows[256].amount" })
+	void tamperedRowIndexIs400AndSavesNothing(String parameterName) throws Exception {
+		mockMvc.perform(save("2026", "winter", a.food().getId(), 100).with(asA).param(parameterName, String.valueOf(a.fare().getId())))
+				.andExpect(status().isBadRequest())
+				.andExpect(view().name("error/4xx"));
+
+		assertThat(seasonOf(a, 2026, Season.WINTER)).isEmpty();
+	}
+
+	/** 400 の画面は、ログイン前でなくても出せる作り（error/4xx）で、取引一覧へのリンクがある */
+	@Test
+	void the400PageHasALinkBack() throws Exception {
+		String body = body(mockMvc.perform(save("2026", "winter", a.food().getId(), 100).with(asA).param("rows[-1].categoryId", "1"))
+				.andExpect(status().isBadRequest()).andReturn());
+
+		assertThat(body).contains("href=\"/transactions\"");
 	}
 
 }

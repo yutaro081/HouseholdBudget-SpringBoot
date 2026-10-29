@@ -13,6 +13,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import io.github.yutaro081.householdbudget.entity.PaymentMethod;
 import io.github.yutaro081.householdbudget.exception.DeletionNotAllowedException;
 import io.github.yutaro081.householdbudget.exception.DuplicateException;
+import io.github.yutaro081.householdbudget.exception.LimitExceededException;
 import io.github.yutaro081.householdbudget.form.PaymentMethodForm;
 import io.github.yutaro081.householdbudget.security.LoginUser;
 import io.github.yutaro081.householdbudget.service.PaymentMethodService;
@@ -60,6 +61,8 @@ public class PaymentMethodController {
 				paymentMethodService.add(userId, paymentMethodForm);
 				redirectAttributes.addFlashAttribute("successMessageKey", "success.added");
 				return "redirect:/payment-methods";
+			} catch (LimitExceededException e) {
+				bindingResult.rejectValue("name", "error.limit.paymentMethod");
 			} catch (DuplicateException e) {
 				bindingResult.rejectValue("name", "error.duplicate.paymentMethod");
 			}

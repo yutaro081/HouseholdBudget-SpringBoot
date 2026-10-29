@@ -27,6 +27,8 @@ import io.github.yutaro081.householdbudget.repository.BudgetRepository;
  * ここでも NotFoundException にする（守りを二重にする、設計書 5.7）。
  * 科目は、CategoryService.list(userId)（自分の科目だけ）で取り出して照らす。自分で Repository の findById は呼ばない。
  * 他人の科目ID・存在しない科目ID・同じ科目IDが2回・科目IDなし（null）は、NotFoundException（F3、設計書 7.8）。
+ * Form が null、行の並び（rows）が null、行そのものが null、保存のときの金額が null の場合も、NotFoundException
+ * （画面（HTTP）からは到達しないが、Controller の入力チェックに頼らず、Service でも守る二重の守り。issue 002）。
  * <p>
  * 画面を開いただけでは、データベースに予算の行を作らない。行を作る・更新するのは、save だけ（設計書 5.7、Q25）。
  */
@@ -89,12 +91,13 @@ public class BudgetService {
 	@Transactional(readOnly = true)
 	public BudgetEditView rowsOf(Long userId, SeasonPeriod period, BudgetForm form) {
 		requireInRange(period);
+		List<BudgetForm.Row> formRows = requireRows(form, false);
 		Map<Long, Category> ownCategories = ownCategoriesById(userId);
-		verifyCategoryIds(ownCategories, form);
+		verifyCategoryIds(ownCategories, formRows);
 		Map<Long, Budget> saved = savedOf(userId, period);
 
 		List<BudgetEditView.Row> rows = new ArrayList<>();
-		for (BudgetForm.Row row : form.getRows()) {
+		for (BudgetForm.Row row : formRows) {
 			Category category = ownCategories.get(row.getCategoryId());
 			rows.add(new BudgetEditView.Row(category.getId(), category.getName(), null, !saved.containsKey(category.getId())));
 		}
@@ -111,16 +114,18 @@ public class BudgetService {
 	 * 金額の範囲（0〜3,000,000）は、呼ぶ側が Form で確かめた値を渡す前提（最後の守りは DB の CHECK 制約）。
 	 * 一意制約（科目・年・季節）に拒否された場合（同時保存）は、特別な扱いをしない（Q6-6 の A）。
 	 *
-	 * @throws NotFoundException 範囲外の季節。他人・存在しない・重複・なしの科目ID
+	 * @throws NotFoundException 範囲外の季節。他人・存在しない・重複・なしの科目ID。
+	 *                           Form・行の並び・行・金額が null のとき
 	 */
 	@Transactional
 	public void save(Long userId, SeasonPeriod period, BudgetForm form) {
 		requireInRange(period);
+		List<BudgetForm.Row> formRows = requireRows(form, true);
 		Map<Long, Category> ownCategories = ownCategoriesById(userId);
-		verifyCategoryIds(ownCategories, form);
+		verifyCategoryIds(ownCategories, formRows);
 		Map<Long, Budget> saved = savedOf(userId, period);
 
-		for (BudgetForm.Row row : form.getRows()) {
+		for (BudgetForm.Row row : formRows) {
 			Budget existing = saved.get(row.getCategoryId());
 			if (existing != null) {
 				existing.changeAmount(row.getAmount());
@@ -150,10 +155,28 @@ public class BudgetService {
 		return map;
 	}
 
+	/**
+	 * Form の行の並びを取り出す。Form が null、行の並びが null、行そのものが null のときは NotFoundException。
+	 * 保存のとき（amountRequired = true）は、金額が null の行があっても NotFoundException
+	 * （表示し直すとき（false）は、金額が入力エラーで null のまま来るので、許す）。
+	 */
+	private List<BudgetForm.Row> requireRows(BudgetForm form, boolean amountRequired) {
+		if (form == null || form.getRows() == null) {
+			throw new NotFoundException();
+		}
+		List<BudgetForm.Row> rows = form.getRows();
+		for (BudgetForm.Row row : rows) {
+			if (row == null || (amountRequired && row.getAmount() == null)) {
+				throw new NotFoundException();
+			}
+		}
+		return rows;
+	}
+
 	/** 送られた科目IDが、すべて自分の科目で、同じIDが2回なく、IDがあることを確かめる。ちがえば NotFoundException（F3）。 */
-	private void verifyCategoryIds(Map<Long, Category> ownCategories, BudgetForm form) {
+	private void verifyCategoryIds(Map<Long, Category> ownCategories, List<BudgetForm.Row> formRows) {
 		Set<Long> seen = new HashSet<>();
-		for (BudgetForm.Row row : form.getRows()) {
+		for (BudgetForm.Row row : formRows) {
 			Long categoryId = row.getCategoryId();
 			if (categoryId == null || !ownCategories.containsKey(categoryId) || !seen.add(categoryId)) {
 				throw new NotFoundException();
