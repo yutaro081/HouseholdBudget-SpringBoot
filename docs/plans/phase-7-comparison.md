@@ -198,9 +198,9 @@ SELECT (SELECT COUNT(*) FROM budgets) AS budgets_rows, (SELECT COUNT(*) FROM tra
 
 ### 4.3 実績の集計（Repository）
 
-- [ ] `dto` に `CategoryActual`（科目IDと合計。合計は `Long`）
-- [ ] `TransactionRepository` に、期間内の科目ごとの合計を足す。引数は `userId`、開始日（含む）、終了日の翌日（含まない）。検索の書き方は Q7-3 の決定による
-- [ ] `TransactionRepositoryTest` に足す：
+- [x] `dto` に `CategoryActual`（科目IDと合計。合計は `Long`）
+- [x] `TransactionRepository` に、期間内の科目ごとの合計を足す。引数は `userId`、開始日（含む）、終了日の翌日（含まない）。検索の書き方は Q7-3 の決定による
+- [x] `TransactionRepositoryTest` に足す：
   - 科目ごとに合計される（同じ科目の複数の取引が足される。別の科目は別の行）
   - **他のユーザーの取引は含まれない**
   - **期間の境界**：開始日の取引は含まれる／開始日の前日は含まれない／終了日の翌日は含まれない／終了日の翌日の前日は含まれる。冬（12/1〜翌3/1）で、11月30日・12月1日・2月28日・3月1日。うるう年の2月29日（冬に含まれ、翌日の3月1日は春）
@@ -209,8 +209,10 @@ SELECT (SELECT COUNT(*) FROM budgets) AS budgets_rows, (SELECT COUNT(*) FROM tra
   - 集計の SQL の数が1回で済む（`TransactionRepositoryFetchTest` の見本）
 
 **確認**：
-- [ ] `.\mvnw test` が成功する
-- [ ] `findById` を使っていない。文字列を連結した SQL がない
+- [x] `.\mvnw test` が成功する
+- [x] `findById` を使っていない。文字列を連結した SQL がない
+
+（実施の記録：`TransactionRepository.sumByCategory(userId, start, endExclusive)`（`@Query`、パラメータ付きの JPQL）と `CategoryActual(Long categoryId, Long total)` を作った。`TransactionRepositorySumTest`（14 件）で確かめた。合計が INT を超える例は、1,000,000円を2,148件保存して 2,148,000,000円になることを実際に確かめた。`.\mvnw test` は 1114 件すべて成功。`@Query` は `sumByCategory` の1か所だけで、`findById` などと、`createQuery`・`createNativeQuery`・`JdbcTemplate`・`nativeQuery` は `src/main` に 0 件。）
 
 ### 4.4 `ComparisonRow`、`ComparisonResult`、`ComparisonService`
 
