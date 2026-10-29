@@ -33,6 +33,14 @@
      - 前後の空白は、各 Form のセッターで `strip()` を使って取り除く（`trim()` と `StringTrimmerEditor` は全角の空白を取らないので使わない、設計書 6.4）。
      - 削除ボタンの確認ダイアログは、フォームの `onsubmit` 属性に固定の文言で書く（設計書 2.1）。
      - 成功メッセージの「追加しました」「変更しました」「削除しました」は共通のキー（`success.added`、`success.updated`、`success.deleted`）。
+   - Phase 5 で決まった共通事項：
+     - 金額（Phase 6 の予算額も）は、専用の変換クラス `StrictIntegerEditor` で読む。Controller の `@InitBinder` で、金額の項目にだけ登録する。Spring 標準の `Integer` の変換は、全角数字・途中の空白・16進（`0x10`）・先頭の `+` を通すため使わない（設計書 6.5、P9、Q5-1）。
+     - `spring.jpa.open-in-view=false`（設計書 4.6、D5）。画面が読む関連は、Repository の `@EntityGraph` でまとめて読み込んで渡す。**自動テスト（MockMvc）は、読み込み忘れを見つけられない**（テストごとにトランザクションで包むため）ので、新しい画面を作ったら、ブラウザで開いて確かめる。
+     - 金額・日付の表示の形（`30,000円`、`2026/10/19`）は、Thymeleaf の標準の書き方（`#numbers.formatInteger(値, 1, 'COMMA')`、`#temporals.format(日付, 'yyyy/MM/dd')`）を画面ごとに書く。整形のクラスは作らない（Q5-9）。
+     - 日付の範囲のように、Bean Validation にない確認は、`form` パッケージに自作の注釈を置く（`TransactionDateRange`、P9）。
+     - 摘要のように、空なら NULL にする項目は、Form のセッターで `strip()` し、空なら `null` にする（D6）。
+     - Controller の自動テストで「今日」を固定するときは、`@TestConfiguration` で `@Primary` の固定の `Clock` を用意する（`TransactionControllerTest`）。
+     - MockMvc の `param` は、同じ名前を置き換えず追加する。テストで項目を差し替えるときは、最初から差し替えた値で組み立てる。
 
 ## 文書の分け方
 
@@ -50,7 +58,7 @@
 | 2 | プロジェクトの土台づくり | [phase-2-base.md](phase-2-base.md) | ☑ 完了 |
 | 3 | アカウント登録・ログイン | [phase-3-auth.md](phase-3-auth.md) | ☑ 完了 |
 | 4 | 科目・取引先・支払方法 | [phase-4-masters.md](phase-4-masters.md) | ☑ 完了 |
-| 5 | 取引 | 未作成 | ☐ 未着手 |
+| 5 | 取引 | [phase-5-transactions.md](phase-5-transactions.md) | ☑ 完了 |
 | 6 | 予算 | 未作成 | ☐ 未着手 |
 | 7 | 予実比較 | 未作成 | ☐ 未着手 |
 | 8 | 仕上げ（総合テスト・セキュリティ確認） | 未作成 | ☐ 未着手 |
@@ -144,43 +152,9 @@ flowchart LR
 
 **目的**：このアプリの中心機能である取引の一覧・登録・詳細・編集・削除を作る。
 
-**タスク**
-- [ ] Transaction エンティティと TransactionRepository を作る
-- [ ] 取引登録画面と登録処理を作る（科目・取引先・支払方法はプルダウン）
-- [ ] 入力チェックを付ける
-  - [ ] 金額：1円以上1,000,000円以下
-  - [ ] 日付：必須
-  - [ ] 科目・取引先・支払方法：必須。**自分のものかServiceで確認する**
-  - [ ] 摘要：30文字以下（任意）
-- [ ] 取引一覧画面を作る（並び順は Phase 1 の決定に従う）
-- [ ] 取引詳細画面を作る
-- [ ] 取引編集画面と更新処理を作る（登録済みの値が入った状態で表示する）
-- [ ] 取引削除を作る（削除前に確認ダイアログを表示する）
-- [ ] 登録・更新・削除の成功後は一覧へリダイレクトする（二重登録の防止）
+**詳細**：[phase-5-transactions.md](phase-5-transactions.md)（手順・確認方法・完了条件・つまずき対処）
 
-**Phase 2 から引き継ぐこと**
-- D5（`spring.jpa.open-in-view` を `true` のままにするか `false` にするか）を、取引一覧・詳細を作るときに決める（設計書 8.2）
-- 取引の日付の範囲（2000年1月1日〜2100年12月31日）と金額の範囲は、DB の CHECK 制約（`ck_transactions_date`、`ck_transactions_amount`）でも守られている。境界値の確認に、DB 側の拒否も含める
-
-**Phase 3 から引き継ぐこと**
-- [ ] 仮の取引一覧（`TemporaryTransactionController`、`templates/transactions/list.html` の「【仮】」）を、本物の `TransactionController` と取引一覧に置き換える（Q3-1）。ログイン成功後の移動先 `/transactions` は、`SecurityConfig` のまま変えない
-- [ ] 画面に取引を表示するときも、`th:utext` を使わず `th:text` で出す（XSS 対策、設計書 7.5）
-- [ ] 取引の登録ができたら、「取引で使用中の科目・取引先・支払方法は削除できない」を**画面から**確かめ直す（Phase 4 では SQL で取引を入れて確かめた、Q4-2 の C）。取引を登録して、削除すると「取引で使われているため削除できません」が出て、その取引を削除すると削除できるようになること
-
-**Phase 4 から引き継ぐこと**
-- [ ] **「ID と `user_id` の両方で絞る」型をまねる**（設計書 3.9）：`TransactionService` のメソッドの最初の引数は `userId`、`TransactionRepository` の検索はすべて `userId` を引数に取る（`findByIdAndUserId` など）、`findById` は使わない。他人のID・存在しないID・数字でないIDは、`NotFoundException` と `GlobalExceptionHandler` で 404（Phase 4 で作成済み）。**取引の更新（`POST …/edit`）は、入力が間違っていても、先に ID と `user_id` で探す**（Phase 4 の `CategoryController` と同じ）
-- [ ] `TransactionRepository` に、一覧（日付の新しい順、同じ日は `id` の新しい順）、ID＋`user_id` で1件、などの検索を足す（Phase 4 では使用中の確認の3メソッドだけ）。`Transaction` の Entity は Phase 4 で作成済み。一覧・詳細では、科目・取引先・支払方法もまとめて読み込む（設計書 4.6）
-- [ ] 取引の登録・更新のとき、選んだ科目・取引先・支払方法が**自分のものか**を、`CategoryService.get(userId, id)` などの Phase 4 の Service で確認する（他人のIDなら 404、設計書 3.9）。プルダウンの選択肢は、`list(userId)` で自分のものだけを並べる
-- [ ] 摘要の前後の空白の取り除きと、空なら NULL にする方法を決める（設計書 8.2 の D6）。Phase 4 では各 Form のセッターで `strip()` にした
-- [ ] 共通の枠のメニューの「取引一覧」は Phase 3 から出ている。取引の登録へのリンクは、取引一覧の画面に置く（設計書 2.3）
-
-**成果物**：取引の一覧・登録・詳細・編集・削除
-
-**完了条件**
-- 5つの操作がすべて動く
-- 境界値で正しく動く：金額 1,000,000円は登録可 / 1,000,001円・0円・-1円は不可 / 摘要30文字は可・31文字は不可
-- 入力エラーで戻っても、入力値が残っている
-- 他人の取引は一覧・詳細・編集・削除のどれでも触れない
+**概要**：取引の一覧（日付の新しい順、同じ日は登録の新しい順）・登録・詳細・編集・削除を作り、仮の取引一覧（`TemporaryTransactionController`）を置き換えた。Phase 4 の型（「ID と `user_id` の両方で絞る」、変更の POST は先に ID を確かめる）をそのまま使い、登録・更新で選んだ科目・取引先・支払方法が自分のものかを、Phase 4 の各 Service の `get` で確かめる（他人のものは 404 で、何も保存しない）。金額は専用の変換クラス `StrictIntegerEditor`（半角の数字だけ。標準の変換が全角数字などを通したため）、日付の範囲は自作の注釈 `TransactionDateRange`、摘要は Form のセッターで `strip()` と空なら `null`（D6）。一覧・詳細で科目・取引先・支払方法を `@EntityGraph` でまとめて読み込み、`spring.jpa.open-in-view=false` にした（D5）。プルダウンが空のときは、足りない種類の案内とリンクを出してフォームは出さない。取引の画面から、使用中の科目などが削除できないことを確かめ直した（Q4-2 の C）。自動テストを追加した（Form、変換クラス、Repository（CHECK 制約、SQL の数）、Service、Controller）。
 
 ---
 
@@ -205,6 +179,12 @@ flowchart LR
 - [ ] `BudgetRepository` には、Phase 4 で次の2つがある：`existsByUserIdAndCategoryIdAndAmountGreaterThan`（0円でない予算があるか）と `deleteByUserIdAndCategoryId`（科目の予算の行をすべて消す）。予算設定の検索（その季節の予算、直前の設定のある季節の額、科目・年・季節で1件）を足す。すべて `userId` を引数に取る
 - [ ] 予算設定のとき、送られた科目IDが**自分の科目か**を、`CategoryService` などで確認する（他人のIDなら 404）。同じ科目IDが2回送られたときも 404（F3）
 - [ ] 科目を追加すると、今の季節の予算0円の行ができる（Phase 4）。予算設定画面の初期値の規則（その季節の予算、なければ直前の設定のある季節の額、なければ0円）に、その行が関係する
+
+**Phase 5 から引き継ぐこと**
+- [ ] **予算額の入力は `StrictIntegerEditor` で読む**（設計書 6.5、P9）。`BudgetForm` の予算額に、Controller の `@InitBinder` で登録する（行の並びの中の項目の指定の仕方は、作るときに確かめる）。標準の `Integer` の変換は使わない。空白だけは必須エラー、`+5`・全角数字・`0x10` などは型変換のエラー（「予算額は整数で入力してください」）。単体テストに、Phase 5 の `StrictIntegerEditorTest` と同じ入力を入れる
+- [ ] 入力エラーで戻るときの入力値の保持と、「1項目に表示するエラーは、型変換のときに必須と重ならない」（G3）を、予算額でも確かめる（Phase 5 の `TransactionControllerTest` の書き方が見本）
+- [ ] `spring.jpa.open-in-view=false` なので、予算設定画面が読む科目名などは、Service が読み込んで渡す（`BudgetEditView`）。**ブラウザで開いて確かめる**（自動テストでは読み込み忘れが見つからない）
+- [ ] 金額の表示（`30,000円`）は、Phase 5 と同じ Thymeleaf の書き方（Q5-9）
 
 **成果物**：予算設定画面
 
@@ -235,6 +215,13 @@ flowchart LR
 
 **Phase 3 から引き継ぐこと**
 - [ ] 共通の枠のメニューに、予実比較を足す（Q3-4）。これで設計書 2.3 のメニュー（取引一覧、科目、取引先、支払方法、予算、予実比較）がそろう
+
+**Phase 5 から引き継ぐこと**
+- [ ] `TransactionRepository` に、期間内の科目ごとの合計（`CategoryActual`、設計書 4.6）を足す。検索は `user_id` と期間で絞る。Phase 5 では一覧と1件取得だけ（`@EntityGraph` つき）。集計の検索には `@EntityGraph` は要らない（科目のIDと合計だけを返す）
+- [ ] 取引の日付は 2000-01-01〜2100-12-31 に収まる（Phase 5 の注釈と DB の CHECK 制約）。季節の範囲（2000年春〜2100年冬）の前提になる。2000年1月・2月の取引は 1999年の冬になり、予実比較に出ない（設計書 2.4）
+- [ ] 開発用の DB の `test1` に、Phase 5 のブラウザの確認で残した取引が1件ある（食費・コンビニ・現金、1,500円）。予実比較の確認に使い、確認が終わったら画面から削除する
+- [ ] 差額のマイナス表示（`-5,000円`）は、Phase 5 と同じ Thymeleaf の書き方（`#numbers.formatInteger`）で出る。作るときに、負の数の出方を確かめる（Q5-9）
+- [ ] `open-in-view=false` なので、`ComparisonResult` の行には、画面が読む値をすべて入れて渡す（遅延読み込みに頼らない）。**ブラウザで開いて確かめる**
 
 **成果物**：予実比較画面、判定処理のテスト
 
@@ -294,6 +281,13 @@ flowchart LR
 **Phase 4 から引き継ぐこと**
 - 2人のユーザーでのデータ分離の確認に、科目・取引先・支払方法の3つ（一覧、変更の画面、変更、削除）を含める。Phase 4 の自動テスト（`…ControllerTest`、`…ServiceTest`）で確かめている内容を、画面でもう一度確かめる
 - 「ID と `user_id` の両方で絞る」型が守られているかを、コードを検索して確かめる：Repository のメソッドがすべて `userId` を引数に取っている（`users` を除く）、`findById` を使っていない
+
+**Phase 5 から引き継ぐこと**
+- 2人のユーザーでのデータ分離の確認に、取引（一覧、詳細、編集、削除。登録・更新で他人の科目・取引先・支払方法のIDを送ったとき）を含める。Phase 5 の自動テスト（`TransactionControllerTest`、`TransactionServiceTest`）で確かめている内容を、画面でもう一度確かめる
+- `spring.jpa.open-in-view=false` のまま、**すべての画面を一通り開いて**、`LazyInitializationException`（500）が出ないことを確かめる（自動テストでは見つからない、設計書 4.6）。入力エラーで表示し直す画面も開く
+- XSS の確認に、摘要の `<script>alert(1)</script>` を、ブラウザで一覧・詳細・編集の画面で確かめる（Phase 5 では自動テストだけで確認し、ブラウザでの確認は行っていない）。プルダウンが空のとき（B2）の案内も、ブラウザで確かめる（同じく自動テストだけ）
+- Phase 5 の手順書 4.9 のうち、ブラウザで確認していない項目（摘要の境界値、未選択のエラー、`test2` からの登録・編集・削除の送信の書き換え、SQL での NULL と空白の確認など）を、Phase 8 の確認表に含める
+- 金額の欄に、全角数字・`0x10`・`+5`・途中の空白を入れたときの型変換のエラーを、ブラウザで確かめる（`0x10` と全角は Phase 5 で確認済み）
 
 **成果物**：確認結果の記録（チェックリスト）、自動テスト
 
