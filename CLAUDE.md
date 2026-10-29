@@ -27,6 +27,7 @@
 
 - コミット、push、`main` への取り込み、タグ付けは、**私が行う。Claude Code はしない。**
 - ファイルの作成・編集と、読むだけのコマンドは、Claude Code が行ってよい。
+- テスト（`.\mvnw test`）とビルド（`.\mvnw compile`）の実行も、Claude Code が行ってよい。
 
 ## 秘密情報
 
