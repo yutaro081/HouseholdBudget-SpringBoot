@@ -18,6 +18,8 @@ import jakarta.persistence.Table;
  * user_id は数値のIDで持ち、科目は関連で持つ（P7）。
  * season は、Season の名前（SPRING など）を文字で保存する（Q27 の a）。
  * season_year は季節の年で、冬は12月がある年（2.4、5.8）。
+ * <p>
+ * 【Phase 6】金額を変える changeAmount を足した。持ち主・科目・年・季節を変えるメソッドは作らない（設計書 3.9）。
  */
 @Entity
 @Table(name = "budgets")
@@ -53,6 +55,11 @@ public class Budget {
 		this.category = category;
 		this.seasonYear = seasonYear;
 		this.season = season;
+		this.amount = amount;
+	}
+
+	/** 金額を変える（予算設定の保存で、すでにある行を更新するとき）。持ち主・科目・年・季節は変えない。 */
+	public void changeAmount(int amount) {
 		this.amount = amount;
 	}
 
