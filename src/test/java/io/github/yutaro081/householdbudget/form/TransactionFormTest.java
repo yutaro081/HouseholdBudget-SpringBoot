@@ -228,13 +228,22 @@ class TransactionFormTest {
 			"'　'|amount:NotNull",
 			// 通る
 			"1|", "1000000|", "' 100 '|", "'　100　'|", "010|",
+			// 全角の数字は、半角に直して読む（R13）。範囲のチェックも、直した値で行う
+			"１２３|", "１|", "１００００００|", "１2３|", "'　１００　'|",
+			"０|amount:Min", "-１|amount:Min", "１０００００１|amount:Max",
 			// 範囲
 			"0|amount:Min", "-1|amount:Min", "-5|amount:Min", "1000001|amount:Max",
 			// 型変換のエラー（範囲・必須のエラーは重ならない）
 			"abc|amount:typeMismatch",
 			"'1,000'|amount:typeMismatch",
-			"１２３|amount:typeMismatch",
 			"1.5|amount:typeMismatch",
+			// 全角でも、数字以外はエラーのまま（R13）
+			"－５|amount:typeMismatch",
+			"１，０００|amount:typeMismatch",
+			"１　２|amount:typeMismatch",
+			"１．５|amount:typeMismatch",
+			"＋５|amount:typeMismatch",
+			"１２円|amount:typeMismatch",
 			"10円|amount:typeMismatch",
 			"99999999999|amount:typeMismatch",
 			"1 000|amount:typeMismatch",

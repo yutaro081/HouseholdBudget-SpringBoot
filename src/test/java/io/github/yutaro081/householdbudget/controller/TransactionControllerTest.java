@@ -396,6 +396,9 @@ class TransactionControllerTest {
 	@CsvSource(delimiter = '|', value = {
 			"1|2026-10-20|0",
 			"1000000|2026-10-20|0",
+			// 全角の数字は、半角に直して受け付ける（R13）
+			"１|2026-10-20|0",
+			"１００００００|2026-10-20|0",
 			"1200|2000-01-01|0",
 			"1200|2100-12-31|0",
 			"1200|2026-10-20|30"
@@ -416,7 +419,14 @@ class TransactionControllerTest {
 			"amount|1000001|金額は1円以上1,000,000円以下で入力してください",
 			"amount|abc|金額は整数で入力してください",
 			"amount|1,000|金額は整数で入力してください",
-			"amount|１２３|金額は整数で入力してください",
+			// 全角の数字は半角に直す（R13）ので、範囲のチェックは直した値で行われる
+			"amount|０|金額は1円以上1,000,000円以下で入力してください",
+			"amount|１０００００１|金額は1円以上1,000,000円以下で入力してください",
+			// 全角でも、数字以外はエラーのまま
+			"amount|－５|金額は整数で入力してください",
+			"amount|１　２|金額は整数で入力してください",
+			"amount|１．５|金額は整数で入力してください",
+			"amount|１２円|金額は整数で入力してください",
 			"amount|1 000|金額は整数で入力してください",
 			"amount|0x10|金額は整数で入力してください",
 			"amount|#10|金額は整数で入力してください",
@@ -456,13 +466,46 @@ class TransactionControllerTest {
 
 	@ParameterizedTest(name = "登録の入力エラーでも入力値が残る：{0} = [{1}]")
 	@CsvSource(delimiter = '|', value = {
-			"amount|abc", "amount|１２３", "amount|0", "amount|1000001",
+			"amount|abc", "amount|１２円", "amount|0", "amount|1000001",
 			"transactionDate|2026-02-30", "transactionDate|1999-12-31"
 	})
 	void registerWithInvalidInputKeepsTheEnteredValue(String field, String value) throws Exception {
 		String body = body(mockMvc.perform(valid(post("/transactions/new"), a, field, value).with(asA)).andReturn());
 
 		assertThat(body).contains("name=\"" + field + "\" value=\"" + value + "\"");
+	}
+
+	/** 全角の数字で打った金額は、半角に直して登録される（R13） */
+	@Test
+	void registerAcceptsAFullWidthAmount() throws Exception {
+		mockMvc.perform(valid(post("/transactions/new"), a, "amount", "１２００").with(asA))
+				.andExpect(redirectedUrl("/transactions"));
+		mockMvc.perform(valid(post("/transactions/new"), a, "amount", "　３4５　").with(asA))
+				.andExpect(redirectedUrl("/transactions"));
+
+		assertThat(transactionsOf(a)).extracting(Transaction::getAmount).containsExactlyInAnyOrder(1200, 345);
+	}
+
+	/** 全角で打って範囲のエラーになったときは、入力欄に半角に直した数字が出る（型変換のエラーのときだけ、入力した文字がそのまま残る） */
+	@Test
+	void registerWithAFullWidthOutOfRangeAmountShowsHalfWidthValueInTheField() throws Exception {
+		String body = body(mockMvc.perform(valid(post("/transactions/new"), a, "amount", "１０００００１").with(asA))
+				.andExpect(status().isOk()).andReturn());
+
+		assertThat(body).contains("金額は1円以上1,000,000円以下で入力してください");
+		assertThat(body).contains("name=\"amount\" value=\"1000001\"");
+		assertThat(transactionsOf(a)).isEmpty();
+	}
+
+	/** 全角の数字の更新も、半角に直して保存される */
+	@Test
+	void updateAcceptsAFullWidthAmount() throws Exception {
+		Transaction t = saveFor(a, LocalDate.of(2026, 10, 19), 1200, "昼食");
+
+		mockMvc.perform(valid(post("/transactions/" + t.getId() + "/edit"), a, "amount", "１５００").with(asA))
+				.andExpect(redirectedUrl("/transactions"));
+
+		assertThat(transactionsOf(a).get(0).getAmount()).isEqualTo(1500);
 	}
 
 	@Test
@@ -641,7 +684,7 @@ class TransactionControllerTest {
 		Transaction t = saveFor(a, LocalDate.of(2026, 10, 19), 1200, "昼食");
 
 		MvcResult result = mockMvc.perform(post("/transactions/" + t.getId() + "/edit").with(asA).with(csrf())
-				.param("transactionDate", "2026-11-03").param("amount", "１２３")
+				.param("transactionDate", "2026-11-03").param("amount", "１２円")
 				.param("categoryId", String.valueOf(a.category2().getId())).param("description", "入力した摘要")
 				.param("vendorId", String.valueOf(a.vendor2().getId()))
 				.param("paymentMethodId", String.valueOf(a.payment2().getId())))
@@ -652,7 +695,7 @@ class TransactionControllerTest {
 		String body = body(result);
 		assertThat(body).contains("金額は整数で入力してください");
 		assertThat(body).contains("action=\"/transactions/" + t.getId() + "/edit\"");
-		assertThat(body).contains("value=\"１２３\"", "value=\"2026-11-03\"", "value=\"入力した摘要\"");
+		assertThat(body).contains("value=\"１２円\"", "value=\"2026-11-03\"", "value=\"入力した摘要\"");
 		assertThat(body).contains("<option value=\"" + a.category2().getId() + "\" selected=\"selected\">交通費</option>");
 
 		Transaction unchanged = transactionsOf(a).get(0);

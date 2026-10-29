@@ -58,7 +58,7 @@ public class TransactionController {
 
 	/**
 	 * 金額の項目にだけ、厳しい変換を付ける（設計書 6.5、Q5-1 の C）。
-	 * 全角数字・途中の空白・16進などは、型変換のエラーになる。科目ID など、他の整数の項目には付けない。
+	 * 全角の数字は半角に直して受け付ける（R13）。途中の空白・16進・カンマ・小数などは、型変換のエラーになる。科目ID など、他の整数の項目には付けない。
 	 */
 	@InitBinder("transactionForm")
 	void initBinder(WebDataBinder binder) {

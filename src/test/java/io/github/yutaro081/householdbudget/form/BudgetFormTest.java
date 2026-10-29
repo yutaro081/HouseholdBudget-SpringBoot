@@ -31,6 +31,7 @@ import jakarta.validation.Validator;
  * <li>画面から送られる文字列を束縛してから確かめる（WebDataBinder）：行ごとの予算額に、StrictIntegerEditor が効くこと、
  * 型変換のエラーと「必須」「範囲」が重ならないこと（G3）、メッセージのキーが行の番号なしの形でも当たること。</li>
  * </ul>
+ * 【R13（Phase 6）】全角の数字（０〜９）は半角に直して受け付ける。全角のマイナス・カンマ・小数点・途中の空白などは、エラーのまま。
  * 【Q6-1 の実験の結果】金額の項目の名前を、行の番号を除いた形（rows.amount）で登録すると、全行に効く。
  * 行の番号つき（rows[0].amount）で登録すると、その行にしか効かない（ほかの行は標準の変換になり、全角数字・0x10・+5 が通る）。
  * 標準の変換のままでも、通ってしまう（設計書 6.5）。この結果を、下のテストで残している。
@@ -134,6 +135,9 @@ class BudgetFormTest {
 	@CsvSource(delimiter = '|', value = {
 			// 通る
 			"0|", "1|", "3000000|", "' 100 '|", "'　100　'|", "010|",
+			// 全角の数字は、半角に直して読む（R13）。範囲のチェックも、直した値で行う
+			"１２３|", "０|", "３００００００|", "１2３|", "'　１００　'|",
+			"３０００００１|rows[0].amount:Max", "-１|rows[0].amount:Min",
 			// 必須（型変換のエラーと重ならない）
 			"''|rows[0].amount:NotNull",
 			"' '|rows[0].amount:NotNull",
@@ -143,8 +147,14 @@ class BudgetFormTest {
 			// 型変換のエラー（範囲・必須のエラーは重ならない。Q5-1 の実験で、標準の変換が通した入力を含む）
 			"abc|rows[0].amount:typeMismatch",
 			"'1,000'|rows[0].amount:typeMismatch",
-			"１２３|rows[0].amount:typeMismatch",
 			"1 000|rows[0].amount:typeMismatch",
+			// 全角でも、数字以外はエラーのまま（R13）
+			"－５|rows[0].amount:typeMismatch",
+			"１，０００|rows[0].amount:typeMismatch",
+			"１　２|rows[0].amount:typeMismatch",
+			"１．５|rows[0].amount:typeMismatch",
+			"＋５|rows[0].amount:typeMismatch",
+			"１２円|rows[0].amount:typeMismatch",
 			"0x10|rows[0].amount:typeMismatch",
 			"#10|rows[0].amount:typeMismatch",
 			"+5|rows[0].amount:typeMismatch",
@@ -160,8 +170,8 @@ class BudgetFormTest {
 	/** Q6-1：どの行でも変換が効く（0番目だけでなく、1番目・5番目も）。エラーは、その行にだけ付く */
 	@Test
 	void strictConversionWorksOnEveryRow() {
-		// 6行：行0=正常、行1=全角、行2=正常、行3=+5、行4=0x10、行5=途中の空白
-		Set<String> errors = errorsAfterBinding("100", "１２３", "200", "+5", "0x10", "1 000");
+		// 6行：行0=正常、行1=全角の数字＋円、行2=正常、行3=+5、行4=0x10、行5=途中の空白
+		Set<String> errors = errorsAfterBinding("100", "１２円", "200", "+5", "0x10", "1 000");
 
 		assertThat(errors).containsExactly(
 				"rows[1].amount:typeMismatch", "rows[3].amount:typeMismatch",
@@ -173,11 +183,23 @@ class BudgetFormTest {
 		BudgetForm form = new BudgetForm();
 		BindingResult result = bind(BudgetFormTest::registerEditorLikeTheController,
 				new String[] { "100", "101", "102", "103", "104", "105" },
-				new String[] { "0", " 50 ", "3000000", "1", "30000", "010" }, form);
+				new String[] { "0", " 50 ", "3000000", "１", "３００００", "010" }, form);
 
 		assertThat(result.hasErrors()).isFalse();
 		assertThat(form.getRows()).extracting(BudgetForm.Row::getAmount).containsExactly(0, 50, 3_000_000, 1, 30000, 10);
 		assertThat(form.getRows()).extracting(BudgetForm.Row::getCategoryId).containsExactly(100L, 101L, 102L, 103L, 104L, 105L);
+	}
+
+	/** R13：全角の数字は、どの行でも、半角に直して読まれる（0番目だけでなく、1番目・5番目も） */
+	@Test
+	void fullWidthAmountsAreConvertedOnEveryRow() {
+		BudgetForm form = new BudgetForm();
+		BindingResult result = bind(BudgetFormTest::registerEditorLikeTheController,
+				new String[] { "100", "101", "102", "103", "104", "105" },
+				new String[] { "１２３", "０", "３００００００", "　４５６　", "７8９", "１０" }, form);
+
+		assertThat(result.hasErrors()).isFalse();
+		assertThat(form.getRows()).extracting(BudgetForm.Row::getAmount).containsExactly(123, 0, 3_000_000, 456, 789, 10);
 	}
 
 	/** 複数の行にエラーがあるとき、それぞれの行に、その行のエラーが付く（1行に1つだけ） */
@@ -195,10 +217,10 @@ class BudgetFormTest {
 	void rejectedValuesAreKept() {
 		BudgetForm form = new BudgetForm();
 		BindingResult result = bind(BudgetFormTest::registerEditorLikeTheController,
-				new String[] { "100", "101", "102" }, new String[] { "abc", "１２３", "-1" }, form);
+				new String[] { "100", "101", "102" }, new String[] { "abc", "１.５", "-1" }, form);
 
 		assertThat(result.getFieldValue("rows[0].amount")).isEqualTo("abc");
-		assertThat(result.getFieldValue("rows[1].amount")).isEqualTo("１２３");
+		assertThat(result.getFieldValue("rows[1].amount")).isEqualTo("１.５");
 		assertThat(result.getFieldValue("rows[2].amount")).isEqualTo("-1");    // 範囲のエラーは、変換できた値を入力欄の文字にして残す
 	}
 
@@ -219,7 +241,7 @@ class BudgetFormTest {
 	void registeringWithARowNumberOnlyAffectsThatRow() {
 		Set<String> mismatchRows = typeMismatchRows(
 				binder -> binder.registerCustomEditor(Integer.class, "rows[0].amount", new StrictIntegerEditor()),
-				"１２３", "１２３", "+5");
+				"+5", "+5", "0x10");
 
 		assertThat(mismatchRows).containsExactly("rows[0].amount");   // 行1・行2 は、標準の変換で通ってしまう
 	}
@@ -237,7 +259,7 @@ class BudgetFormTest {
 	void registeringByTypeAlsoWorksOnEveryRow() {
 		Set<String> mismatchRows = typeMismatchRows(
 				binder -> binder.registerCustomEditor(Integer.class, new StrictIntegerEditor()),
-				"１２３", "+5", "0x10", "100");
+				"１２円", "+5", "0x10", "100");
 
 		assertThat(mismatchRows).containsExactly("rows[0].amount", "rows[1].amount", "rows[2].amount");
 	}
