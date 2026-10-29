@@ -4,7 +4,7 @@
 
 - 前の Phase：[Phase 5 取引](phase-5-transactions.md)（☑ 完了。`main` に取り込み済み、タグ `phase-5-done`）
 - 次の Phase：[Phase 7 予実比較](execution-plan.md#phase-7予実比較)
-- 状態：◐ 作業中（4.1〜4.6 が完了。Q6-1・Q6-7 は 4.5 の実験で確定した。次は 4.7）
+- 状態：◐ 作業中（4.1〜4.7 が完了（ブラウザでの確認は 4.9）。Q6-1・Q6-7 は 4.5 の実験で確定した。次は 4.8）
 - 作業ブランチ：`feature/phase-6-budgets`
 
 ## 1. 目的
@@ -262,11 +262,11 @@ Phase 5 では、Controller の `@InitBinder` で、金額の項目の名前を�
 
 設計書 2.2、2.3、2.4、2.6、4.4 のとおりに作る。**画面の値は `th:text` で出す。`th:utext` は使わない**（7.5）。フォームは `th:action` で書く（7.6）。
 
-- [ ] `controller` に `BudgetController`（受け持つ URL は 4.4.1）。年と季節の判定は Q6-2 の決定による
+- [x] `controller` に `BudgetController`（受け持つ URL は 4.4.1）。年と季節の判定は Q6-2 の決定による（年と季節は文字列で受け取り、`SeasonPeriod.parse` で判定（Q6-2 の A）。両方なしなら今の季節。保存の POST は、年と季節の確認 → `BudgetService.rowsOf`（科目IDの確認。だめなら 404）→ 入力チェックの結果 → `BudgetService.save` の順（Q6-3）。リダイレクト先は、`year` と `season` を付けた `/budgets`）
   - `GET /budgets`：年と季節の指定どおりに表示。指定なしは今の季節（`Clock` から求める）。範囲外・不正・片方だけは 404
   - `POST /budgets?year=…&season=…`：まとめて保存。**最初に年と季節を確かめる**（不正なら 404、何も保存しない）。入力エラーが1つでもあれば、何も保存せず、入力値を残して表示し直す。成功したら、同じ季節の `GET /budgets?year=…&season=…` へリダイレクト（「保存しました」、U4）
   - `@InitBinder` で、予算額に `StrictIntegerEditor` を登録する（Q6-1 の決定による）
-- [ ] `templates/budgets/form.html`：
+- [x] `templates/budgets/form.html`：（見出しと前後リンクは、共有の `fragments/season.html`（Q6-5 の A）。季節の名前は `messages.properties` の `season.*`。リンクの先は引数 `path` で渡すので、Phase 7 でも使える）
   - 共通の枠のヘッダー、成功メッセージの表示場所
   - 見出し（「2026年 春（3月〜5月）」、冬は年をまたぐ形）、「前の季節」「次の季節」のリンク（URL は年と季節を含む。**範囲の端ではリンクを出さない**）。作り方は Q6-5 の決定による
   - 科目名（登録順）、予算額の入力欄（文字として受け付ける、G1。`novalidate`）、エラー（行の横）。科目IDは隠し項目。**入力欄に、カンマも「円」も使わない**（2.3）
@@ -274,13 +274,13 @@ Phase 5 では、Controller の `@InitBinder` で、金額の項目の名前を�
   - 「保存」ボタン。フォームの送信先は、年と季節を含む URL にする（`th:action` に年と季節を渡す）
   - 科目が0件のときは、「先に科目を追加してください」と科目の画面へのリンクを出し、保存ボタンは出さない（2.3）
   - 保存していない入力は、「前の季節」「次の季節」で移動すると、確認なしで捨てられる（Q27 の d）
-- [ ] `fragments/common.html` のメニューに「予算」を足す。順番は、取引一覧、科目、取引先、支払方法、予算（予実比較は Phase 7。2.3）
-- [ ] `style.css` に、未設定の印・予算の表の見た目を足す（必要な分だけ）
-- [ ] 保存の成功後は、リダイレクトする（二重登録の防止）
+- [x] `fragments/common.html` のメニューに「予算」を足す。順番は、取引一覧、科目、取引先、支払方法、予算（予実比較は Phase 7。2.3）
+- [x] `style.css` に、未設定の印・予算の表の見た目を足す（必要な分だけ）
+- [x] 保存の成功後は、リダイレクトする（二重登録の防止）
 
 **確認**：
-- [ ] `.\mvnw test` が成功する
-- [ ] `th:utext` を使っていない（検索して確かめる）
+- [x] `.\mvnw test` が成功する（864 件すべて成功）
+- [x] `th:utext` を使っていない（検索して確かめる）（`th:utext=` は 0 件）
 
 ### 4.8 `BudgetController` の自動テスト（MockMvc）
 

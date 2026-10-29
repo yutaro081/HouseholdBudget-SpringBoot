@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<!--/*
+  季節の見出しと、「前の季節」「次の季節」のリンク（設計書 2.3、2.4、4.4.2、Q6-5）。
+  予算設定（/budgets）と予実比較（/comparison）で共有する。リンクの先の URL は、引数 path で渡す。
+  ・period：表示する季節（SeasonPeriod）。previous / next：前・次の季節。範囲の端（2000年春の前、2100年冬の次）では null で、リンクを出さない（B15）。
+  ・見出しは「2026年 春（3月〜5月）」。冬は年をまたぐので「2026年 冬（2026年12月〜2027年2月）」。
+  ・季節の名前（春・夏・秋・冬）は messages.properties（season.spring など）。
+  ・リンクの URL は、年と季節（spring など）を含む。値はすべて数字と固定の英字で、利用者の入力ではない。
+*/-->
+<div th:fragment="nav(period, previous, next, path)" class="season-nav">
+    <span class="season-link prev">
+        <a th:if="${previous != null}"
+           th:href="@{${path}(year=${previous.year}, season=${previous.season.urlName})}">前の季節</a>
+    </span>
+    <h2 class="season-title">
+        <span th:text="|${period.year}年 #{season.__${period.season.urlName}__}|">2026年 春</span>
+        <span th:if="${period.season.urlName != 'winter'}"
+              th:text="|（${period.startDate.monthValue}月〜${period.endDateExclusive.minusMonths(1).monthValue}月）|">（3月〜5月）</span>
+        <span th:if="${period.season.urlName == 'winter'}"
+              th:text="|（${period.startDate.year}年${period.startDate.monthValue}月〜${period.endDateExclusive.minusMonths(1).year}年${period.endDateExclusive.minusMonths(1).monthValue}月）|">（2026年12月〜2027年2月）</span>
+    </h2>
+    <span class="season-link next">
+        <a th:if="${next != null}"
+           th:href="@{${path}(year=${next.year}, season=${next.season.urlName})}">次の季節</a>
+    </span>
+</div>
+</html>

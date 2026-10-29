@@ -150,3 +150,40 @@ dl.detail dd {
     gap: 12px;
     margin: 16px 0;
 }
+
+/* 季節の見出しと、前・次の季節のリンク（予算設定・予実比較で共有、設計書 2.4） */
+.season-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 16px 0;
+}
+
+.season-nav .season-link {
+    min-width: 6em;
+}
+
+.season-nav .season-link.next {
+    text-align: right;
+}
+
+.season-title {
+    margin: 0;
+    font-size: 1.2em;
+    text-align: center;
+}
+
+/* 予算設定の表：予算額の入力欄 */
+.budget-table input[type="text"] {
+    width: 10em;
+    padding: 6px;
+    text-align: right;
+}
+
+/* 「（この季節は未設定）」の印（設計書 2.3、Q26） */
+.unset-mark {
+    color: #777;
+    font-size: 0.85em;
+    margin-left: 6px;
+}
