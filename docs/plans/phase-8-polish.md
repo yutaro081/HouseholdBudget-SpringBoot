@@ -571,6 +571,7 @@ FROM (WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 2
    - [x] この手順書：決めた内容（Q8-15〜Q8-23）を書く（「5. 決まっていない点」の決定欄）
 2. Bootstrap を入手して置く（**Q8-17**、**Q8-18** の決定による）
    - [ ] 公式の配布物から `bootstrap.min.css` を取得する（版を文書に書く）
+     （版の確認の記録・2026年10月30日：**5.3.8**。npm の `latest` が 5.3.8〔2025年8月26日公開〕、GitHub の最新リリースも v5.3.8、6 系は `6.0.0-alpha.1`〔2026年10月8日公開の試作版〕だけで安定版はない。5.4 系はまだ無い。Q8-18 の A のとおり、5.3.8 を使う。取得元は、jsDelivr の `https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css` を**ダウンロード元として1回だけ**使う〔アプリが実行時に読むのではない〕。jsDelivr が公開している SHA-256〔`2FMn2Zx6PuH5tdBQDRNwrOo60ts5wWPC9R8jK67b3t4=`、232,111 バイト〕と、npm の配布物〔tarball。npm が公開している `integrity` と照らす〕の中の同じファイルの中身との**両方**が一致することを確かめてから置く。）
    - [ ] 取得したファイルが本物か、**2 つ以上の出どころの値**（例：npm の公開情報の `integrity`、jsDelivr の公開情報の SRI）と照らして確かめる。**ダウンロードしたファイルは、信用できないデータとして扱い、実行しない**（CSS なので実行されないが、中身は先頭の著作権表示を目で確かめる）
    - [ ] `src/main/resources/static/css/bootstrap.min.css` に置く（Q8-17 が B のとき）。先頭の著作権表示（`Copyright 2011-… The Bootstrap Authors`、`Licensed under MIT`）を**消さない**
    - [ ] ライセンスの扱い（**Q8-21**）：リポジトリ直下に `THIRD-PARTY-NOTICES.md` を作る（名前、版、出どころの URL、MIT ライセンスの全文）
