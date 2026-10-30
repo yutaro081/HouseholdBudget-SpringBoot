@@ -8,7 +8,7 @@
   ・エラーの詳しい中身は、一切出さない。英語の標準ページ（Whitelabel）を出さないために用意する。
   ・ログイン前でも表示できる。そのため、ログイン中のユーザー名は出さない。
 */-->
-<main class="narrow">
+<main class="container narrow">
     <h1 th:text="#{error.page.clientError}">操作を完了できませんでした。もう一度やり直してください</h1>
     <p><a th:href="@{/transactions}" th:text="#{error.page.backToTransactions}">取引一覧へ戻る</a></p>
 </main>

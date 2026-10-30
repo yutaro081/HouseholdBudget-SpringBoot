@@ -3,7 +3,7 @@
 <head th:replace="~{fragments/common :: head('科目の変更')}"></head>
 <body>
 <header th:replace="~{fragments/common :: header}"></header>
-<main class="narrow">
+<main class="container narrow">
     <div th:replace="~{fragments/common :: messages}"></div>
 
     <h1>科目の変更</h1>
@@ -11,11 +11,11 @@
     <!--/* 今の名前の入ったフォーム。入力エラー・重複のときは、この画面を表示し直し、入力値とエラーを入れる（設計書 6.9） */-->
     <form th:action="@{/categories/{id}/edit(id=${categoryId})}" th:object="${categoryForm}" method="post" novalidate>
         <div class="field">
-            <label for="name">科目名（10文字以内）</label>
-            <input type="text" th:field="*{name}" autofocus>
+            <label class="form-label" for="name">科目名（10文字以内）</label>
+            <input class="form-control" type="text" th:field="*{name}" autofocus>
             <div class="field-error" th:each="message : ${#fields.errors('name')}" th:text="${message}">エラー</div>
         </div>
-        <button type="submit">変更</button>
+        <button type="submit" class="btn btn-primary">変更</button>
     </form>
 
     <p><a th:href="@{/categories}">戻る</a></p>

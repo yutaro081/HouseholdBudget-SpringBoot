@@ -35,6 +35,7 @@
 | Maven（`mvnw`） | プロジェクト付属の Maven Wrapper が使う版 | 部品の管理とビルド | 別にインストールせず、`mvnw` で動かせる（Phase 0）。実行計画書の方針 |
 | Thymeleaf | Spring Boot が管理する版 | 画面（HTML）の作成。表示する値は自動で無害化される | Spring Boot の標準的な画面の仕組み。入門者向けで、XSS 対策（章7）が標準で入っている |
 | Thymeleaf Extras Spring Security（`thymeleaf-extras-springsecurity6`） | Spring Boot が管理する版 | 画面にログイン中のユーザー名を出す（ヘッダー、2.3） | Spring Security の情報を Thymeleaf から読める。Initializr が Spring Security と Thymeleaf の組み合わせで自動で足す部品で、ユーザー名を出すのに使うため残す（Phase 3 で決定） |
+| Bootstrap（CSS のみ） | 5.3.8（Phase 8 で確認。MIT ライセンス） | 画面の見た目を整える。iPad でも見やすくする（Phase 8、Q8-12） | 自作の CSS だけでは、余白・ボタン・表・フォームの見た目をそろえる手間が大きい。CSS だけを使い、JavaScript は入れない（ハンバーガーメニューなどは使わない）。アプリの中に1ファイルで置き（CDN なし）、面接会場でインターネットにつながらなくても崩れない。ライセンスの表示は `THIRD-PARTY-NOTICES.md` |
 | Spring MVC | Spring Boot が管理する版 | URL を受けて Controller を呼ぶ | Web アプリの基本部品 |
 | Spring Security | Spring Boot が管理する版 | ログイン・ログアウト、ログイン必須、CSRF 対策 | 要件6章のセキュリティを自作せずに実現でき、実績がある |
 | BCrypt | Spring Security に含まれる | パスワードのハッシュ化 | 元に戻せない形で保存する要件（6章）。標準で使える |
@@ -46,7 +47,7 @@
 | VS Code / Git / GitHub / Claude Code | 最新版（Phase 0 で確認済み） | 開発の道具 | 要件で指定（7章） |
 
 - パスワードの文字数（8〜30）はハッシュ化の前の入力で確認する（3.2）。
-- 画面の見た目は、自作の CSS 1ファイル（`static/css/style.css`）で作る。CSS の部品集は使わない。（要件にないので、増やさない）
+- 画面の見た目は、**Bootstrap の CSS**（`static/css/bootstrap.min.css`。アプリの中に置き、CDN は使わない。**JavaScript は入れない**）と、自作の CSS（`static/css/style.css`。Bootstrap にないものと、テストが確かめるクラスだけ）で作る。（Phase 8、Q8-17〜Q8-21）
 
 ### 1.3 層の分担
 
@@ -714,7 +715,8 @@ flowchart LR
 | `schema.sql` | テーブル作成の SQL（`CREATE TABLE IF NOT EXISTS`、Q17、章3） |
 | `messages.properties` | エラーメッセージ・画面の文言（章6） |
 | `templates/` | 画面のファイル（Thymeleaf）。4.4.2 に一覧 |
-| `static/css/style.css` | 画面の見た目（CSS）。ログイン前から読める（章2） |
+| `static/css/bootstrap.min.css` | Bootstrap v5.3.8 の CSS（配布物そのまま。先頭の著作権表示を消さない）。ログイン前から読める（章2、`/css/**`）。ライセンスは `THIRD-PARTY-NOTICES.md` |
+| `static/css/style.css` | 自作の CSS（Bootstrap にないものと、テストが確かめるクラスだけ）。Bootstrap のあとに読み込む。ログイン前から読める（章2） |
 
 ### 4.4 controller と、画面（テンプレート）
 
@@ -739,7 +741,7 @@ flowchart LR
 
 | ファイル | 画面（章2） | 使う Controller |
 |---|---|---|
-| `fragments/common.html` | 共通部品：ヘッダー（メニュー、ユーザー名、ログアウト）、成功・エラーメッセージの表示場所 | 全画面。メニューは、取引一覧、科目、取引先、支払方法、予算、予実比較の順 |
+| `fragments/common.html` | 共通部品：ヘッダー（メニュー、ユーザー名、ログアウト）、成功・エラーメッセージの表示場所、`head`（`bootstrap.min.css`、`style.css` の順に読み込む） | 全画面。メニューは、取引一覧、科目、取引先、支払方法、予算、予実比較の順 |
 | `fragments/season.html` | 共通部品：季節の見出し（「2026年 春（3月〜5月）」、冬は年をまたぐ形）と、「前の季節」「次の季節」のリンク、年と季節を選ぶ GET のフォーム（年は2000〜2100、季節は4つ、「表示」ボタン。Phase 8 の G1）。範囲の端（2000年春の前、2100年冬の次）ではリンクを出さない。リンクの先の URL は引数で渡す。予算設定と予実比較で共有する（P10、Q6-5） | `BudgetController`、`ComparisonController` |
 | `login.html` | ログイン | `AuthController` |
 | `register.html` | アカウント登録 | `AuthController` |
@@ -758,6 +760,7 @@ flowchart LR
 | `error/5xx.html` | 500 番台の予期しないエラー画面（7.7、S3、S9） | Spring Boot が 500 番台のときに自動で使う |
 
 - 共通部品は Thymeleaf の「フラグメント」（部品の読み込み）で共有する（P5）。理由：追加のライブラリが要らず、標準の機能だけで済むため。
+- **画面のクラスの付け方**（Phase 8、Q8-20）：見た目は Bootstrap のクラス（`btn`、`form-control`、`table`、`alert` など）で付ける。ただし、テストが HTML の文字列で確かめている要素には、Bootstrap のクラスを足さない：`<div class="field-error">`、`<td class="num">`・`<th class="num">`、予実比較の `<tr class="row-over">`・`<tr class="row-low">`・`<tr class="total-row">`、メニューの `<a>`。これらの見た目は `style.css` で付ける。`<tr>` の色（赤・青）が Bootstrap の表の色に負けないよう、`style.css` では `td` に直接指定する。
 - 取引の登録と編集は、入力項目が同じなので `form.html` を共用する（章2 の U1：同じ URL に GET・POST）。
 - 科目・取引先・支払方法には、詳細画面を作らない（章2）。
 

@@ -390,6 +390,7 @@ class BudgetControllerTest {
 
 		assertThat(body).contains("href=\"/budgets\">予算");             // メニューの「予算」
 		assertThat(body).contains("予算設定", "保存");
+		assertThat(body).as("保存ボタンがある（0件のテストが否定で確かめる文字列と同じ。Bootstrap のクラスが付いても成り立つ形）").contains(">保存</button>");
 		assertThat(body).contains("name=\"_csrf\"");
 		assertThat(body).containsPattern("name=\"rows\\[0\\]\\.amount\" value=\"[0-9]+\"");   // 入力欄は数字だけ（カンマ・円なし）
 		assertThat(body).doesNotContain("value=\"30,000").doesNotContain("円\"");
@@ -416,7 +417,7 @@ class BudgetControllerTest {
 				.andExpect(status().isOk()).andReturn());
 
 		assertThat(body).contains("先に科目を追加してください", "href=\"/categories\"");
-		assertThat(body).doesNotContain("<button type=\"submit\">保存").doesNotContain("action=\"/budgets?");
+		assertThat(body).doesNotContain(">保存</button>").doesNotContain("action=\"/budgets?");
 		assertThat(body).contains("2026年 秋");      // 見出しは出る
 	}
 

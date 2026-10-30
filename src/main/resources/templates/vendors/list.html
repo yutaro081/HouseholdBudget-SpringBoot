@@ -3,7 +3,7 @@
 <head th:replace="~{fragments/common :: head('取引先')}"></head>
 <body>
 <header th:replace="~{fragments/common :: header}"></header>
-<main>
+<main class="container">
     <!--/* 成功メッセージ、削除できない理由の表示場所（画面の上部、設計書 2.3） */-->
     <div th:replace="~{fragments/common :: messages}"></div>
 
@@ -13,16 +13,17 @@
          利用者が入力した値は th:field / th:text で出す。th:utext は使わない（7.5） */-->
     <form th:action="@{/vendors}" th:object="${vendorForm}" method="post" class="inline-form" novalidate>
         <div class="field">
-            <label for="name">取引先名（20文字以内）</label>
-            <input type="text" th:field="*{name}">
+            <label class="form-label" for="name">取引先名（20文字以内）</label>
+            <input class="form-control" type="text" th:field="*{name}">
             <div class="field-error" th:each="message : ${#fields.errors('name')}" th:text="${message}">エラー</div>
         </div>
-        <button type="submit">追加</button>
+        <button type="submit" class="btn btn-primary">追加</button>
     </form>
 
     <p th:if="${#lists.isEmpty(vendors)}">まだありません</p>
 
-    <table class="list" th:unless="${#lists.isEmpty(vendors)}">
+    <div class="table-responsive" th:unless="${#lists.isEmpty(vendors)}">
+        <table class="list table table-hover align-middle">
         <thead>
         <tr>
             <th>取引先名</th>
@@ -33,17 +34,20 @@
         <tr th:each="vendor : ${vendors}">
             <td th:text="${vendor.name}">コンビニ</td>
             <td class="actions">
-                <a th:href="@{/vendors/{id}/edit(id=${vendor.id})}">変更</a>
+            <div class="d-flex align-items-center gap-2">
+                <a class="btn btn-outline-secondary btn-sm" th:href="@{/vendors/{id}/edit(id=${vendor.id})}">変更</a>
                 <!--/* 削除ボタン。使用中のものにも出す（押したあと、削除できない理由を表示する）。
                      確認ダイアログの文言は固定。利用者の入力は埋め込まない（設計書 7.5）。th:action でトークンが入る（7.6） */-->
                 <form th:action="@{/vendors/{id}/delete(id=${vendor.id})}" method="post"
                       class="inline-form" onsubmit="return confirm('削除しますか？')">
-                    <button type="submit">削除</button>
+                    <button type="submit" class="btn btn-outline-danger btn-sm">削除</button>
                 </form>
+            </div>
             </td>
         </tr>
         </tbody>
     </table>
+    </div>
 </main>
 </body>
 </html>

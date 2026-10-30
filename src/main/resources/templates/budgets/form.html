@@ -3,7 +3,7 @@
 <head th:replace="~{fragments/common :: head('予算設定')}"></head>
 <body>
 <header th:replace="~{fragments/common :: header}"></header>
-<main>
+<main class="container">
     <!--/* 成功メッセージ（保存しました）の表示場所（画面の上部、設計書 2.3） */-->
     <div th:replace="~{fragments/common :: messages}"></div>
 
@@ -13,7 +13,7 @@
     <div th:replace="~{fragments/season :: nav(${budgetView.period}, ${budgetView.previous}, ${budgetView.next}, '/budgets')}"></div>
 
     <!--/* 科目が0件のときは、案内を出して、保存ボタンは出さない（設計書 2.3） */-->
-    <div class="notice" th:if="${#lists.isEmpty(budgetView.rows)}">
+    <div class="notice alert alert-warning" th:if="${#lists.isEmpty(budgetView.rows)}">
         <p>先に科目を追加してください。<a th:href="@{/categories}">科目の画面へ</a></p>
     </div>
 
@@ -25,7 +25,8 @@
     <form th:unless="${#lists.isEmpty(budgetView.rows)}"
           th:action="@{/budgets(year=${budgetView.period.year}, season=${budgetView.period.season.urlName})}"
           th:object="${budgetForm}" method="post" novalidate>
-        <table class="list budget-table">
+        <div class="table-responsive">
+        <table class="list budget-table table align-middle">
             <thead>
             <tr>
                 <th>科目</th>
@@ -40,14 +41,15 @@
                 </td>
                 <td>
                     <input type="hidden" th:name="|rows[${stat.index}].categoryId|" th:value="${row.categoryId}">
-                    <input type="text" inputmode="numeric" th:field="*{rows[__${stat.index}__].amount}">
+                    <input class="form-control" type="text" inputmode="numeric" th:field="*{rows[__${stat.index}__].amount}">
                     <div class="field-error" th:each="message : ${#fields.errors('rows[__${stat.index}__].amount')}"
                          th:text="${message}">エラー</div>
                 </td>
             </tr>
             </tbody>
         </table>
-        <button type="submit">保存</button>
+        </div>
+        <button type="submit" class="btn btn-primary">保存</button>
     </form>
 </main>
 </body>

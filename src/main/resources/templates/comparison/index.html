@@ -3,14 +3,14 @@
 <head th:replace="~{fragments/common :: head('予実比較')}"></head>
 <body>
 <header th:replace="~{fragments/common :: header}"></header>
-<main>
+<main class="container">
     <h1>予実比較</h1>
 
     <!--/* 見出し（年・季節・期間）と、前・次の季節のリンク。範囲の端ではリンクを出さない（設計書 2.4）。予算設定と共有する部品 */-->
     <div th:replace="~{fragments/season :: nav(${comparison.period}, ${comparison.previous}, ${comparison.next}, '/comparison')}"></div>
 
     <!--/* 科目が0件のときは、案内を出して、表と合計行は出さない（設計書 2.3、Q7-7 の A） */-->
-    <div class="notice" th:if="${#lists.isEmpty(comparison.rows)}">
+    <div class="notice alert alert-warning" th:if="${#lists.isEmpty(comparison.rows)}">
         <p>先に科目を追加してください。<a th:href="@{/categories}">科目の画面へ</a></p>
     </div>
 
@@ -20,7 +20,8 @@
          色の判定は BudgetColorJudge で済んでいて、ここでは判定しない。文言はテンプレートに直接書く（Q7-5）。
          科目名は th:text で出す。th:utext は使わない（7.5） */-->
     <th:block th:unless="${#lists.isEmpty(comparison.rows)}">
-        <table class="list comparison-table">
+        <div class="table-responsive">
+            <table class="list comparison-table table align-middle">
             <thead>
             <tr>
                 <th>科目</th>
@@ -45,7 +46,8 @@
                 <td class="num" th:text="${comparison.total.difference != null} ? |${#numbers.formatInteger(comparison.total.difference, 1, 'COMMA')}円| : ''">73,500円</td>
             </tr>
             </tbody>
-        </table>
+            </table>
+            </div>
 
         <!--/* 色の意味の注記（Q7-6 の C） */-->
         <p class="legend">赤：予算超過／青：予算の1/3以下</p>

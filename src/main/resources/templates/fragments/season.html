@@ -13,7 +13,7 @@
 <th:block th:fragment="nav(period, previous, next, path)">
 <div class="season-nav">
     <span class="season-link prev">
-        <a th:if="${previous != null}"
+        <a class="btn btn-outline-secondary btn-sm" th:if="${previous != null}"
            th:href="@{${path}(year=${previous.year}, season=${previous.season.urlName})}">前の季節</a>
     </span>
     <h2 class="season-title">
@@ -24,22 +24,22 @@
               th:text="|（${period.startDate.year}年${period.startDate.monthValue}月〜${period.endDateExclusive.minusMonths(1).year}年${period.endDateExclusive.minusMonths(1).monthValue}月）|">（2026年12月〜2027年2月）</span>
     </h2>
     <span class="season-link next">
-        <a th:if="${next != null}"
+        <a class="btn btn-outline-secondary btn-sm" th:if="${next != null}"
            th:href="@{${path}(year=${next.year}, season=${next.season.urlName})}">次の季節</a>
     </span>
 </div>
 <form method="get" th:action="@{${path}}" class="season-select">
-    <label for="season-year">年</label>
-    <select id="season-year" name="year">
+    <label class="form-label mb-0" for="season-year">年</label>
+    <select class="form-select form-select-sm w-auto" id="season-year" name="year">
         <option th:each="y : ${#numbers.sequence(2000, 2100)}"
                 th:value="${y}" th:text="|${y}年|" th:selected="${y == period.year}">2026年</option>
     </select>
-    <label for="season-name">季節</label>
-    <select id="season-name" name="season">
+    <label class="form-label mb-0" for="season-name">季節</label>
+    <select class="form-select form-select-sm w-auto" id="season-name" name="season">
         <option th:each="name : ${ {'spring', 'summer', 'autumn', 'winter'} }"
                 th:value="${name}" th:text="#{|season.${name}|}" th:selected="${name == period.season.urlName}">春</option>
     </select>
-    <button type="submit">表示</button>
+    <button type="submit" class="btn btn-primary btn-sm">表示</button>
     <span class="season-hint">冬は、12月がある年を選びます</span>
 </form>
 </th:block>

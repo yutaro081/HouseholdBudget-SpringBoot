@@ -60,6 +60,7 @@
      - 値を持つだけの入れ物（`ComparisonRow`、`ComparisonResult`、`CategoryActual`）は `record`（Q7-4）。画面が読む値はすべて入れて渡す（`open-in-view=false`）。
    - Phase 8 で決まった共通事項：
      - Controller の URL は、共通の頭の部分を**クラスの `@RequestMapping`** に書き、各メソッドの注釈には後ろの部分だけを書く（例：`@RequestMapping("/categories")` ＋ `@GetMapping("/{id}/edit")`）。頭の部分だけのメソッドは `@GetMapping` に URL を書かない。URL の全体は、クラスとメソッドの注釈を合わせて読む（設計書 4.4.1、issue 001、Q8-1）。新しい Controller もこの形で作る。
+     - 画面の見た目は、Bootstrap の CSS（`static/css/bootstrap.min.css`。CDN なし、JavaScript なし）のクラスで付け、`style.css` には Bootstrap にないものと、テストが確かめるクラス（`field-error`、`num`、`row-over`、`row-low`、`total-row`、メニューの `<a>`）のための規則だけを書く。テストが確かめる要素には、Bootstrap のクラスを足さない（設計書 4.4.2、Q8-20）。Bootstrap のライセンスは `THIRD-PARTY-NOTICES.md`（Q8-21）。
 
 ## 文書の分け方
 
@@ -223,6 +224,8 @@ flowchart LR
 - [ ] 見つかった不具合を直し、直した内容を記録する
 - [ ] 主要な処理の自動テストを整える（登録時の初期データ、データ分離、予実比較）
 - [ ] コードの整理（使っていないコードの削除、分かりにくい名前の修正、コメント）
+- [x] 予算設定と予実比較に、年と季節を選ぶ欄を足す（要件 4.3 の「選べる」。4.3 で見つかった食い違い G1。手順書 4.11）
+- [ ] Bootstrap の CSS を入れて、見た目を整える（CSS のみ・JavaScript なし・CDN なし。手順書 4.12。画面の画像は、これが済んでから撮る）
 - [ ] 面接で iPad から触ってもらえるか確かめる（パソコンで起動したアプリを、同じネットワークの iPad の Safari から開く。手順書 4.13）
 
 **Phase 2 から引き継ぐこと**

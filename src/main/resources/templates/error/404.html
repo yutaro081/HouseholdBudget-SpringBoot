@@ -8,7 +8,7 @@
   ・ログイン前でも表示できる（/error はログインなしで開ける、7.3）。そのため、ログイン中のユーザー名は出さない。
   ・存在しない URL、存在しない・他人のID、範囲外の年・不正な季節は、すべてこの同じ画面になる（7.8）。
 */-->
-<main class="narrow">
+<main class="container narrow">
     <h1 th:text="#{error.page.notFound}">ページが見つかりません</h1>
     <p><a th:href="@{/transactions}" th:text="#{error.page.backToTransactions}">取引一覧へ戻る</a></p>
 </main>

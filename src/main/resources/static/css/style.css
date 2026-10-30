@@ -1,103 +1,49 @@
-/* 画面の見た目（設計書 1.2：自作の CSS 1ファイル）。Phase 3 では最小限だけ。画面が増えるたびに足す。 */
+/*
+ * 画面の見た目（設計書 1.2）。Bootstrap の CSS（bootstrap.min.css）を先に読み、このファイルを後に読む（Phase 8、Q8-17〜Q8-20）。
+ * ここに残すのは、Bootstrap にないものと、テストが確かめる HTML のクラス（field-error、num、row-over、row-low、total-row）のための規則だけ。
+ * ボタン・入力欄・表・メッセージの基本の見た目は、HTML に付けた Bootstrap のクラスが受け持つ。
+ */
 
-body {
-    font-family: sans-serif;
-    margin: 0;
-    color: #222;
-}
-
-main {
-    padding: 16px;
+/* 本体の幅。ログイン・登録・入力画面は狭くする（Bootstrap の .container を上書き） */
+main.container {
     max-width: 960px;
-    margin: 0 auto;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
 }
 
 main.narrow {
     max-width: 420px;
 }
 
-/* ヘッダー（メニュー、ユーザー名、ログアウト） */
+/* ヘッダー（メニュー、ユーザー名、ログアウト）。幅が足りないときは折り返す。メニューの <a> にはクラスを付けない（テストが確かめている） */
 .app-header {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
+    gap: 4px 16px;
     padding: 8px 16px;
-    background: #f0f0f0;
-    border-bottom: 1px solid #ccc;
 }
 
 .menu a {
-    margin-right: 16px;
-}
-
-.user-area {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    padding: 4px 10px;
+    text-decoration: none;
 }
 
 .logout-form {
     margin: 0;
 }
 
-/* フォーム */
+/* フォームの項目（ラベル・入力欄・エラー） */
 .field {
-    margin-bottom: 16px;
+    margin-bottom: 1rem;
 }
 
-.field label {
-    display: block;
-    margin-bottom: 4px;
-}
-
-.field input {
-    width: 100%;
-    box-sizing: border-box;
-    padding: 6px;
-}
-
-/* 項目の横（真下）のエラー（赤い文字、6.9） */
+/* 項目の横（真下）のエラー（赤い文字、設計書 6.9）。<div class="field-error"> はテストが数えているので、クラスを足さない */
 .field-error {
-    color: #c00;
-    font-size: 0.9em;
-    margin-top: 4px;
-}
-
-/* 画面の上部のメッセージ（2.3） */
-.message {
-    padding: 8px 12px;
-    margin: 12px 0;
-    border-radius: 4px;
-}
-
-.message.success {
-    background: #e6f4ea;
-    color: #1e6b32;
-}
-
-.message.error {
-    background: #fdecea;
-    color: #c00;
-}
-
-/* 一覧の表（科目・取引先・支払方法など） */
-table.list {
-    border-collapse: collapse;
-    width: 100%;
-    margin-top: 16px;
-}
-
-table.list th,
-table.list td {
-    border-bottom: 1px solid #ddd;
-    padding: 8px;
-    text-align: left;
-}
-
-table.list td.actions {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+    color: var(--bs-danger, #c00);
+    font-size: 0.875em;
+    margin-top: 0.25rem;
 }
 
 /* ボタンだけのフォームや、横に並べるフォーム */
@@ -106,26 +52,15 @@ table.list td.actions {
     margin: 0;
 }
 
-/* フォームのプルダウン（取引の登録・編集） */
-.field select {
-    width: 100%;
-    box-sizing: border-box;
-    padding: 6px;
+/* 登録できないときの案内（Bootstrap の alert の中の段落の余白） */
+.notice p:last-child {
+    margin-bottom: 0;
 }
 
-/* 金額の列（右寄せ） */
+/* 金額の列（右寄せ）。<td class="num"> はテストが確かめているので、クラスを足さない */
 table.list td.num,
 table.list th.num {
     text-align: right;
-}
-
-/* 登録できないときの説明（プルダウンが空のとき、B2） */
-.notice {
-    background: #fff8e1;
-    border: 1px solid #f0d58c;
-    border-radius: 4px;
-    padding: 8px 12px;
-    margin: 12px 0;
 }
 
 /* 詳細画面の項目 */
@@ -191,7 +126,6 @@ dl.detail dd {
 /* 予算設定の表：予算額の入力欄 */
 .budget-table input[type="text"] {
     width: 10em;
-    padding: 6px;
     text-align: right;
 }
 
@@ -202,7 +136,11 @@ dl.detail dd {
     margin-left: 6px;
 }
 
-/* 予実比較の表：行の文字全体に色を付ける（設計書 F4、Q7-6 の A）。色なしの行はクラスなし */
+/*
+ * 予実比較の表：行の文字全体に色を付ける（設計書 F4、Q7-6 の A）。色なしの行はクラスなし。
+ * Bootstrap の表（.table）はセルの文字色を自分で決めるので、ここでは td に直接指定して、Bootstrap より強くする。
+ * <tr class="row-over"> などはテストが確かめているので、<tr> に Bootstrap のクラスを足さない。
+ */
 .comparison-table tr.row-over td {
     color: #c62828;
 }

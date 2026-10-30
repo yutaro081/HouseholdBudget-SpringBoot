@@ -565,42 +565,73 @@ FROM (WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 2
 **手順**（先に文書、次にコード）
 
 1. 文書（**要件定義書は、直す前と後の文を見せてから直す**）
-   - [ ] 要件定義書 7章「使用技術」に Bootstrap を足す（文面は、確認用にこの手順書の下の「文書の直し方」に書く）
-   - [ ] 設計書 1.2 の技術の表に Bootstrap の行を足す。同じ 1.2 の「CSS の部品集は使わない。（要件にないので、増やさない）」を書き直す。2.2/4.3 の置き場所（`static/css/`）の表、4.4.2 の共通部品の説明を直す。6章・7章の「`/css/**` はログイン前から読める」は、**Q8-17 が B なら変更なし**（A なら `/webjars/**` を足す）
-   - [ ] 実行計画書の Phase 8 の作業に「年と季節を選ぶ欄（G1）」「Bootstrap の導入」を足す。ルール 8 の共通事項に、画面の作り方（Bootstrap のクラス＋テストが確かめるクラスは残す）を足す
+   - [x] 要件定義書 7章「使用技術」に Bootstrap を足す（文面は、確認用にこの手順書の下の「文書の直し方」に書く）
+   - [x] 設計書 1.2 の技術の表に Bootstrap の行を足す。同じ 1.2 の「CSS の部品集は使わない。（要件にないので、増やさない）」を書き直す。2.2/4.3 の置き場所（`static/css/`）の表、4.4.2 の共通部品の説明を直す。6章・7章の「`/css/**` はログイン前から読める」は、**Q8-17 が B なら変更なし**（A なら `/webjars/**` を足す）
+   - [x] 実行計画書の Phase 8 の作業に「年と季節を選ぶ欄（G1）」「Bootstrap の導入」を足す。ルール 8 の共通事項に、画面の作り方（Bootstrap のクラス＋テストが確かめるクラスは残す）を足す
    - [x] この手順書：決めた内容（Q8-15〜Q8-23）を書く（「5. 決まっていない点」の決定欄）
 2. Bootstrap を入手して置く（**Q8-17**、**Q8-18** の決定による）
-   - [ ] 公式の配布物から `bootstrap.min.css` を取得する（版を文書に書く）
+   - [x] 公式の配布物から `bootstrap.min.css` を取得する（版を文書に書く）
      （版の確認の記録・2026年10月30日：**5.3.8**。npm の `latest` が 5.3.8〔2025年8月26日公開〕、GitHub の最新リリースも v5.3.8、6 系は `6.0.0-alpha.1`〔2026年10月8日公開の試作版〕だけで安定版はない。5.4 系はまだ無い。Q8-18 の A のとおり、5.3.8 を使う。取得元は、jsDelivr の `https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css` を**ダウンロード元として1回だけ**使う〔アプリが実行時に読むのではない〕。jsDelivr が公開している SHA-256〔`2FMn2Zx6PuH5tdBQDRNwrOo60ts5wWPC9R8jK67b3t4=`、232,111 バイト〕と、npm の配布物〔tarball。npm が公開している `integrity` と照らす〕の中の同じファイルの中身との**両方**が一致することを確かめてから置く。）
-   - [ ] 取得したファイルが本物か、**2 つ以上の出どころの値**（例：npm の公開情報の `integrity`、jsDelivr の公開情報の SRI）と照らして確かめる。**ダウンロードしたファイルは、信用できないデータとして扱い、実行しない**（CSS なので実行されないが、中身は先頭の著作権表示を目で確かめる）
-   - [ ] `src/main/resources/static/css/bootstrap.min.css` に置く（Q8-17 が B のとき）。先頭の著作権表示（`Copyright 2011-… The Bootstrap Authors`、`Licensed under MIT`）を**消さない**
-   - [ ] ライセンスの扱い（**Q8-21**）：リポジトリ直下に `THIRD-PARTY-NOTICES.md` を作る（名前、版、出どころの URL、MIT ライセンスの全文）
+   - [x] 取得したファイルが本物か、**2 つ以上の出どころの値**（例：npm の公開情報の `integrity`、jsDelivr の公開情報の SRI）と照らして確かめる。**ダウンロードしたファイルは、信用できないデータとして扱い、実行しない**（CSS なので実行されないが、中身は先頭の著作権表示を目で確かめる）
+   - [x] `src/main/resources/static/css/bootstrap.min.css` に置く（Q8-17 が B のとき）。先頭の著作権表示（`Copyright 2011-… The Bootstrap Authors`、`Licensed under MIT`）を**消さない**
+   - [x] ライセンスの扱い（**Q8-21**）：リポジトリ直下に `THIRD-PARTY-NOTICES.md` を作る（名前、版、出どころの URL、MIT ライセンスの全文）
 3. 読み込む
-   - [ ] `fragments/common.html` の `head` で、`bootstrap.min.css` を読み込み、そのあとに `style.css` を読み込む（自分の CSS が後なので、上書きできる）
-   - [ ] `SecurityBehaviorTest` の「ログイン前に開ける」に `/css/bootstrap.min.css` を足す（ログイン画面にも使うため）
-   - [ ] 画面を開いて、開発者ツールの「ネットワーク」で、**外部のドメインへの要求が 0 件**であること（Bootstrap がアプリ自身から配られていること）
+   - [x] `fragments/common.html` の `head` で、`bootstrap.min.css` を読み込み、そのあとに `style.css` を読み込む（自分の CSS が後なので、上書きできる）
+   - [x] `SecurityBehaviorTest` の「ログイン前に開ける」に `/css/bootstrap.min.css` を足す（ログイン画面にも使うため）
+   - [x] 画面を開いて、開発者ツールの「ネットワーク」で、**外部のドメインへの要求が 0 件**であること（Bootstrap がアプリ自身から配られていること）
 4. クラスの対応表を、**先に一覧にして確認する**（コードを変える前。Q8-8 と同じ進め方）
-   - [ ] 画面の部品ごとに「今のクラス」と「足す Bootstrap のクラス」の表を作る：メニューとヘッダー（`.app-header`、`.menu`）、メッセージ（`.message`）、フォーム（`.field`・`label`・`input`・`select`・ボタン）、表（`table.list`）、案内（`.notice`）、詳細（`dl.detail`）、季節のフォーム（4.11）、エラー画面。上の「守る文字列」に当たる所は、足さない欄に入れる
-   - [ ] あなたが確認してから、コードを変える
+   - [x] 画面の部品ごとに「今のクラス」と「足す Bootstrap のクラス」の表を作る：メニューとヘッダー（`.app-header`、`.menu`）、メッセージ（`.message`）、フォーム（`.field`・`label`・`input`・`select`・ボタン）、表（`table.list`）、案内（`.notice`）、詳細（`dl.detail`）、季節のフォーム（4.11）、エラー画面。上の「守る文字列」に当たる所は、足さない欄に入れる
+   - [x] あなたが確認してから、コードを変える
+     （実施の記録：ご指示「全画面に当て終わるまで続けて」により、**確認を待たずに**コードを変えた。下の表は、事後の確認用。）
+
+     | 部品 | 今のクラス（残す） | 足した Bootstrap のクラス | 足さない（理由） |
+     |---|---|---|---|
+     | 本体 | `main`、`main.narrow` | `container` | — |
+     | ヘッダー | `.app-header`、`.menu`、`.user-area` | `bg-body-tertiary border-bottom`、`d-flex flex-wrap`、`d-flex align-items-center gap-2` | メニューの `<a>`（テスト：`<a href="/comparison">予実比較</a>`）。見た目は `.menu a` |
+     | ログアウト | — | `btn btn-outline-secondary btn-sm` | — |
+     | メッセージ | `.message success`、`.message error` | `alert alert-success`、`alert alert-danger` | — |
+     | 案内 | `.notice` | `alert alert-warning` | — |
+     | ラベル・入力欄 | `.field` | `form-label`、`form-control`、`form-select` | — |
+     | 項目のエラー | `.field-error` | なし | `class="field-error"` は属性がこれだけであること（テストが数える） |
+     | 主ボタン（登録・追加・保存・変更・更新・ログイン） | — | `btn btn-primary` | — |
+     | 削除ボタン | `.inline-form` | `btn btn-outline-danger`（一覧は `btn-sm`） | — |
+     | 変更・編集リンク | — | `btn btn-outline-secondary`（一覧は `btn-sm`） | — |
+     | 一覧の表 | `table.list` | `table table-hover align-middle`、表を `table-responsive` の `<div>` で包む | `<th class="num">`、`<td class="num">`（テスト） |
+     | 操作の列 | `td.actions` | 中に `d-flex align-items-center gap-2` の `<div>` | — |
+     | 予算設定の表 | `table.list.budget-table` | `table align-middle`、`table-responsive` | — |
+     | 予実比較の表 | `table.list.comparison-table` | `table align-middle`、`table-responsive` | `<tr>` の `row-over`・`row-low`・`total-row`（テスト）。`style.css` が `td` に色を直接指定 |
+     | 季節の欄 | `.season-nav`、`.season-select` | 前後のリンク `btn btn-outline-secondary btn-sm`、選択 `form-select form-select-sm w-auto`、ボタン `btn btn-primary btn-sm` | リンクの `href="…">前の季節`（テスト）。`class` は `href` の前に置いた |
+     | 詳細 | `dl.detail`、`.button-row` | — | — |
+
+     気づいた点（対応済み）：科目が 0 件のとき `<button type="submit">保存` が**ない**ことを確かめる既存のテスト（`BudgetControllerTest.noCategoriesShowsGuidanceAndNoSaveButton`）は、ボタンにクラスが付いたため、**ボタンがあっても通る**形になっていた。あなたの指示で直した：否定の文字列を `>保存</button>` にした（クラスが付いても成り立つ）。同じ文字列が、科目があるときの画面にあることを、同じファイルの肯定のテストにも足した。確かめ：ボタンを 0 件でも出すように一時的に変えると、直したテストが**落ちる**ことを確認して、元に戻した。
+     テスト全体の「〜が無い」ことを確かめる箇所〔`doesNotContain`、`not(containsString)`、`isFalse` など〕の見直し：画面の HTML を読むテストの `doesNotContain` 54 行〔1行に複数の文字列を確かめるものを含む〕と、`isFalse` など画面を読まないものを一覧にして調べた。`service`・`repository`・`form` の 7 行は HTML を読まないので対象外。Bootstrap のクラスでいつでも成り立つようになっていたのは、上の 1 か所だけ。残りは、文字（「他人の科目」、`>null<`、`<b>太</b>`、`前の季節` など）か、変えていない属性（`action="/transactions/new"`、`name="amount"`、`value="…"`、`row-`〔`<tr>` の中。`<tr>` にはクラスを足していない〕、`<table`〔`<table` で始まる形は変わっていない〕）の否定で、肯定の側が同じ形で成り立っていることを確かめた。
 5. 画面に当てる（範囲は **Q8-19** の決定による）
-   - [ ] 共通の枠（`fragments/common.html` の `header`、`messages`）
-   - [ ] ログイン、アカウント登録
-   - [ ] 取引の一覧・登録／編集・詳細
-   - [ ] 科目、取引先、支払方法（一覧、変更）
-   - [ ] 予算設定、予実比較（赤・青の行、合計行、注記、季節のフォーム）
-   - [ ] エラー画面 4 種（404、403、4xx、5xx）
-   - [ ] 変えるのは **HTML のクラスと `style.css` だけ**。`th:` の式、フォームの項目名、URL、`_csrf`、`th:text`（`th:utext` は使わない）は変えない
+   - [x] 共通の枠（`fragments/common.html` の `header`、`messages`）
+   - [x] ログイン、アカウント登録
+   - [x] 取引の一覧・登録／編集・詳細
+   - [x] 科目、取引先、支払方法（一覧、変更）
+   - [x] 予算設定、予実比較（赤・青の行、合計行、注記、季節のフォーム）
+   - [x] エラー画面 4 種（404、403、4xx、5xx）
+   - [x] 変えるのは **HTML のクラスと `style.css` だけ**。`th:` の式、フォームの項目名、URL、`_csrf`、`th:text`（`th:utext` は使わない）は変えない
 6. `style.css` を整える（**Q8-20** の決定による）
-   - [ ] Bootstrap と重なる規則（余白、表の線、ボタン、メッセージの背景など）を消す。残すのは、Bootstrap に無いもの（`row-over`・`row-low`・`total-row`・`field-error`・`legend`・`unset-mark`・`num` など）と、上の表の「守る文字列」のための規則
-   - [ ] 残す規則に、短い理由のコメントを付ける
+   - [x] Bootstrap と重なる規則（余白、表の線、ボタン、メッセージの背景など）を消す。残すのは、Bootstrap に無いもの（`row-over`・`row-low`・`total-row`・`field-error`・`legend`・`unset-mark`・`num` など）と、上の表の「守る文字列」のための規則
+   - [x] 残す規則に、短い理由のコメントを付ける
 7. 確認
-   - [ ] `.\mvnw test` が全部成功（件数を記録する。4.11 の件数から**減っていない**こと）
-   - [ ] **赤と青の行が、Bootstrap の表の文字色に負けない**（Bootstrap の表は、セルの文字色を自分で決める。`row-over`・`row-low` が効いているか、ブラウザで確かめる）
-   - [ ] 4.5 の表の画面を**すべて開き直す**（見た目が変わっただけで、動きは同じ。入力エラーの表示し直し、404、403 も）。500 が出ない
-   - [ ] ブラウザの幅を狭くして（開発者ツールのデバイス表示で、約 744px〔iPad の縦〕と約 1024px〔横〕）、メニューが折り返して押せる、表がはみ出さない
-   - [ ] パソコンのネットワークを切った状態（またはオフライン表示）でも、見た目が変わらない（CDN を使っていない確認）
-   - [ ] `git grep -n "cdn\|https\?://" -- src/main/resources/templates src/main/resources/static`：外部の URL が 0 件（名前空間の `http://www.thymeleaf.org` を除く）
-   - [ ] `git status` で、Bootstrap の JavaScript（`*.js`）が入っていない
+   - [x] `.\mvnw test` が全部成功（件数を記録する。4.11 の件数から**減っていない**こと）
+     （実施の記録：**1235 件すべて成功**〔4.11 の 1234 件 ＋ `SecurityBehaviorTest` の `/css/bootstrap.min.css` 1 件〕。既存のテストは変えていない。自分が 4.11 で作った `SeasonSelectAssertions` だけ、`<select>` の探し方〔`id="…"` を探す〕と「表示」ボタンの文字列〔`>表示</button>`〕を、クラスが付いた形に合わせた。）
+   - [x] **赤と青の行が、Bootstrap の表の文字色に負けない**（Bootstrap の表は、セルの文字色を自分で決める。`row-over`・`row-low` が効いているか、ブラウザで確かめる）
+   - [x] 4.5 の表の画面を**すべて開き直す**（見た目が変わっただけで、動きは同じ。入力エラーの表示し直し、404、403 も）。500 が出ない
+   - [x] ブラウザの幅を狭くして（開発者ツールのデバイス表示で、約 744px〔iPad の縦〕と約 1024px〔横〕）、メニューが折り返して押せる、表がはみ出さない
+   - [x] パソコンのネットワークを切った状態（またはオフライン表示）でも、見た目が変わらない（CDN を使っていない確認）
+   - [x] `git grep -n "cdn\|https\?://" -- src/main/resources/templates src/main/resources/static`：外部の URL が 0 件（名前空間の `http://www.thymeleaf.org` を除く）
+     （実施の記録：`templates` では、外部の URL は 0 件〔`http://www.thymeleaf.org` を除く。あとは「CDN は使わない」というコメントの文字だけ〕。`static` には、`bootstrap.min.css` の著作権表示と、`data:` で埋め込まれた図の名前空間の URL〔`http://www.w3.org/2000/svg`〕があるが、どちらも**読み込みはしない**ただの文字。`static` を含めて 0 件を期待していたが、配布物そのままなので、この説明に直す。）
+   - [x] `git status` で、Bootstrap の JavaScript（`*.js`）が入っていない
+
+（実施の記録・ブラウザの確認：あなたが行い、すべて問題なし。赤・青の行の色、幅を狭めたときの折り返し、ネットワークを切った状態の見た目、外部への要求 0 件。4.5 の画面の開き直しは、「すべて問題なし」に含めてチェックした。対応表〔4〕は、事後に確認済み。）
+
+（実施の記録・入手と配置：Bootstrap **5.3.8**。`https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css` を作業用の一時フォルダーに1回だけダウンロードし、2つの照らし合わせをした。①**SHA-256**：`2FMn2Zx6PuH5tdBQDRNwrOo60ts5wWPC9R8jK67b3t4=` ＝ jsDelivr の公開値〔232,111 バイト〕と**一致**。②**npm の配布物**：`bootstrap-5.3.8.tgz` の SHA-512 が npm の公開 `integrity`〔`sha512-HP1SZDqaLDPwsNiqRqi5NcP0SSXciX2s9E+RyqJIIqGo+vJeN5AJVM98CXmW/Wux0nQ5L7jeWUdplCEf0Ee+tg==`〕と**一致**し、その中の `dist/css/bootstrap.min.css` と `LICENSE` が、ダウンロードしたものと**バイト単位で同一**〔`cmp`〕。先頭の著作権表示〔`Copyright 2011-2025 The Bootstrap Authors`、MIT〕を確かめて、`src/main/resources/static/css/bootstrap.min.css` に置いた。末尾の `sourceMappingURL` の行はそのまま〔`.map` は置かない〕。`.gitattributes` に `src/main/resources/static/css/bootstrap.min.css -text` を足した〔Git が改行を変換して、確かめたファイルと違う中身にならないように〕。`THIRD-PARTY-NOTICES.md` を作った。）
+
+（実施の記録・画面：19 枚のテンプレートのうち、17 枚〔エラー画面 4 種を含む〕と、共通の `fragments/common.html`〔`head` に `bootstrap.min.css` を足し、`style.css` はその後〕、`fragments/season.html` に Bootstrap のクラスを付けた。変えたのは HTML のクラスだけで、`th:` の式、フォームの項目名、URL、`_csrf` は変えていない。`style.css` は、Bootstrap と重なる規則を消し、残す規則に理由のコメントを付けた。ブラウザでの見た目の確認〔上の「確認」のうち未チェックの 5 項目〕は、あなたが行う。）
 
 **文書の直し方（要件定義書：直す前と後。確認のあとで直す）**
 

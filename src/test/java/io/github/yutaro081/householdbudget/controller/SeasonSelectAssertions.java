@@ -67,8 +67,8 @@ final class SeasonSelectAssertions {
 	}
 
 	private static String select(String form, String selectId) {
-		int start = form.indexOf("<select id=\"" + selectId + "\"");
-		assertThat(start).as("<select id=\"%s\"> がある", selectId).isGreaterThanOrEqualTo(0);
+		int start = form.indexOf("id=\"" + selectId + "\"");
+		assertThat(start).as("select（%s）がある", selectId).isGreaterThanOrEqualTo(0);
 		return form.substring(start, form.indexOf("</select>", start));
 	}
 
@@ -78,7 +78,7 @@ final class SeasonSelectAssertions {
 		assertThat(form).as("GET のフォーム").contains("method=\"get\"");
 		assertThat(form).as("送り先は、リンクと同じ画面の URL（問い合わせの文字列なし）").contains("action=\"" + path + "\"");
 		assertThat(form).as("何も変えないので CSRF のトークンは入らない").doesNotContain("_csrf");
-		assertThat(form).contains("name=\"year\"", "name=\"season\"", "<button type=\"submit\">表示</button>");
+		assertThat(form).contains("name=\"year\"", "name=\"season\"", ">表示</button>");
 
 		List<String> years = values(form, "season-year");
 		assertThat(years).as("年の選択肢は 2000〜2100 の 101 個").hasSize(101);
