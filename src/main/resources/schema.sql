@@ -85,7 +85,7 @@ CREATE TABLE IF NOT EXISTS budgets (
 -- ---------------------------------------------------------------
 -- transactions（取引）設計書 3.6、3.7
 -- 摘要（description）だけ NULL を許す。
--- 金額と取引の日付（2000年1月1日から2100年12月31日）の範囲は、入力チェック（章6）に加えて、CHECK 制約でも守る。
+-- 金額と取引の日付（2000年3月1日から2100年12月31日）の範囲は、入力チェック（章6）に加えて、CHECK 制約でも守る。
 -- ---------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS transactions (
     id                BIGINT      NOT NULL AUTO_INCREMENT,
@@ -106,6 +106,6 @@ CREATE TABLE IF NOT EXISTS transactions (
     CONSTRAINT fk_transactions_payment_method FOREIGN KEY (payment_method_id) REFERENCES payment_methods (id)
         ON DELETE RESTRICT,
     CONSTRAINT ck_transactions_amount CHECK (amount BETWEEN 1 AND 1000000),
-    CONSTRAINT ck_transactions_date CHECK (transaction_date BETWEEN '2000-01-01' AND '2100-12-31'),
+    CONSTRAINT ck_transactions_date CHECK (transaction_date BETWEEN '2000-03-01' AND '2100-12-31'),
     INDEX idx_transactions_user_date (user_id, transaction_date)
 ) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_ci;

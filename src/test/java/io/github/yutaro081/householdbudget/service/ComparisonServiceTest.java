@@ -349,15 +349,18 @@ class ComparisonServiceTest {
 		expected.next().ifPresent(n -> assertThat(compare(a, n).rows().get(0).actual()).isZero());
 	}
 
+	/** 取引の日付の下限は 2000-03-01（R15、issue 003）。入力できる最初の日・最後の日の取引は、表示できる最初・最後の季節に入る */
 	@Test
-	void transactionsOfJanuaryAndFebruary2000AreInNoDisplayedSeason() {
+	void transactionsOnTheFirstAndLastAllowedDatesAreInTheFirstAndLastDisplayedSeasons() {
 		Owner a = createOwner("cmptest17");
 		Category food = category(a, "食費");
-		spend(a, food, LocalDate.of(2000, 1, 1), 10);
-		spend(a, food, LocalDate.of(2000, 2, 29), 100);
+		spend(a, food, LocalDate.of(2000, 3, 1), 10);
+		spend(a, food, LocalDate.of(2100, 12, 31), 100);
 
-		assertThat(compare(a, new SeasonPeriod(2000, Season.SPRING)).rows().get(0).actual()).isZero();
+		assertThat(compare(a, new SeasonPeriod(2000, Season.SPRING)).rows().get(0).actual()).isEqualTo(10L);
 		assertThat(compare(a, new SeasonPeriod(2000, Season.WINTER)).rows().get(0).actual()).isZero();
+		assertThat(compare(a, new SeasonPeriod(2100, Season.WINTER)).rows().get(0).actual()).isEqualTo(100L);
+		assertThat(compare(a, new SeasonPeriod(2100, Season.AUTUMN)).rows().get(0).actual()).isZero();
 	}
 
 	// ---- 自分の分だけ（3.9） ----

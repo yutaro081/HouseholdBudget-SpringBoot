@@ -70,7 +70,7 @@
 - 表示できる範囲は2000年春〜2100年冬。2000年春では「前の季節」を、2100年冬では「次の季節」を出さない（B15）。
 - 年と季節の判定は `SeasonPeriod.parse`（Q6-2）。Controller で、両方なしなら `SeasonPeriod.from(今日)`、それ以外は `parse` の結果が空なら `NotFoundException`。`BudgetController.resolve` にある 6 行を、**共有の部品に取り出し、`BudgetController` も `ComparisonController` も同じ部品を使う**（Q7-1。予算設定と予実比較で URL の決まりが食い違わないようにするため）。部品の置き場所と名前は案：`domain` の `SeasonPeriod` に、「年・季節の文字列と今日から季節を決める。不正なら空」を返す静的メソッドを足す（Spring に頼らないので、単体テストで境界を確かめられる）。404 にするのは、これまでどおり Controller（`NotFoundException`）。
 - 見出しと前後リンクは `fragments/season.html` の `nav(period, previous, next, path)`。`path` は `'/comparison'`。
-- 未来の季節も表示できる（実績は0円）。**2000年1月・2月の取引は1999年の冬に入るので、予実比較には出ない**（2.4）。
+- 未来の季節も表示できる（実績は0円）。取引の日付の下限は 2000年3月1日（2000年春の初日）なので、入力できる取引は、すべて表示できる季節に入る（R15、issue 003、4.4 のあとで入った直し）。
 
 ### 3.3 実績の集計（設計書 5.8、5.9、4.6）
 
@@ -243,19 +243,68 @@ SELECT (SELECT COUNT(*) FROM budgets) AS budgets_rows, (SELECT COUNT(*) FROM tra
 - [x] 前・次の季節：範囲の端（2000年春の前、2100年冬の次）で null。2000年冬・2100年春は両方ある
 - [x] 範囲外の季節（1999年冬、2101年春）は `NotFoundException`
 - [x] 未来の季節（例：2100年）は、実績0円で表示できる
-- [x] 2000年1月・2月の取引が、どの季節の画面にも出ない（1999年の冬になる、2.4）
+- [x] 取引の日付の下限（2000-03-01）：2000-03-01 の取引は 2000年春に、2100-12-31 の取引は 2100年冬に入る（R15。当初は「2000年1月・2月の取引が、どの季節の画面にも出ない」を確かめていたが、下限を変えたので、このテストは書き換えた）
 - [x] 比較を作ったあとで、`budgets` と `transactions` の件数が変わらない
 
 （実施の記録：`ComparisonRow`、`ComparisonResult`（`record`、Q7-4 の A）と `ComparisonService.compare(userId, period)`（`readOnly`）を作った。合計行の `categoryName` は null（画面で「合計」を出す）。科目が0件のときも合計行の値は作る（予算 null・実績0・差額 null・色なし）が、画面は出さない（Q7-7 の A、4.6）。`ComparisonServiceTest` は 34 件。`.\mvnw test` は 1148 件すべて成功。）
+
+### 4.4 のあとで入った直し：取引の日付の下限を 2000-03-01 にする（R15、issue 003）
+
+手順の途中で入った直しです。4.4 で、2000年1月・2月の取引が、どの季節の画面にも出ないことが分かった（冬は12月がある年なので、1999年の冬に入り、表示範囲の外）。取引の日付の下限を **2000-03-01**（2000年春の初日）に変え、上限 2100-12-31 は変えない。季節の範囲（2000年春〜2100年冬）とそろえるためで、入力できる取引はすべて、どこかの季節に入る。
+
+直したもの：
+- [x] [issue 003](../issues/003-2000年1月2月の取引が予実比較に出ない.md)：対応方針を記録
+- [x] 要件定義書 5章（R15）：「取引の日付は、2000年3月1日から2100年12月31日までとする。」（理由は要件定義書に入れず、設計書 2.4 に入れた）
+- [x] 設計書 2.3、2.4（理由の説明）、3.6、6.2 の表、6.6、G4、8.1：下限を 2000年3月1日に。R15 を追記
+- [x] 実行計画書（Phase 7 の引き継ぎ）、README の日付の範囲
+- [x] コード：`TransactionDateRangeValidator`（下限）、`TransactionDateRange` の説明、`messages.properties`（「日付は2000年3月1日から2100年12月31日までで入力してください」）、`schema.sql`（`ck_transactions_date` の下限と、コメント）
+- [x] テスト：下の一覧
+- [x] **開発用 DB の CHECK 制約の付け替え（あなたが `root` で行う）**。これが済むまで、`TransactionRepositoryTest.checkRejectsDayBeforeTheLowerBound`（2000-02-29 を DB が拒否することを確かめる）が失敗する（実施済み）
+- [x] 付け替えのあと、`.\mvnw test` が全部成功する（1184 件、失敗 0、BUILD SUCCESS）
+
+**テストの直し**（`src/test` 全体で、2000-03-01 より前の日付を使っているものを調べた結果）：
+
+| テスト | 使っていた日付 | 直し方 |
+|---|---|---|
+| `TransactionControllerTest`（登録の境界） | 2000-01-01 を「登録できる」 | 2000-03-01 に変更 |
+| 同（入力エラー、値が残る） | 1999-12-31 を「エラー」 | 2000-02-29 の行を追加。エラーメッセージの文言を新しい文に |
+| `TransactionFormTest`（2か所） | 2000-01-01 と 2000-02-29 を「通る」 | 2000-03-01 を「通る」に。2000-01-01、2000-02-29 を「エラー」に移動。うるう年の確認は 2028-02-29 に |
+| `MessagesTest` | メッセージの文言 | 新しい文に |
+| `TransactionRepositoryTest`（DB の CHECK） | 2000-01-01 を「保存できる」 | 2000-03-01 に変更。前日の 2000-02-29 を「拒否」するテストを追加 |
+| `TransactionServiceTest` | 2000-01-01 を「登録できる」 | 2000-03-01 に変更 |
+| `TransactionRepositorySumTest`、`ComparisonServiceTest` | 2000-01-01・2000-02-29 の取引が「どの季節にも出ない」 | **目的が変わった**ので書き換えた：2000-03-01 の取引は 2000年春に入る、2100-12-31 の取引は 2100年冬に入る |
+| `SeasonPeriodTest`（`from(2000-01-01)` など） | 日付だけの計算 | 変更なし（`from` は範囲を知らない。コメントだけ直した） |
+| `BudgetControllerTest`、`BudgetServiceTest`、`BudgetRepositoryTest`、`ComparisonServiceTest`（範囲外の季節 1999 など） | 季節の年（日付ではない） | 変更なし |
+
+**開発用 DB の制約の付け替え**（`root` でログインして実行。`schema.sql` は `CREATE TABLE IF NOT EXISTS` なので、すでにある表の制約は自動では変わらない）：
+
+```sql
+USE householdbudget;
+
+-- ① 先に、古い取引がないか確かめる（期待：0）
+SELECT COUNT(*) AS before_lower_bound FROM transactions WHERE transaction_date < '2000-03-01';
+
+-- ② 今の制約の中身を確かめる（期待：2000-01-01 になっている）
+SHOW CREATE TABLE transactions;
+
+-- ③ 付け替え（①が 0 のときだけ）
+ALTER TABLE transactions DROP CHECK ck_transactions_date;
+ALTER TABLE transactions ADD CONSTRAINT ck_transactions_date
+    CHECK (transaction_date BETWEEN '2000-03-01' AND '2100-12-31');
+
+-- ④ 付け替えの確認（期待：2000-03-01 になっている）
+SHOW CREATE TABLE transactions;
+```
 
 ### 4.5 `ComparisonController`
 
 設計書 2.2、2.4、4.4 のとおりに作る。
 
 - [ ] **先に共有の部品を作り、`BudgetController` を直す**（Q7-1）：
-  - [ ] 3.2 の部品（年・季節の文字列と今日から季節を決める）を `domain` に作り、**先に単体テストを書く**（`SeasonPeriodTest` に足す。両方なし→今の季節（冬の1月・2月は前の年）、正常な4季節、片方だけ・`1999`・`2101`・`abc`・`02026`・`+2026`・空・`Spring`・`xyz` は空）
-  - [ ] `BudgetController.resolve` を、この部品を呼ぶ形に直す（挙動は変えない）
-  - [ ] **Phase 6 の `BudgetControllerTest` がすべて通る**ことを確かめる（直した直後に `.\mvnw test`。1 件でも落ちたら、先に直す）
+  - [x] 3.2 の部品（年・季節の文字列と今日から季節を決める）を `domain` に作り、**先に単体テストを書く**（`SeasonPeriodTest` に足す。両方なし→今の季節（冬の1月・2月は前の年）、正常な4季節、片方だけ・`1999`・`2101`・`abc`・`02026`・`+2026`・空・`Spring`・`xyz` は空）
+  - [x] `BudgetController.resolve` を、この部品を呼ぶ形に直す（挙動は変えない）
+  - [x] **Phase 6 の `BudgetControllerTest` がすべて通る**ことを確かめる（直した直後に `.\mvnw test`。1 件でも落ちたら、先に直す）
+  - （実施の記録：部品は `SeasonPeriod.resolve(year, season, today)`（空なら不正。404 にするのは Controller）。`SeasonPeriodTest` に 4 つの検査（29 ケース）を足した。`BudgetController` は `resolve` の中身を 1 行にしただけで、`BudgetControllerTest` は変更なし。`.\mvnw test` は 1177 件すべて成功。）
 - [ ] `controller` に `ComparisonController`（`GET /comparison`）。年と季節は文字列で受け取り、上の共有の部品で判定する（今の季節は `Clock` から求める）。範囲外・不正・片方だけは 404
 - [ ] `ComparisonResult` を、画面（`comparison/index`）に渡す。`LoginUser.getUserId()` を Service に渡す
 

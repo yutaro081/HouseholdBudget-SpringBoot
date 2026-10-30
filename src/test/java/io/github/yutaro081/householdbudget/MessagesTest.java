@@ -38,7 +38,7 @@ class MessagesTest {
 			"success.deleted|削除しました",
 			"NotNull.transactionForm.transactionDate|日付を入力してください",
 			"typeMismatch.transactionForm.transactionDate|日付を正しく入力してください",
-			"TransactionDateRange.transactionForm.transactionDate|日付は2000年1月1日から2100年12月31日までで入力してください",
+			"TransactionDateRange.transactionForm.transactionDate|日付は2000年3月1日から2100年12月31日までで入力してください",
 			"NotNull.transactionForm.amount|金額を入力してください",
 			"typeMismatch.transactionForm.amount|金額は整数で入力してください",
 			"Min.transactionForm.amount|金額は1円以上1,000,000円以下で入力してください",

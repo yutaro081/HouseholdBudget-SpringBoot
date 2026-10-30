@@ -232,17 +232,29 @@ class TransactionRepositorySumTest {
 		assertThat(sums(a, new SeasonPeriod(2028, Season.WINTER))).isEmpty();
 	}
 
-	// ---- 取引の日付の範囲の端（2000年1月・2月は1999年の冬で、画面の範囲の外。2.4） ----
+	// ---- 取引の日付の範囲の端（下限は 2000-03-01 ＝ 2000年春の初日。R15、issue 003） ----
 
+	/** 入力できる最初の日（2000-03-01）の取引は、表示できる最初の季節（2000年春）に入る */
 	@Test
-	void transactionsOfJanuaryAndFebruary2000AreNotInAnyDisplayedSeason() {
+	void theFirstAllowedDateIsInTheFirstDisplayedSeason() {
 		Owner a = createOwner("sumtest14");
 		Category food = createCategory(a, "食費");
-		save(a, food, LocalDate.of(2000, 1, 1), 10);
-		save(a, food, LocalDate.of(2000, 2, 29), 100);
+		save(a, food, LocalDate.of(2000, 3, 1), 10);
 
-		assertThat(sums(a, new SeasonPeriod(2000, Season.SPRING))).isEmpty();
+		assertThat(sums(a, new SeasonPeriod(2000, Season.SPRING))).containsOnly(Map.entry(food.getId(), 10L));
+		assertThat(sums(a, new SeasonPeriod(2000, Season.SUMMER))).isEmpty();
 		assertThat(sums(a, new SeasonPeriod(2000, Season.WINTER))).isEmpty();
+	}
+
+	/** 入力できる最後の日（2100-12-31）の取引は、表示できる最後の季節（2100年冬）に入る */
+	@Test
+	void theLastAllowedDateIsInTheLastDisplayedSeason() {
+		Owner a = createOwner("sumtest17");
+		Category food = createCategory(a, "食費");
+		save(a, food, LocalDate.of(2100, 12, 31), 10);
+
+		assertThat(sums(a, new SeasonPeriod(2100, Season.WINTER))).containsOnly(Map.entry(food.getId(), 10L));
+		assertThat(sums(a, new SeasonPeriod(2100, Season.AUTUMN))).isEmpty();
 	}
 
 	// ---- 合計が INT を超える（3.1） ----

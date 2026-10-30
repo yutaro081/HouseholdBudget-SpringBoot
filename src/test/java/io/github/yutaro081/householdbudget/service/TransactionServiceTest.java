@@ -156,7 +156,7 @@ class TransactionServiceTest {
 		Owner a = createOwner("svctx6");
 
 		assertThatCode(() -> {
-			service.register(a.userId(), form(a, LocalDate.of(2000, 1, 1), 1, null));
+			service.register(a.userId(), form(a, LocalDate.of(2000, 3, 1), 1, null));
 			service.register(a.userId(), form(a, LocalDate.of(2100, 12, 31), 1_000_000, null));
 			entityManager.flush();
 		}).doesNotThrowAnyException();
