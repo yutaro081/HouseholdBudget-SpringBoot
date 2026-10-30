@@ -187,3 +187,23 @@ dl.detail dd {
     font-size: 0.85em;
     margin-left: 6px;
 }
+
+/* 予実比較の表：行の文字全体に色を付ける（設計書 F4、Q7-6 の A）。色なしの行はクラスなし */
+.comparison-table tr.row-over td {
+    color: #c62828;
+}
+
+.comparison-table tr.row-low td {
+    color: #1565c0;
+}
+
+/* 合計行は、科目の行と区切る */
+.comparison-table tr.total-row td {
+    border-top: 2px solid #999;
+}
+
+/* 色の意味の注記（Q7-6 の C） */
+.legend {
+    color: #555;
+    font-size: 0.85em;
+}

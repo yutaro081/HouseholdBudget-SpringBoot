@@ -305,14 +305,14 @@ SHOW CREATE TABLE transactions;
   - [x] `BudgetController.resolve` を、この部品を呼ぶ形に直す（挙動は変えない）
   - [x] **Phase 6 の `BudgetControllerTest` がすべて通る**ことを確かめる（直した直後に `.\mvnw test`。1 件でも落ちたら、先に直す）
   - （実施の記録：部品は `SeasonPeriod.resolve(year, season, today)`（空なら不正。404 にするのは Controller）。`SeasonPeriodTest` に 4 つの検査（29 ケース）を足した。`BudgetController` は `resolve` の中身を 1 行にしただけで、`BudgetControllerTest` は変更なし。`.\mvnw test` は 1177 件すべて成功。）
-- [ ] `controller` に `ComparisonController`（`GET /comparison`）。年と季節は文字列で受け取り、上の共有の部品で判定する（今の季節は `Clock` から求める）。範囲外・不正・片方だけは 404
-- [ ] `ComparisonResult` を、画面（`comparison/index`）に渡す。`LoginUser.getUserId()` を Service に渡す
+- [x] `controller` に `ComparisonController`（`GET /comparison`）。年と季節は文字列で受け取り、上の共有の部品で判定する（今の季節は `Clock` から求める）。範囲外・不正・片方だけは 404
+- [x] `ComparisonResult` を、画面（`comparison/index`）に渡す。`LoginUser.getUserId()` を Service に渡す
 
 ### 4.6 画面（`comparison/index.html`）とメニュー
 
 設計書 2.3、2.4、F4 のとおりに作る。**画面の値は `th:text` で出す。`th:utext` は使わない**（7.5）。
 
-- [ ] `templates/comparison/index.html`：
+- [x] `templates/comparison/index.html`：
   - 共通の枠のヘッダー
   - 見出しと前後リンクは `fragments/season.html` の `nav`（`path` は `'/comparison'`）。範囲の端ではリンクを出さない
   - 表：科目、予算、実績、差額。最下行に合計行。予算が空なら「未設定」、差額が空なら空欄
@@ -320,33 +320,33 @@ SHOW CREATE TABLE transactions;
   - 色は行の文字全体に付ける（F4）。合計行も同じ
   - 科目が0件のときは、「先に科目を追加してください」と科目の画面へのリンクを出し、表と合計行は出さない（Q7-7 の A）。見出しと前後リンクは出す
   - 科目名は `th:text`（`<script>` などが無害化される）
-- [ ] `fragments/common.html` のメニューに「予実比較」を足す。順番は、取引一覧、科目、取引先、支払方法、予算、予実比較（2.3）
-- [ ] `style.css` に、赤・青・色なしの見た目と、表の見た目を足す（必要な分だけ。値は Q7-6 の決定による）
-- [ ] メッセージ（「未設定」「合計」などの文言を `messages.properties` に置くか、テンプレートに書くか）は Q7-5 の決定による
+- [x] `fragments/common.html` のメニューに「予実比較」を足す。順番は、取引一覧、科目、取引先、支払方法、予算、予実比較（2.3）
+- [x] `style.css` に、赤・青・色なしの見た目と、表の見た目を足す（必要な分だけ。値は Q7-6 の決定による）
+- [x] メッセージ（「未設定」「合計」などの文言を `messages.properties` に置くか、テンプレートに書くか）は Q7-5 の決定による
 
 **確認**：
-- [ ] `.\mvnw test` が成功する
-- [ ] `th:utext` を使っていない（検索して確かめる）
+- [x] `.\mvnw test` が成功する
+- [x] `th:utext` を使っていない（検索して確かめる）
 
 ### 4.7 `ComparisonController` の自動テスト（MockMvc）
 
 > 「今日」は、`@TestConfiguration` で固定の `Clock` を用意して確かめる（`BudgetControllerTest` が見本。MockMvc の `param` は同じ名前を置き換えず追加するので、差し替える値は最初から組み立てる）。どこまで書くかは Q7-8 の決定による。下は、**推奨（A）の場合**。
 
-- [ ] 未ログインで `/comparison`、`/comparison?year=2026&season=spring` を開くと、ログイン画面へ移動する
-- [ ] 指定なし：今の季節が表示される（固定した `Clock` で、冬の1月・2月は前の年。見出しに年・季節・期間が出る）
-- [ ] 指定あり：その季節が表示される。見出しが 3.2 のとおり（冬は年をまたぐ形）。「前の季節」「次の季節」のリンクの URL が `/comparison?year=…&season=…` で正しい
-- [ ] **範囲の端**：2000年春は「前の季節」が出ない。2100年冬は「次の季節」が出ない。2000年冬・2100年春は両方出る
-- [ ] **404**：`year=1999`、`year=2101`、`year=abc`、`year=02026`、`season=xyz`、`season=Spring`、`year` だけ、`season` だけ、`year=`（空）。画面も状態コードも 404
-- [ ] 表示：科目名（登録順）、予算・実績・差額が `30,000円` の形。差額のマイナスが `-5,000円`。予算が未設定の行は「未設定」で差額が空欄。合計行が最下行にある
-- [ ] 色：赤・青・色なしの行に、それぞれ決めた印（CSS のクラス）が付く。**行の文字全体**（科目名・予算・実績・差額）に付く。予算が未設定の行・色なしの行には付かない。合計行も同じ
-- [ ] 科目名の `<script>` が無害化される。メニューに「予実比較」がある
-- [ ] **自分の取引・予算だけ**：他のユーザーの分が出ない
-- [ ] 画面を開いただけで、`budgets` と `transactions` の件数が変わらない
-- [ ] 科目が0件のとき：案内と科目の画面へのリンクが出て、表と合計行が出ない
-- [ ] 共有の部品に直した `BudgetController` の Phase 6 のテストが、すべて通る（4.5）
+- [x] 未ログインで `/comparison`、`/comparison?year=2026&season=spring` を開くと、ログイン画面へ移動する
+- [x] 指定なし：今の季節が表示される（固定した `Clock` で、冬の1月・2月は前の年。見出しに年・季節・期間が出る）
+- [x] 指定あり：その季節が表示される。見出しが 3.2 のとおり（冬は年をまたぐ形）。「前の季節」「次の季節」のリンクの URL が `/comparison?year=…&season=…` で正しい
+- [x] **範囲の端**：2000年春は「前の季節」が出ない。2100年冬は「次の季節」が出ない。2000年冬・2100年春は両方出る
+- [x] **404**：`year=1999`、`year=2101`、`year=abc`、`year=02026`、`season=xyz`、`season=Spring`、`year` だけ、`season` だけ、`year=`（空）。画面も状態コードも 404
+- [x] 表示：科目名（登録順）、予算・実績・差額が `30,000円` の形。差額のマイナスが `-5,000円`。予算が未設定の行は「未設定」で差額が空欄。合計行が最下行にある
+- [x] 色：赤・青・色なしの行に、それぞれ決めた印（CSS のクラス）が付く。**行の文字全体**（科目名・予算・実績・差額）に付く。予算が未設定の行・色なしの行には付かない。合計行も同じ
+- [x] 科目名の `<script>` が無害化される。メニューに「予実比較」がある
+- [x] **自分の取引・予算だけ**：他のユーザーの分が出ない
+- [x] 画面を開いただけで、`budgets` と `transactions` の件数が変わらない
+- [x] 科目が0件のとき：案内と科目の画面へのリンクが出て、表と合計行が出ない
+- [x] 共有の部品に直した `BudgetController` の Phase 6 のテストが、すべて通る（4.5）
 
 **確認**：
-- [ ] `.\mvnw test` が全部成功する（件数を記録する）
+- [x] `.\mvnw test` が全部成功する（件数を記録する）（1205 件、失敗 0、BUILD SUCCESS）
 - [ ] テストのあとで、`budgets`・`transactions` などに、テスト用の行が残っていない（Phase 6 手順書の SQL ①〜③で確かめる。`transactions` は1件のまま）
 
 ### 4.8 まとめて確かめる
