@@ -117,4 +117,23 @@ public record SeasonPeriod(int year, Season season) {
 				.filter(SeasonPeriod::isInRange);
 	}
 
+	/**
+	 * URL の年と季節の文字列から、表示する季節を決める。予算設定と予実比較が同じ決まりで使う（設計書 2.4、Q6-2、Q7-1）。
+	 * <ul>
+	 * <li>年も季節も指定されていない（両方とも null）→ 今日の季節（{@link #from(LocalDate)}。冬は12月がある年）</li>
+	 * <li>それ以外は {@link #parse(String, String)} の結果（片方だけ・空文字・範囲外・不正な値は空）</li>
+	 * </ul>
+	 * 空のときに 404（NotFoundException）にするのは、呼ぶ側（Controller）の役目。domain は例外の仕組みに頼らない。
+	 *
+	 * @param year   URL の year（なければ null）
+	 * @param season URL の season（なければ null）
+	 * @param today  今日（日本時間。Controller が Clock から求めて渡す）
+	 */
+	public static Optional<SeasonPeriod> resolve(String year, String season, LocalDate today) {
+		if (year == null && season == null) {
+			return Optional.of(from(today));
+		}
+		return parse(year, season);
+	}
+
 }
