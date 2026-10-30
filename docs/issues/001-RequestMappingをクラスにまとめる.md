@@ -20,4 +20,9 @@ VS Code の Spring Boot の拡張機能が、`CategoryController`・`VendorContr
 
 ## 対応状況
 
-未対応（Phase 8 で決める）
+A に決定（Phase 8 の 4.2 で対応）
+
+- 決定（Phase 8 の Q8-1）：`CategoryController`・`VendorController`・`PaymentMethodController`・`TransactionController`・`BudgetController`・`ComparisonController` の6つすべてを、クラスの `@RequestMapping` にまとめる（`AuthController`・`HomeController` は親のパスが違うので対象外）。
+- 理由：Spring でふつうの書き方で、コードを読む人にとって読みやすい。URL が変わらないことは、既存の Controller のテスト（`…ControllerTest`）で確かめられる。
+- 以前の「今は直していない」理由（メソッドごとに URL の全体が見え、設計書 2.2 の一覧と見比べやすい）より、書き方がそろうことを優先した。設計書 4.4.1 に、URL の読み方（クラスの `@RequestMapping` とメソッドの注釈を合わせて読む）を足す。
+- 対応が済んだら、この状態を「対応済み」にし、関係するコミットを書く。

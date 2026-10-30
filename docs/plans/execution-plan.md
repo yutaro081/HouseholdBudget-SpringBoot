@@ -77,7 +77,7 @@
 | 5 | 取引 | [phase-5-transactions.md](phase-5-transactions.md) | ☑ 完了 |
 | 6 | 予算 | [phase-6-budgets.md](phase-6-budgets.md) | ☑ 完了 |
 | 7 | 予実比較 | [phase-7-comparison.md](phase-7-comparison.md) | ☑ 完了 |
-| 8 | 仕上げ（総合テスト・セキュリティ確認） | 未作成 | ☐ 未着手 |
+| 8 | 仕上げ（総合テスト・セキュリティ確認） | [phase-8-polish.md](phase-8-polish.md) | ☐ 未着手 |
 | 9 | 完成・引き渡し | 未作成 | ☐ 未着手 |
 
 状態の書き方：☐ 未着手 / ◐ 作業中 / ☑ 完了
@@ -197,6 +197,8 @@ flowchart LR
 ## Phase 8：仕上げ（総合テスト・セキュリティ確認）
 
 **目的**：要件を満たしているか、一通り確かめる。
+
+**詳細**：[phase-8-polish.md](phase-8-polish.md)（手順・確認方法・決まっていない点 Q8-1〜Q8-11・完了条件。Phase 8 が終わったら、この節は概要とリンクだけに縮める）
 
 **タスク**
 - [ ] 要件定義書の機能一覧（3章）と見比べ、機能の漏れがないか確認する
