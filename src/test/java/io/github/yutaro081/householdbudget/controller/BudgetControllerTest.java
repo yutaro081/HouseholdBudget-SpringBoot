@@ -244,6 +244,49 @@ class BudgetControllerTest {
 	}
 
 	// ================================================================
+	// 年と季節を選ぶ欄（GET のフォーム。設計書 2.4、Phase 8 の G1）
+	// ================================================================
+
+	/** 季節を指定しないときは、今の季節（固定した Clock：2026年の冬）が選ばれている */
+	@Test
+	void seasonSelectShowsTheCurrentSeasonWhenNotSpecified() throws Exception {
+		String body = body(mockMvc.perform(get("/budgets").with(asA)).andExpect(status().isOk()).andReturn());
+
+		SeasonSelectAssertions.assertSeasonSelect(body, "/budgets", 2026, "winter");
+	}
+
+	@ParameterizedTest(name = "year={0} season={1} のとき、選ばれているのは同じ年と季節")
+	@CsvSource({ "2026,spring", "2026,summer", "2026,autumn", "2026,winter", "2000,spring", "2100,winter", "2027,winter" })
+	void seasonSelectShowsTheDisplayedSeason(int year, String season) throws Exception {
+		String body = body(mockMvc.perform(get("/budgets").param("year", String.valueOf(year)).param("season", season).with(asA))
+				.andExpect(status().isOk()).andReturn());
+
+		SeasonSelectAssertions.assertSeasonSelect(body, "/budgets", year, season);
+	}
+
+	/** 範囲の端でも選ぶ欄は出る（リンクだけが、範囲外を指さないように出ない）。前・次のリンクも残っている */
+	@Test
+	void seasonSelectIsShownAtTheEdgesAndTheLinksRemain() throws Exception {
+		String first = body(mockMvc.perform(get("/budgets").param("year", "2000").param("season", "spring").with(asA)).andReturn());
+		assertThat(first).doesNotContain("前の季節").contains("次の季節");
+		SeasonSelectAssertions.assertSeasonSelect(first, "/budgets", 2000, "spring");
+
+		String last = body(mockMvc.perform(get("/budgets").param("year", "2100").param("season", "winter").with(asA)).andReturn());
+		assertThat(last).doesNotContain("次の季節").contains("前の季節");
+		SeasonSelectAssertions.assertSeasonSelect(last, "/budgets", 2100, "winter");
+	}
+
+	/** 選ぶ欄の送り先は、リンクと同じ形の URL。年と季節の組み合わせ（端を含む）を送ると、その季節が開く */
+	@ParameterizedTest(name = "選ぶ欄から year={0} season={1} を送ると、その季節が開く")
+	@CsvSource({ "2000,spring", "2000,winter", "2100,spring", "2100,winter", "2026,summer" })
+	void submittingTheSeasonSelectOpensThatSeason(String year, String season) throws Exception {
+		String body = body(mockMvc.perform(get("/budgets").param("year", year).param("season", season).with(asA))
+				.andExpect(status().isOk()).andExpect(view().name("budgets/form")).andReturn());
+
+		assertThat(body).contains(year + "年 ");
+	}
+
+	// ================================================================
 	// 404：範囲外・不正・片方だけ・空文字（GET も POST も、何も保存しない）
 	// ================================================================
 

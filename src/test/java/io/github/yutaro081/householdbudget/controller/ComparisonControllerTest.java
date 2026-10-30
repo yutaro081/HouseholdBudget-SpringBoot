@@ -202,6 +202,61 @@ class ComparisonControllerTest {
 	}
 
 	// ================================================================
+	// 年と季節を選ぶ欄（GET のフォーム。設計書 2.4、Phase 8 の G1）
+	// ================================================================
+
+	/** 季節を指定しないときは、今の季節（固定した Clock：2026年の冬）が選ばれている */
+	@Test
+	void seasonSelectShowsTheCurrentSeasonWhenNotSpecified() throws Exception {
+		Owner a = createOwner("ctrlcmp4");
+		category(a, "食費");
+
+		SeasonSelectAssertions.assertSeasonSelect(open(a, null, null), "/comparison", 2026, "winter");
+	}
+
+	@ParameterizedTest(name = "year={0} season={1} のとき、選ばれているのは同じ年と季節")
+	@CsvSource({ "2026,spring", "2026,summer", "2026,autumn", "2026,winter", "2000,spring", "2100,winter", "2027,winter" })
+	void seasonSelectShowsTheDisplayedSeason(int year, String season) throws Exception {
+		Owner a = createOwner("ctrlcmp5");
+
+		SeasonSelectAssertions.assertSeasonSelect(open(a, String.valueOf(year), season), "/comparison", year, season);
+	}
+
+	/** 範囲の端でも選ぶ欄は出る（リンクだけが、範囲外を指さないように出ない）。前・次のリンクも残っている */
+	@Test
+	void seasonSelectIsShownAtTheEdgesAndTheLinksRemain() throws Exception {
+		Owner a = createOwner("ctrlcmp6");
+
+		String first = open(a, "2000", "spring");
+		assertThat(first).doesNotContain("前の季節").contains("次の季節");
+		SeasonSelectAssertions.assertSeasonSelect(first, "/comparison", 2000, "spring");
+
+		String last = open(a, "2100", "winter");
+		assertThat(last).doesNotContain("次の季節").contains("前の季節");
+		SeasonSelectAssertions.assertSeasonSelect(last, "/comparison", 2100, "winter");
+	}
+
+	/** 科目が0件でも、選ぶ欄は出る（案内と一緒に） */
+	@Test
+	void seasonSelectIsShownEvenWithoutCategories() throws Exception {
+		Owner a = createOwner("ctrlcmp7");
+
+		String body = open(a, null, null);
+
+		assertThat(body).contains("先に科目を追加してください");
+		SeasonSelectAssertions.assertSeasonSelect(body, "/comparison", 2026, "winter");
+	}
+
+	/** 選ぶ欄の送り先は、リンクと同じ形の URL。年と季節の組み合わせ（端を含む）を送ると、その季節が開く */
+	@ParameterizedTest(name = "選ぶ欄から year={0} season={1} を送ると、その季節が開く")
+	@CsvSource({ "2000,spring", "2000,winter", "2100,spring", "2100,winter", "2026,summer" })
+	void submittingTheSeasonSelectOpensThatSeason(String year, String season) throws Exception {
+		Owner a = createOwner("ctrlcmp8");
+
+		assertThat(open(a, year, season)).contains(year + "年 ");
+	}
+
+	// ================================================================
 	// 404：範囲外・不正・片方だけ・空文字（画面も状態コードも 404）
 	// ================================================================
 

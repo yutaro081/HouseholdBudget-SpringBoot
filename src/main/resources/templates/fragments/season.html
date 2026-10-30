@@ -7,8 +7,11 @@
   ・見出しは「2026年 春（3月〜5月）」。冬は年をまたぐので「2026年 冬（2026年12月〜2027年2月）」。
   ・季節の名前（春・夏・秋・冬）は messages.properties（season.spring など）。
   ・リンクの URL は、年と季節（spring など）を含む。値はすべて数字と固定の英字で、利用者の入力ではない。
+  ・年と季節を選ぶ欄（GET のフォーム。Phase 8 の G1、設計書 2.4）：年は 2000〜2100（SeasonPeriod.FIRST_YEAR・LAST_YEAR と同じ。テストで確かめる、Q8-15）、季節は 4 つ。
+    送る先は path で、リンクと同じ形（?year=…&season=…）。受け取りと 404 の判定は SeasonPeriod.resolve のまま。何も変えないので CSRF のトークンは要らない。JavaScript は使わない。
 */-->
-<div th:fragment="nav(period, previous, next, path)" class="season-nav">
+<th:block th:fragment="nav(period, previous, next, path)">
+<div class="season-nav">
     <span class="season-link prev">
         <a th:if="${previous != null}"
            th:href="@{${path}(year=${previous.year}, season=${previous.season.urlName})}">前の季節</a>
@@ -25,4 +28,19 @@
            th:href="@{${path}(year=${next.year}, season=${next.season.urlName})}">次の季節</a>
     </span>
 </div>
+<form method="get" th:action="@{${path}}" class="season-select">
+    <label for="season-year">年</label>
+    <select id="season-year" name="year">
+        <option th:each="y : ${#numbers.sequence(2000, 2100)}"
+                th:value="${y}" th:text="|${y}年|" th:selected="${y == period.year}">2026年</option>
+    </select>
+    <label for="season-name">季節</label>
+    <select id="season-name" name="season">
+        <option th:each="name : ${ {'spring', 'summer', 'autumn', 'winter'} }"
+                th:value="${name}" th:text="#{|season.${name}|}" th:selected="${name == period.season.urlName}">春</option>
+    </select>
+    <button type="submit">表示</button>
+    <span class="season-hint">冬は、12月がある年を選びます</span>
+</form>
+</th:block>
 </html>
