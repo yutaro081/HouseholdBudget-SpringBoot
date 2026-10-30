@@ -66,7 +66,10 @@ class SeasonPeriodTest {
 		assertThat(SeasonPeriod.from(date)).isEqualTo(new SeasonPeriod(expectedYear, expectedSeason));
 	}
 
-	/** 範囲の端の年（取引の日付は2000年1月1日〜2100年12月31日、R12） */
+	/**
+	 * 範囲の端の年。取引の日付は2000年3月1日〜2100年12月31日（R12、R15）だが、from は日付だけの計算で範囲を知らないので、
+	 * 範囲の外の 2000-01-01（1999年の冬）も確かめる
+	 */
 	@ParameterizedTest(name = "{0} → {1}年 {2}")
 	@CsvSource({
 			"2000-01-01, 1999, WINTER",
@@ -414,6 +417,82 @@ class SeasonPeriodTest {
 	void urlNameRoundTrip() {
 		for (Season season : Season.values()) {
 			assertThat(Season.fromUrlName(season.getUrlName())).contains(season);
+		}
+	}
+
+
+	// ---- resolve：URL の年と季節から表示する季節を決める（予算設定と予実比較に共通。設計書 2.4、Q7-1） ----
+
+	/** 年も季節も指定がない（両方 null）→ 今日の季節。冬の1月・2月は前の年 */
+	@ParameterizedTest(name = "指定なし・今日 {0} → {1}年 {2}")
+	@CsvSource({
+			"2026-10-29, 2026, AUTUMN",
+			"2027-02-28, 2026, WINTER",
+			"2027-01-15, 2026, WINTER",
+			"2026-12-01, 2026, WINTER",
+			"2026-11-30, 2026, AUTUMN",
+			"2027-03-01, 2027, SPRING",
+			"2028-02-29, 2027, WINTER"
+	})
+	void resolveWithoutParametersIsTodaysSeason(LocalDate today, int year, Season season) {
+		assertThat(SeasonPeriod.resolve(null, null, today)).contains(new SeasonPeriod(year, season));
+	}
+
+	/** 年と季節の両方がある → 今日に関係なく、その季節 */
+	@ParameterizedTest(name = "year={0}, season={1} → {0}年 {2}")
+	@CsvSource({
+			"2026, spring, SPRING",
+			"2026, summer, SUMMER",
+			"2026, autumn, AUTUMN",
+			"2026, winter, WINTER",
+			"2000, spring, SPRING",
+			"2100, winter, WINTER"
+	})
+	void resolveWithBothParametersIgnoresToday(String year, String season, Season expected) {
+		assertThat(SeasonPeriod.resolve(year, season, LocalDate.of(2026, 10, 29)))
+				.contains(new SeasonPeriod(Integer.parseInt(year), expected));
+		assertThat(SeasonPeriod.resolve(year, season, LocalDate.of(2000, 1, 1)))
+				.contains(new SeasonPeriod(Integer.parseInt(year), expected));
+	}
+
+	/** 片方だけ → 不正（空）。今の季節にはならない */
+	@Test
+	void resolveWithOnlyOneParameterIsEmpty() {
+		LocalDate today = LocalDate.of(2026, 10, 29);
+		assertThat(SeasonPeriod.resolve("2026", null, today)).isEmpty();
+		assertThat(SeasonPeriod.resolve(null, "spring", today)).isEmpty();
+	}
+
+	/** 範囲外・不正な値 → 空（呼ぶ側が 404 にする）。空文字は「指定された」ので今の季節にはならない */
+	@ParameterizedTest(name = "year=[{0}], season=[{1}] → 不正")
+	@CsvSource(value = {
+			"1999, winter",
+			"2101, spring",
+			"abc, spring",
+			"02026, spring",
+			"+2026, spring",
+			"2026.5, spring",
+			"'', spring",
+			"2026, ''",
+			"'', ''",
+			"2026, Spring",
+			"2026, SPRING",
+			"2026, xyz",
+			"' 2026', spring",
+			"2026, ' spring'"
+	})
+	void resolveRejectsInvalidValues(String year, String season) {
+		assertThat(SeasonPeriod.resolve(year, season, LocalDate.of(2026, 10, 29))).isEmpty();
+	}
+
+	/** resolve は、年と季節が両方ある・両方ないとき以外は parse と同じ結果になる */
+	@Test
+	void resolveGivesTheSameAnswerAsParseWhenSomethingIsSpecified() {
+		LocalDate today = LocalDate.of(2026, 10, 29);
+		String[][] cases = { { "2026", "spring" }, { "1999", "winter" }, { "2026", null }, { null, "winter" },
+				{ "", "" }, { "abc", "xyz" } };
+		for (String[] c : cases) {
+			assertThat(SeasonPeriod.resolve(c[0], c[1], today)).isEqualTo(SeasonPeriod.parse(c[0], c[1]));
 		}
 	}
 

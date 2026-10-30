@@ -399,7 +399,7 @@ class TransactionControllerTest {
 			// 全角の数字は、半角に直して受け付ける（R13）
 			"１|2026-10-20|0",
 			"１００００００|2026-10-20|0",
-			"1200|2000-01-01|0",
+			"1200|2000-03-01|0",
 			"1200|2100-12-31|0",
 			"1200|2026-10-20|30"
 	})
@@ -437,9 +437,10 @@ class TransactionControllerTest {
 			"amount|''|金額を入力してください",
 			"amount|' '|金額を入力してください",
 			// 日付（範囲のエラー、型変換のエラー、必須）
-			"transactionDate|1999-12-31|日付は2000年1月1日から2100年12月31日までで入力してください",
-			"transactionDate|2101-01-01|日付は2000年1月1日から2100年12月31日までで入力してください",
-			"transactionDate|0226-05-01|日付は2000年1月1日から2100年12月31日までで入力してください",
+			"transactionDate|1999-12-31|日付は2000年3月1日から2100年12月31日までで入力してください",
+			"transactionDate|2000-02-29|日付は2000年3月1日から2100年12月31日までで入力してください",
+			"transactionDate|2101-01-01|日付は2000年3月1日から2100年12月31日までで入力してください",
+			"transactionDate|0226-05-01|日付は2000年3月1日から2100年12月31日までで入力してください",
 			"transactionDate|2026-02-30|日付を正しく入力してください",
 			"transactionDate|20026-05-01|日付を正しく入力してください",
 			"transactionDate|abc|日付を正しく入力してください",
@@ -467,7 +468,7 @@ class TransactionControllerTest {
 	@ParameterizedTest(name = "登録の入力エラーでも入力値が残る：{0} = [{1}]")
 	@CsvSource(delimiter = '|', value = {
 			"amount|abc", "amount|１２円", "amount|0", "amount|1000001",
-			"transactionDate|2026-02-30", "transactionDate|1999-12-31"
+			"transactionDate|2026-02-30", "transactionDate|1999-12-31", "transactionDate|2000-02-29"
 	})
 	void registerWithInvalidInputKeepsTheEnteredValue(String field, String value) throws Exception {
 		String body = body(mockMvc.perform(valid(post("/transactions/new"), a, field, value).with(asA)).andReturn());

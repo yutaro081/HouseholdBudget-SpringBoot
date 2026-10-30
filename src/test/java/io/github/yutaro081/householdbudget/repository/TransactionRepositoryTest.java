@@ -259,7 +259,7 @@ class TransactionRepositoryTest {
 	@Test
 	void checkAllowsDateBoundaries() {
 		Owner a = createOwner("txtest21");
-		saveWith(a, LocalDate.of(2000, 1, 1), 100);
+		saveWith(a, LocalDate.of(2000, 3, 1), 100);
 		saveWith(a, LocalDate.of(2100, 12, 31), 100);
 	}
 
@@ -282,6 +282,14 @@ class TransactionRepositoryTest {
 		Owner a = createOwner("txtest24");
 		assertThatThrownBy(() -> saveWith(a, LocalDate.of(2026, 10, 27), -1))
 				.rootCause().hasMessageContaining("ck_transactions_amount");
+	}
+
+	/** 下限は 2000-03-01（2000年春の初日、R15）。その前日の 2000-02-29 は拒否される（2000年はうるう年） */
+	@Test
+	void checkRejectsDayBeforeTheLowerBound() {
+		Owner a = createOwner("txtest27");
+		assertThatThrownBy(() -> saveWith(a, LocalDate.of(2000, 2, 29), 100))
+				.rootCause().hasMessageContaining("ck_transactions_date");
 	}
 
 	@Test

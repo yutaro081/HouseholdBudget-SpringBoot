@@ -114,12 +114,10 @@ public class BudgetController {
 	/**
 	 * URL の年と季節から、季節を決める（設計書 2.4、Q6-2 の A）。
 	 * 両方とも指定されていなければ、今の季節。それ以外で、不正・片方だけ・空文字・範囲外なら NotFoundException（404）。
+	 * 判定は SeasonPeriod.resolve（予実比較と共通の部品、Q7-1）。
 	 */
 	private SeasonPeriod resolve(String year, String season) {
-		if (year == null && season == null) {
-			return SeasonPeriod.from(LocalDate.now(clock));
-		}
-		return SeasonPeriod.parse(year, season).orElseThrow(NotFoundException::new);
+		return SeasonPeriod.resolve(year, season, LocalDate.now(clock)).orElseThrow(NotFoundException::new);
 	}
 
 }

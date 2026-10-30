@@ -79,8 +79,10 @@ class TransactionFormTest {
 
 	@ParameterizedTest(name = "日付 {0} → {1}")
 	@CsvSource(delimiter = '|', value = {
-			"2000-01-01|", "2100-12-31|", "2026-10-27|", "2000-02-29|",
+			"2000-03-01|", "2100-12-31|", "2026-10-27|", "2028-02-29|",
 			"1999-12-31|transactionDate:TransactionDateRange",
+			"2000-01-01|transactionDate:TransactionDateRange",
+			"2000-02-29|transactionDate:TransactionDateRange",
 			"2101-01-01|transactionDate:TransactionDateRange",
 			"0226-05-01|transactionDate:TransactionDateRange",
 			"9999-12-31|transactionDate:TransactionDateRange"
@@ -262,11 +264,12 @@ class TransactionFormTest {
 
 	@ParameterizedTest(name = "日付 [{0}] → {1}")
 	@CsvSource(delimiter = '|', value = {
-			"2000-01-01|", "2100-12-31|", "2026-10-27|", "2024-02-29|",
+			"2000-03-01|", "2100-12-31|", "2026-10-27|", "2024-02-29|",
 			// 必須
 			"''|transactionDate:NotNull",
 			// 範囲外
 			"1999-12-31|transactionDate:TransactionDateRange",
+			"2000-02-29|transactionDate:TransactionDateRange",
 			"2101-01-01|transactionDate:TransactionDateRange",
 			"0226-05-01|transactionDate:TransactionDateRange",
 			// 型変換のエラー（日付の形でない・存在しない日付・5桁の年。Q5-3 の A）
