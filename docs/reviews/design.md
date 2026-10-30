@@ -115,12 +115,12 @@ sequenceDiagram
     U->>SEC: 予実比較を開く
     SEC->>SEC: ログイン中か
     SEC->>C: ログイン中のユーザー情報つきで渡す
-    C->>S: ユーザーID、年、季節を渡す（指定なしなら今日）
-    S->>D: 年と季節から期間（開始日〜終了日の翌日）を求める
-    alt 範囲外の年・不正な季節
-        S-->>C: NotFoundException
-        C-->>U: 404画面
+    C->>D: 年と季節の文字列と今日から季節を決める（SeasonPeriod.resolve。予算設定と共通）
+    alt 範囲外の年・不正な季節・片方だけ
+        D-->>C: 空
+        C-->>U: NotFoundException → 404画面
     else 正しい指定
+        C->>S: ユーザーID、季節を渡す（期間の開始日〜終了日の翌日は季節から求められる）
         S->>R: 自分の科目と、その季節の予算を取得
         R->>DB: user_id で絞って検索
         S->>R: 期間内の科目ごとの取引の合計を取得
@@ -332,7 +332,8 @@ sequenceDiagram
 |---|---|
 | 表示 | 見出し（年と季節、期間）、表（科目、予算、実績、差額。最下行に合計行）、「前の季節」「次の季節」のリンク |
 | 表示 | 予算が未設定の科目は、予算の欄に「未設定」、差額は空欄、色なし（要件4.4、R11） |
-| 表示 | 赤字・青字の色分け（要件4.4） |
+| 表示 | 赤字・青字の色分け（要件4.4）。色は行の文字全体に付ける（F4）。表の下に、色の意味の注記を出す（「赤：予算超過／青：予算の1/3以下」、Q7-6） |
+| 表示 | 科目が0件のときは、「先に科目を追加してください」と科目の画面へのリンクを出し、表と合計行は出さない（Q7-7。取引の登録、予算設定の画面と同じ）。見出しと前後リンクは出す |
 
 ### 2.4 季節の URL と切り替え（予実比較・予算設定に共通、Q7・B15・R11）
 
@@ -732,7 +733,7 @@ flowchart LR
 
 | ファイル | 画面（章2） | 使う Controller |
 |---|---|---|
-| `fragments/common.html` | 共通部品：ヘッダー（メニュー、ユーザー名、ログアウト）、成功・エラーメッセージの表示場所 | 全画面。メニューは、取引一覧、科目、取引先、支払方法、予算（、予実比較）の順 |
+| `fragments/common.html` | 共通部品：ヘッダー（メニュー、ユーザー名、ログアウト）、成功・エラーメッセージの表示場所 | 全画面。メニューは、取引一覧、科目、取引先、支払方法、予算、予実比較の順 |
 | `fragments/season.html` | 共通部品：季節の見出し（「2026年 春（3月〜5月）」、冬は年をまたぐ形）と、「前の季節」「次の季節」のリンク。範囲の端（2000年春の前、2100年冬の次）ではリンクを出さない。リンクの先の URL は引数で渡す。予算設定と予実比較で共有する（P10、Q6-5） | `BudgetController`、`ComparisonController` |
 | `login.html` | ログイン | `AuthController` |
 | `register.html` | アカウント登録 | `AuthController` |
@@ -744,7 +745,7 @@ flowchart LR
 | `vendors/list.html`、`vendors/edit.html` | 取引先の一覧・変更 | `VendorController` |
 | `payment-methods/list.html`、`payment-methods/edit.html` | 支払方法の一覧・変更 | `PaymentMethodController` |
 | `budgets/form.html` | 予算設定 | `BudgetController`。入力欄は行ごと（`rows[0].amount` …）。見出しと前後リンクは `fragments/season.html` を使う |
-| `comparison/index.html` | 予実比較 | `ComparisonController` |
+| `comparison/index.html` | 予実比較 | `ComparisonController`。見出しと前後リンクは `fragments/season.html`。表は科目、予算、実績、差額の列と、最下行の合計行。文言（「予算」「実績」「差額」「未設定」「合計」など）はテンプレートに直接書く（Q7-5）。色は `<tr>` に CSS のクラス（赤：`row-over`、青：`row-low`、色なしはクラスなし。合計行は `total-row` も付く）を付け、判定はしない（`BudgetColorJudge` で済んでいる） |
 | `error/404.html` | 404 画面（B7、章2） | Spring Boot が 404 のときに自動で使う。`GlobalExceptionHandler` からも使う |
 | `error/403.html` | 403 画面（CSRF のトークン不正など、7.7、S3） | Spring Boot が 403 のときに自動で使う |
 | `error/4xx.html` | 400 番台のその他のエラー画面（400、405 など。404・403 を除く、7.7、S9） | Spring Boot が 400 番台で、404・403 の専用画面がないときに自動で使う |
@@ -766,7 +767,7 @@ flowchart LR
 | `PaymentMethodService` | 支払方法の一覧・追加・変更・削除（使用中は削除不可） | `payment_methods` |
 | `BudgetService` | 指定した季節の、自分の全科目の予算の取得（保存済みの額がなければ、直前の設定のある季節の額、それもなければ0円を初期値にする、Q23・Q24）と、その季節の全科目のまとめての保存（作る・更新する、Q25） | `budgets`、`categories`。**Phase 6 で作ったメソッド**：`edit`（表示用の行。何も書かない）、`rowsOf`（入力エラーで表示し直すための行。科目IDの確認を先に行い、送られた順のまま科目名と印を引く）、`save`（まとめて保存。科目IDの確認を先に行い、だめなら何も保存しない）。範囲外の季節は、どれも `NotFoundException` |
 | `TransactionService` | 取引の一覧・詳細・登録・更新・削除。登録・更新のとき、選んだ科目・取引先・支払方法が**自分のものか**を確認する（3.9） | `transactions` |
-| `ComparisonService` | 季節の期間の取引を科目ごとに集計し、予算（未設定なら「未設定」）・実績・差額（未設定なら空欄）・色・合計行を作る（`ComparisonResult` を返す、5.9） | `categories`、`budgets`、`transactions` |
+| `ComparisonService` | 季節の期間の取引を科目ごとに集計し、予算（未設定なら「未設定」）・実績・差額（未設定なら空欄）・色・合計行を作る（`ComparisonResult` を返す、5.9） | `categories`、`budgets`、`transactions`。**Phase 7 で作ったメソッド**：`compare(userId, period)`（読むだけ。最初の引数が `userId`）。範囲外の季節（null を含む）は `NotFoundException`。科目は `CategoryService.list(userId)`、その季節の予算は `BudgetRepository.findByUserIdAndSeasonYearAndSeason`（その季節の行だけ。前の季節の額は使わない）、実績は `TransactionRepository.sumByCategory` |
 
 - 各 Service には、更新を行うメソッドに **トランザクション**（途中で失敗したら全部取り消す）を付ける。
 - 名前の重複や「削除できない」は、Service が下の例外を投げ、Controller がメッセージに変える。
@@ -794,9 +795,9 @@ flowchart LR
 | クラス | 役割（1行） |
 |---|---|
 | `Season` | 春・夏・秋・冬と月の対応、URL で使う名前（`spring` など）。`fromUrlName`（小文字の4つだけを受け付ける）、`earlierInYear`（同じ年の中で、ある季節より前の季節。DB の検索に使う）。列挙の宣言の順（春→夏→秋→冬）が期間の順 |
-| `SeasonPeriod` | 年と季節の組み合わせ。今日の日付から季節と年を決める（冬は12月起点）、期間の開始日と終了日の翌日、前の季節・次の季節、2000年春〜2100年冬の範囲の判定（Q7・B15）。**予実比較と予算設定の両方**で使う。アカウント登録と科目の追加で「今の季節」を求めるのにも使う（R11）。**Phase 6 で足したもの**：`startDate`・`endDateExclusive`、`previous`・`next`（範囲の端では空）、`isInRange`、`isBefore`（期間の順の比べ方。DB の季節の文字の順 `AUTUMN` < `SPRING` < `SUMMER` < `WINTER` とは違う）、`parse`（URL の年と季節の文字列から季節を求める。年は半角の数字4桁だけで2000〜2100、季節は小文字の4つだけ。不正・片方だけは空で、呼ぶ側が 404 にする、Q6-2） |
-| `BudgetColor` | 色の種類：赤・青・色なし |
-| `BudgetColorJudge` | 予算と実績から色を決める。**予算が未設定なら、色なし**。設定されていれば、次の**順番**で判定する（要件4.4）。①実績 ＞ 予算なら赤（予算が0円でも、実績があれば赤）。②予算が0円なら色なし（実績も0円のとき）。③実績 × 3 ≦ 予算なら青（ちょうど1/3も青）。④それ以外は色なし。合計行にも同じ順番で使う（Q21、Q22） |
+| `SeasonPeriod` | 年と季節の組み合わせ。今日の日付から季節と年を決める（冬は12月起点）、期間の開始日と終了日の翌日、前の季節・次の季節、2000年春〜2100年冬の範囲の判定（Q7・B15）。**予実比較と予算設定の両方**で使う。アカウント登録と科目の追加で「今の季節」を求めるのにも使う（R11）。**Phase 6 で足したもの**：`startDate`・`endDateExclusive`、`previous`・`next`（範囲の端では空）、`isInRange`、`isBefore`（期間の順の比べ方。DB の季節の文字の順 `AUTUMN` < `SPRING` < `SUMMER` < `WINTER` とは違う）、`parse`（URL の年と季節の文字列から季節を求める。年は半角の数字4桁だけで2000〜2100、季節は小文字の4つだけ。不正・片方だけは空で、呼ぶ側が 404 にする、Q6-2）。**Phase 7 で足したもの**：`resolve(year, season, today)`（URL の文字列と今日から、表示する季節を決める。両方とも null なら今日の季節、それ以外は `parse` の結果。予算設定と予実比較の Controller が同じ決まりで使う。空のとき 404 にするのは Controller。`domain` は例外の仕組みに頼らない、Q7-1） |
+| `BudgetColor` | 色の種類：赤（`RED`）・青（`BLUE`）・色なし（`NONE`） |
+| `BudgetColorJudge` | 予算と実績から色を決める（Phase 7：`judge(Long budget, long actual)`、予算の `null` が未設定、Q7-2）。**予算が未設定なら、色なし**。設定されていれば、次の**順番**で判定する（要件4.4）。①実績 ＞ 予算なら赤（予算が0円でも、実績があれば赤）。②予算が0円なら色なし（実績も0円のとき）。③実績 × 3 ≦ 予算なら青（ちょうど1/3も青）。④それ以外は色なし。合計行にも同じ順番で使う（Q21、Q22） |
 | `Limits`（Phase 6、R14、P11） | 1人あたりの科目・取引先・支払方法の上限（256個）を1か所で決める。予算設定画面が受け取れる行の数（Spring の標準の256行）と同じ数 |
 
 #### config
@@ -820,13 +821,14 @@ flowchart LR
 
 - **Phase 4 で前倒しで作ったもの**：`Transaction` の Entity（3.6 の全列、P7 の関連つき）と、`TransactionRepository` の「使用中の確認」の3メソッド（`existsByUserIdAndCategoryId`、`existsByUserIdAndVendorId`、`existsByUserIdAndPaymentMethodId`。科目・取引先・支払方法の削除の判定に使う、5.5）。一覧・1件取得・集計などの検索は、Phase 5・7 で足す。
 
-- **Phase 5 で `TransactionRepository` に足したもの**：`findByUserIdOrderByTransactionDateDescIdDesc(userId)`（一覧。日付の新しい順、同じ日は `id` の新しい順）と、`findByIdAndUserId(id, userId)`（詳細・編集・更新・削除）。期間内の科目ごとの合計は、Phase 7 で足す。`Transaction` には、値を入れ替える `update(...)` を足した（`user_id` と `id` を変えるメソッドは作らない）。
+- **Phase 5 で `TransactionRepository` に足したもの**：`findByUserIdOrderByTransactionDateDescIdDesc(userId)`（一覧。日付の新しい順、同じ日は `id` の新しい順）と、`findByIdAndUserId(id, userId)`（詳細・編集・更新・削除）。期間内の科目ごとの合計は、Phase 7 で足した（下）。`Transaction` には、値を入れ替える `update(...)` を足した（`user_id` と `id` を変えるメソッドは作らない）。
 - 検索は、**名前付きの検索（Spring Data JPA のメソッド）またはパラメータ付きの検索**で書き、文字列を連結した SQL は使わない（SQL インジェクション対策、章7）。
 - **取引一覧・詳細の検索では、科目・取引先・支払方法もまとめて読み込む**（取引1件ごとに別々に読み込まない）。理由：一覧の件数分だけ追加の検索が走る無駄を避けるため。**方法は、Repository のメソッドに `@EntityGraph`（読み込む関連の名前を指定）を付けること**（Phase 5、Q5-5 の A）。メソッド名の検索のまま、SQL を書かずに済み、`@Query` を使わない状態を保てる。取引の件数が増えても、一覧の SQL が 1 回で済むことを、自動テストで確かめた（`TransactionRepositoryFetchTest`）。
 - **D5：`spring.jpa.open-in-view` は `false` にする**（Phase 5 で決定。`application.properties` に書いた）。画面（テンプレート）を作っている間は、データベースの接続（Hibernate のセッション）を持たない。理由：`true`（標準）だと、画面の中で読み込み忘れた関連を、画面を作りながら読みにいけてしまうため、読み込み忘れに気づきにくい。`false` にすると、読み込み忘れは `LazyInitializationException` という失敗として見つかる。Service が必要な関連をすべて読み込んで返す作りと合う。
   - 比べた結果（ブラウザ、`false` で起動）：起動ログに `open-in-view` の警告が出ず、取引の一覧・詳細・登録・編集の画面と、登録の入力エラー（金額に `abc`）の表示し直しが、エラーなく表示された。一覧と詳細の SQL（`select`）は、それぞれ 1 回だった。
   - **注意**：自動テスト（MockMvc）は、各テストをトランザクションで包むため、`false` でも読み込み忘れの失敗を見つけられない（セッションが閉じない）。読み込み忘れの確認は、ブラウザで行う（Phase 8 でも、画面を一通り開いて確かめる）。
 - Entity のつなぎ方（P7）：`Transaction` は科目・取引先・支払方法を関連（`ManyToOne`）として持ち、一覧にそのまま名前を表示できるようにする。`Budget` も科目を関連として持つ。`user_id` は、ユーザーの `Entity` ではなく**数値のID**として持つ。理由：持ち主での絞り込みが簡単で、毎回ユーザーを読み込まずに済むため。
+- **Phase 7 で `TransactionRepository` に足したもの**：`sumByCategory(userId, start, endExclusive)`。**このアプリで初めての `@Query`**（パラメータ付きの JPQL。`where t.userId = :userId and t.transactionDate >= :start and t.transactionDate < :endExclusive group by t.category.id`、結果は `CategoryActual`）。理由：メソッド名の検索では `GROUP BY` と `SUM` が書けないため。値はすべてパラメータで渡し、文字列を連結しない（7.4 が許す形）。期間は「開始日以上、終了日の翌日未満」（5.8）。取引がない科目は結果に出ない（Service が0円にする）。合計は `Long`（INT を超えうる、3.1）。集計には `@EntityGraph` は要らない（科目のIDと合計だけを返す）（Q7-3 の A）。
 - 期間内の科目ごとの合計は、Repository が「科目ID と合計」の組（`CategoryActual`、P4）で返す。`dto` に置く。
 
 ### 4.7 form と dto
@@ -849,9 +851,9 @@ flowchart LR
 
 | クラス | 役割（1行） |
 |---|---|
-| `ComparisonRow` | 予実比較の1行分：科目名、予算（**未設定のときは空**）、実績、差額（**予算が空なら空**）、色。合計行にも使う |
-| `ComparisonResult` | 予実比較の画面全体：見出し（年・季節・期間）、行の並び、合計行、前・次の季節のリンク先（範囲の端では「なし」） |
-| `CategoryActual` | 科目ごとの実績（科目IDと合計）。Repository の集計結果（P4） |
+| `ComparisonRow` | 予実比較の1行分：科目名、予算（**未設定のときは空**）、実績、差額（**予算が空なら空**）、色。合計行にも使う。**形**（Phase 7、Q7-4 の A）：`record ComparisonRow(String categoryName, Long budget, long actual, Long difference, BudgetColor color)`。`null` が未設定・空欄。合計行の科目名は `null`（画面で「合計」を出す） |
+| `ComparisonResult` | 予実比較の画面全体：見出し（年・季節・期間）、行の並び、合計行、前・次の季節のリンク先（範囲の端では「なし」）。**形**：`record ComparisonResult(SeasonPeriod period, SeasonPeriod previous, SeasonPeriod next, List<ComparisonRow> rows, ComparisonRow total)`。前・次は範囲の端で `null`。科目が0件のとき `rows` は空（画面は表と合計行を出さない。合計行の値は作る：予算 `null`・実績0・差額 `null`・色なし）。画面が読む値はすべてこの中に入れて渡す（`open-in-view=false`） |
+| `CategoryActual` | 科目ごとの実績（科目IDと合計）。Repository の集計結果（P4）。**形**：`record CategoryActual(Long categoryId, Long total)` |
 | `BudgetEditView` | 予算設定画面の表示データ：見出し（年・季節・期間）、前・次の季節のリンク先、各行（科目、初期値の額、「未設定」の印の有無）（Q26）。**形**：期間（`SeasonPeriod`）、前・次の季節（範囲の端では null）、行（`BudgetEditView.Row`：科目ID、科目名、最初の値、「未設定」の印）。入力エラーで表示し直すときの行は、最初の値が null（値は送られた値を使う） |
 
 - 取引一覧・詳細は、Entity をそのまま画面に渡して表示する（P6）。理由：項目が Entity とほぼ同じで、専用のクラスを作ると増えるだけなため。画面が読む科目・取引先・支払方法は、Repository が一緒に読み込んで渡す（4.6、D5 で `open-in-view=false`）。
@@ -883,6 +885,8 @@ flowchart LR
 | P9 | `form` パッケージに、金額（予算額）を整数に読む専用の変換クラス `StrictIntegerEditor` と、取引の日付の範囲の注釈 `TransactionDateRange`（と、その確認クラス）を置く（Phase 5、Q5-1 の C、Q5-2 の A。のちに R13 で、全角の数字は半角に直して受け付けるよう変更） | Spring 標準の変換が全角数字・途中の空白・16 進を通すため（6.5）。Bean Validation に日付の範囲の注釈がないため（6.6） |
 | P10 | `templates/fragments/season.html`（季節の見出しと前後リンク）を、共有の部品として作る（Phase 6、Q6-5 の A）。季節の名前（春・夏・秋・冬）は `messages.properties`（`season.*`）に置く | 予算設定と予実比較で同じ形を使い、書き写さないため。画面の文言は `messages.properties` に置く（6.8） |
 | P11 | `exception` に `LimitExceededException`、`domain` に `Limits`（1人あたりの科目・取引先・支払方法の上限、256）を置く（Phase 6、R14） | 追加を断る理由（入力エラー）を、重複・削除不可と分けて扱うため。上限の数を1か所で決めるため |
+| P12 | 年と季節の受け取り（URL の文字列と今日から季節を決める）を、`SeasonPeriod.resolve` に取り出し、予算設定と予実比較の Controller が同じ部品を使う（Phase 7、Q7-1）。空なら 404 にするのは Controller | 2つの画面で URL の決まりが食い違わないようにするため。`domain` は例外の仕組みに頼らず、単体テストしやすくするため |
+| P13 | `ComparisonRow`・`ComparisonResult`・`CategoryActual` は `record` にする（Phase 7、Q7-4）。色は `BudgetColor`（列挙）で持ち、画面では判定せず、CSS のクラス名に置き換えるだけにする | 値を持つだけの入れ物で、`BudgetEditView` と作りをそろえるため。色の判定を `BudgetColorJudge` の1か所にするため |
 
 ---
 
@@ -1210,6 +1214,9 @@ flowchart TD
 - 合計行の実績は、全科目の実績を足したもの。取引はすべて自分の科目に属する（外部キー、3.7）ので、取り漏れはない。
 - 色を付ける場所は、その行の文字全体（F4）。
 - 予算は季節ごとに持つので、過去の季節は、その季節に設定した予算で比べる。設定していない季節は「未設定」になる（R11）。
+- 科目が0件のときは、行は空で、画面は表と合計行を出さず、「先に科目を追加してください」の案内を出す（2.3、Q7-7）。
+- 画面を開いても、データベースの行は変わらない（読むだけ）。
+- ブラウザの確認（Phase 7）で、赤・青・色なしが1つの画面にそろうこと（食費は赤、交通費は青、雑費は色なし、合計行は色なし）と、季節の境目（8月31日と9月1日、11月30日と12月1日、2月28日と3月1日）の取引の振り分けを確かめた。
 
 ### 5.10 追加で決めた点（確定）
 
@@ -1220,7 +1227,7 @@ flowchart TD
 | F1 | 科目の削除で「使用中」と「いずれかの季節に0円でない予算がある」が重なるときは、「取引で使われている」のメッセージだけを出す | 取引を消さないと進めないので、先に知らせたほうが分かりやすい |
 | F2 | 予算のまとめて保存で、送られなかった科目の予算は変えない | 画面は全科目を送るため通常は起きない。想定外の送信で、勝手に書き換えない |
 | F3 | 予算のまとめて保存で、同じ科目IDが2回送られたときも、不正として 404 にして何も保存しない | 書き換えられた送信を受け付けないため |
-| F4 | 予実比較で色を付ける場所は、**その行の文字全体**（科目名・予算・実績・差額）。数字だけには付けない。合計行も同じ | 要件の「赤字／青字で表示する」を、行ごとに分かりやすく見せるため |
+| F4 | 予実比較で色を付ける場所は、**その行の文字全体**（科目名・予算・実績・差額）。数字だけには付けない。合計行も同じ。**色の値**（Phase 7、Q7-6 の A と C）：文字色だけ。赤は `#c62828`、青は `#1565c0`、色なしは今の文字色。表の下に色の意味の注記を出す | 要件の「赤字／青字で表示する」を、行ごとに分かりやすく見せるため |
 
 ---
 
@@ -1606,7 +1613,7 @@ Spring 標準の変換（`Integer` の項目に何も足さない場合）は、
 
 ### 8.1 この章の決まり
 
-- Phase 1 の間に決めた点（Q1〜Q27、B1〜B15、要件定義書の修正 R1〜R12（Phase 1 のあとの R13 は 6.5、R14 は 5.4、R15 は 6.6）、U1〜U7、P1〜P8（のちの P9・P10 は 4.9）、F1〜F4、G1〜G7、H1、S1〜S7）は、すべて章1〜7に反映した。ここには**書かない**。
+- Phase 1 の間に決めた点（Q1〜Q27、B1〜B15、要件定義書の修正 R1〜R12（Phase 1 のあとの R13 は 6.5、R14 は 5.4、R15 は 6.6）、U1〜U7、P1〜P8（のちの P9〜P13 は 4.9）、F1〜F4、G1〜G7、H1、S1〜S7）は、すべて章1〜7に反映した。ここには**書かない**。
 - ここに残すのは、**Phase 1 では決めず、後の Phase で決める（または確かめる）と決めた点だけ**。決めたら、結果を該当する章に書き、この章から消す。
 - 「いつまでに」の Phase に着手する前に、その Phase の手順書へ移す。
 
