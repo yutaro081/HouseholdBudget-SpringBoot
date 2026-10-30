@@ -27,4 +27,4 @@ VS Code の Spring Boot の拡張機能が、`CategoryController`・`VendorContr
 - 以前の「今は直していない」理由（メソッドごとに URL の全体が見え、設計書 2.2 の一覧と見比べやすい）より、書き方がそろうことを優先した。
 - 直した内容：6つの Controller に、クラスの `@RequestMapping("/categories")` などを足し、メソッドの注釈 25 か所から、共通の頭の部分を取った（頭の部分だけのメソッドは `@GetMapping` / `@PostMapping`）。URL は1つも変えていない。テンプレート・テスト・`SecurityConfig` は変えていない。
 - 文書：設計書 4.4.1 に、URL の読み方（クラスの `@RequestMapping` ＋ メソッドの注釈を合わせて読む）を足した。実行計画書 ルール8 にも書いた。
-- 確認：`.\mvnw test` が 1205 件すべて成功（`…ControllerTest` はそのまま通った）。関係するコミットは、コミットのあとに書く。
+- 確認：`.\mvnw test` が 1205 件すべて成功（`…ControllerTest` はそのまま通った）。関係するコミット：`4371a12`（Controller の URL をクラスの @RequestMapping にまとめる）。
