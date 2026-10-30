@@ -122,8 +122,10 @@ SELECT
 **一部だけ直す場合（Q8-1 の C。採らなかった）**：お知らせが出た3つ（科目・取引先・支払方法）だけ直す。作業量は A の約 3 分の 2（15 か所）。ただし、書き方が Controller ごとにそろわなくなる（issue 001 に「全部で書き方をそろえる」とある）。
 
 - [x] Q8-1 を決めた：**A**（6つの Controller すべて、クラスの `@RequestMapping` にまとめる。「5. 決まっていない点」に決定と理由を書いた）
-- [ ] 決めたとおりに、4.13 で行った（A・C ならコードと文書、B なら文書だけ）
-- [ ] issue 001 の対応状況を更新した（対応済み／対応しない。理由と、関係するコミットを書く）
+- [x] 決めたとおりに行った（Q8-1 は A なので、コードと文書）。コードの整理（4.13）を待たず、先に 4.2 で行った
+- [x] issue 001 の対応状況を更新した（「対応済み」。関係するコミットは、コミットのあとに書く）
+
+（実施の記録：先に設計書 4.4.1 に URL の読み方を足し、次にコードを直した。6つの Controller に、クラスの `@RequestMapping`（`/categories`、`/vendors`、`/payment-methods`、`/transactions`、`/budgets`、`/comparison`）を足し、メソッドの注釈 25 か所（5＋5＋5＋7＋2＋1）から頭の部分を取った。`git grep` で、メソッドの注釈に残った URL を一覧にして、取り忘れがないことを確かめた。テスト・テンプレート・`SecurityConfig` は変えていない。`.\mvnw test` は 1205 件すべて成功〔`BudgetControllerTest` 86、`CategoryControllerTest` 40、`ComparisonControllerTest` 21、`PaymentMethodControllerTest` 38、`TransactionControllerTest` 107、`VendorControllerTest` 38 ほか〕。）
 
 ### 4.3 機能の漏れを確認する（要件定義書 3章、4章）
 

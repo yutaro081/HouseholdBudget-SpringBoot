@@ -58,6 +58,8 @@
      - 画面の文言は、Phase 6 と同じにテンプレートに直接書く（季節の名前だけ `messages.properties`。Q7-5）。
      - 取引の日付の下限は 2000-03-01（R15、issue 003）。取引の季節の範囲とそろえたので、入力できる取引はすべて、どこかの季節に入る。
      - 値を持つだけの入れ物（`ComparisonRow`、`ComparisonResult`、`CategoryActual`）は `record`（Q7-4）。画面が読む値はすべて入れて渡す（`open-in-view=false`）。
+   - Phase 8 で決まった共通事項：
+     - Controller の URL は、共通の頭の部分を**クラスの `@RequestMapping`** に書き、各メソッドの注釈には後ろの部分だけを書く（例：`@RequestMapping("/categories")` ＋ `@GetMapping("/{id}/edit")`）。頭の部分だけのメソッドは `@GetMapping` に URL を書かない。URL の全体は、クラスとメソッドの注釈を合わせて読む（設計書 4.4.1、issue 001、Q8-1）。新しい Controller もこの形で作る。
 
 ## 文書の分け方
 

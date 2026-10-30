@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import io.github.yutaro081.householdbudget.entity.Vendor;
@@ -29,6 +30,7 @@ import jakarta.validation.Valid;
  * 画面に出す値（取引先名など）は、テンプレートで th:text を使って出す（th:utext は使わない、設計書 7.5）。
  */
 @Controller
+@RequestMapping("/vendors")
 public class VendorController {
 
 	private final VendorService vendorService;
@@ -38,7 +40,7 @@ public class VendorController {
 	}
 
 	/** 取引先の一覧（登録順）と、上の追加フォーム。 */
-	@GetMapping("/vendors")
+	@GetMapping
 	public String list(@AuthenticationPrincipal LoginUser loginUser, Model model) {
 		model.addAttribute("vendors", vendorService.list(loginUser.getUserId()));
 		model.addAttribute("vendorForm", new VendorForm());
@@ -49,7 +51,7 @@ public class VendorController {
 	 * 取引先の追加。入力エラー・重複のときは、リダイレクトせずに一覧を表示し直す
 	 * （フォームに入力値とエラーを入れ、一覧は取り直して最新にする、設計書 6.9）。
 	 */
-	@PostMapping("/vendors")
+	@PostMapping
 	public String add(@AuthenticationPrincipal LoginUser loginUser,
 			@Valid @ModelAttribute("vendorForm") VendorForm vendorForm,
 			BindingResult bindingResult,
@@ -72,7 +74,7 @@ public class VendorController {
 	}
 
 	/** 変更画面。今の名前の入ったフォームを表示する。 */
-	@GetMapping("/vendors/{id}/edit")
+	@GetMapping("/{id}/edit")
 	public String showEdit(@AuthenticationPrincipal LoginUser loginUser, @PathVariable Long id, Model model) {
 		Vendor vendor = vendorService.get(loginUser.getUserId(), id);
 		model.addAttribute("vendorForm", new VendorForm(vendor.getName()));
@@ -85,7 +87,7 @@ public class VendorController {
 	 * 入力エラーのときでも、先に ID と user_id で探して、存在しない・他人の取引先なら 404 にする
 	 * （入力が正しいときと間違っているときで、他人のデータの有無が分かる差を作らないため、設計書 7.8）。
 	 */
-	@PostMapping("/vendors/{id}/edit")
+	@PostMapping("/{id}/edit")
 	public String edit(@AuthenticationPrincipal LoginUser loginUser,
 			@PathVariable Long id,
 			@Valid @ModelAttribute("vendorForm") VendorForm vendorForm,
@@ -112,7 +114,7 @@ public class VendorController {
 	 * 取引先の削除。成功したら一覧へ戻る。削除できないときも、一覧へ戻り、理由を画面の上に表示する
 	 * （設計書 2.3、2.6）。確認ダイアログは、画面（ブラウザ）で行う。
 	 */
-	@PostMapping("/vendors/{id}/delete")
+	@PostMapping("/{id}/delete")
 	public String delete(@AuthenticationPrincipal LoginUser loginUser,
 			@PathVariable Long id,
 			RedirectAttributes redirectAttributes) {

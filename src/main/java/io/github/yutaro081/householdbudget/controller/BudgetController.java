@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.InitBinder;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -35,6 +36,7 @@ import jakarta.validation.Valid;
  * 画面に出す値（科目名など）は、テンプレートで th:text を使って出す（th:utext は使わない、設計書 7.5）。
  */
 @Controller
+@RequestMapping("/budgets")
 public class BudgetController {
 
 	private final BudgetService budgetService;
@@ -59,7 +61,7 @@ public class BudgetController {
 	 * 予算設定画面。年と季節を指定しないときは、今の季節（日本時間）。指定が範囲外・不正・片方だけなら 404。
 	 * 開いただけでは、データベースに予算の行を作らない（設計書 5.7）。
 	 */
-	@GetMapping("/budgets")
+	@GetMapping
 	public String show(@AuthenticationPrincipal LoginUser loginUser,
 			@RequestParam(required = false) String year,
 			@RequestParam(required = false) String season,
@@ -85,7 +87,7 @@ public class BudgetController {
 	 * <li>すべて正しければ、まとめて保存して、同じ季節の予算設定画面へリダイレクトする（「保存しました」、U4）</li>
 	 * </ul>
 	 */
-	@PostMapping("/budgets")
+	@PostMapping
 	public String save(@AuthenticationPrincipal LoginUser loginUser,
 			@RequestParam(required = false) String year,
 			@RequestParam(required = false) String season,

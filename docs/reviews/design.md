@@ -726,6 +726,7 @@ flowchart LR
 | `BudgetController` | 予算設定の表示と保存 | `/budgets`（GET・POST） |
 | `ComparisonController` | 予実比較の表示 | `/comparison`（GET） |
 
+- **URL の読み方**（Phase 8、issue 001、Q8-1）：`TransactionController`・`CategoryController`・`VendorController`・`PaymentMethodController`・`BudgetController`・`ComparisonController` は、URL の共通の頭の部分を**クラスの `@RequestMapping`**（例：`@RequestMapping("/categories")`）に書き、各メソッドの注釈には、その後ろの部分だけを書く（例：`@GetMapping("/{id}/edit")`。頭の部分だけのメソッドは、`@GetMapping` に URL を書かない）。URL の全体は、クラスの注釈とメソッドの注釈を**合わせて**読む（上の表の「受け持つ URL」が全体）。理由：Spring の標準的な書き方で、同じ頭の部分を何度も書かずに済むため。`HomeController` と `AuthController` は、頭の部分が共通でないので、メソッドの注釈に URL の全体を書く。
 - `POST /login` と `POST /logout` は、Controller を作らず **Spring Security** が処理する（`security`、4.5）。
 - 科目・取引先・支払方法の Controller は、形が同じだが**3つに分ける**。理由：文字数の制限や削除の条件が違い、入門者には3つの独立した同じ形のほうが読みやすいため。
 

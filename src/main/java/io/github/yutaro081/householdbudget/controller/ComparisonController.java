@@ -7,6 +7,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import io.github.yutaro081.householdbudget.domain.SeasonPeriod;
@@ -24,6 +25,7 @@ import io.github.yutaro081.householdbudget.service.ComparisonService;
  * 画面に出す値（科目名など）は、テンプレートで th:text を使って出す（th:utext は使わない、設計書 7.5）。
  */
 @Controller
+@RequestMapping("/comparison")
 public class ComparisonController {
 
 	private final ComparisonService comparisonService;
@@ -38,7 +40,7 @@ public class ComparisonController {
 	 * 予実比較の画面。年と季節を指定しないときは、今の季節（日本時間）。
 	 * 年と季節の判定は、予算設定と同じ SeasonPeriod.resolve（Q7-1）。空なら NotFoundException（404）。
 	 */
-	@GetMapping("/comparison")
+	@GetMapping
 	public String show(@AuthenticationPrincipal LoginUser loginUser,
 			@RequestParam(required = false) String year,
 			@RequestParam(required = false) String season,
