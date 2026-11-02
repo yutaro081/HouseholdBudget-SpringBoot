@@ -418,82 +418,240 @@ SELECT username, LEFT(password_hash, 4) AS prefix, LENGTH(password_hash) AS len 
 
 入力の内容と、期待するメッセージ。**エラーのときは、入力した値が残る**ことも、毎回見る。メッセージは `messages.properties` のとおり。「OK」は、エラーなしで保存される。自動テストで確かめてある内容を、画面でもう一度確かめる。
 
+**進め方**：下の表（今までの表）は、各項目を**どの自動テストで確かめているか**を右の列に書いた〔2026年11月2日に Claude Code が照合した〕。そのあとの「**ブラウザで確かめる最小限の手順 A〜D**」を、あなたが順に行う。表の項目のうち、自動テストで確かめてあるものは、A〜D で代表の値だけを画面で見る。
+
+テストの置き場所：`RegisterFormTest`、`TransactionFormTest`、`BudgetFormTest`、`CategoryFormTest`・`VendorFormTest`・`PaymentMethodFormTest`、`StrictIntegerEditorTest`（金額・予算額の文字の読み取り）は `form/`。`…ControllerTest`（画面の HTML とメッセージ、入力値が残ること）は `controller/`。`…ServiceTest` は `service/`。`SecurityBehaviorTest` は `security/`。`MessagesTest`（`messages.properties` の文）は直下。
+
 #### アカウント登録（`/register`。新しいアカウントを作る前に、エラーのものを先に行う）
 
-| 入力 | 期待 |
-|---|---|
-| ユーザー名が空欄 | 「ユーザー名を入力してください」 |
-| ユーザー名 `abc-1`、`あいう`、`a b` | 「ユーザー名は半角英数字で入力してください」 |
-| ユーザー名 11文字（`abcdefghijk`） | 「ユーザー名は10文字以内で入力してください」 |
-| ユーザー名 10文字（`abcdefghij`） | OK（エラーなし。この名前で登録してもよい。4.9 の名前に使ってもよい） |
-| すでにあるユーザー名（`test1`）、大文字（`TEST1`）、前後に全角の空白をつけた `test1` | 「このユーザー名はすでに使われています」（大文字・小文字は区別しない。前後の空白は取り除かれる） |
-| パスワードが空欄 | 「パスワードを入力してください」（ほかのエラーが重なって出ることがある。G7） |
-| パスワード 7文字 | 「パスワードは8文字以上30文字以内で入力してください」 |
-| パスワード 8文字、30文字 | OK |
-| パスワード 31文字 | 「パスワードは8文字以上30文字以内で入力してください」 |
-| パスワードに空白、日本語、全角 | 「パスワードは半角の英数字と記号で入力してください」 |
+| 入力 | 期待 | 確かめている自動テスト |
+|---|---|---|
+| ユーザー名が空欄 | 「ユーザー名を入力してください」 | `RegisterFormTest.usernameErrors`（空欄・空白だけ・全角空白だけが「必須」のエラー）。**画面の文は、まだ確かめていない（4.14 で足す）** |
+| ユーザー名 `abc-1`、`あいう`、`a b` | 「ユーザー名は半角英数字で入力してください」 | `RegisterFormTest.usernameErrors`。画面：`SecurityBehaviorTest.registerErrorRedisplaysWithUsernameAndWithoutPassword`（`あいう`） |
+| ユーザー名 11文字（`abcdefghijk`） | 「ユーザー名は10文字以内で入力してください」 | `RegisterFormTest.usernameErrors`、`usernameLengthBoundaries`。**画面の文は 4.14 で足す** |
+| ユーザー名 10文字（`abcdefghij`） | OK（エラーなし。この名前で登録してもよい。4.9 の名前に使ってもよい） | `RegisterFormTest.usernameLengthBoundaries`。登録の成功：`SecurityBehaviorTest.registerSuccessRedirectsToLoginWithMessage`、`RegistrationServiceTest.createsInitialData` |
+| すでにあるユーザー名（`test1`）、大文字（`TEST1`）、前後に全角の空白をつけた `test1` | 「このユーザー名はすでに使われています」（大文字・小文字は区別しない。前後の空白は取り除かれる） | `RegistrationServiceTest.duplicateUsernameIsRejected`（`regdup1`／`REGDUP2`／`RegDup3`）、`RegisterFormTest.usernameIsStrippedIncludingFullWidthSpaces`。画面：`SecurityBehaviorTest.registerDuplicateShowsMessageNextToUsername`（ユーザー名が残り、パスワードは残らない） |
+| パスワードが空欄 | 「パスワードを入力してください」（ほかのエラーが重なって出ることがある。G7） | `RegisterFormTest.passwordErrors`、`requiredErrorDoesNotOverlapWithOthers`。**画面の文は 4.14 で足す** |
+| パスワード 7文字 | 「パスワードは8文字以上30文字以内で入力してください」 | `RegisterFormTest.passwordLengthBoundaries`、`passwordErrors`。画面：`SecurityBehaviorTest.registerErrorRedisplaysWithUsernameAndWithoutPassword` |
+| パスワード 8文字、30文字 | OK | `RegisterFormTest.passwordLengthBoundaries` |
+| パスワード 31文字 | 「パスワードは8文字以上30文字以内で入力してください」 | 同上 |
+| パスワードに空白、日本語、全角 | 「パスワードは半角の英数字と記号で入力してください」 | `RegisterFormTest.passwordErrors`（`Pattern`）、`passwordIsNotStripped`。**画面の文は 4.14 で足す** |
 
 #### 取引（`/transactions/new`、`/transactions/{id}/edit`）
 
-| 項目 | 入力 | 期待 |
-|---|---|---|
-| 日付 | 空欄 | 「日付を入力してください」 |
-| 日付 | 2000-02-29 | 「日付は2000年3月1日から2100年12月31日までで入力してください」（R15） |
-| 日付 | 2000-03-01、2100-12-31 | OK |
-| 日付 | 2101-01-01 | 上と同じエラー |
-| 日付 | `2026-02-30` など存在しない日付 | 「日付を正しく入力してください」（欄が `type="date"` で入力できないときは、開発者ツールで値を書き換えて送る） |
-| 金額 | 空欄 | 「金額を入力してください」 |
-| 金額 | 0、-1 | 「金額は1円以上1,000,000円以下で入力してください」 |
-| 金額 | 1、1000000 | OK |
-| 金額 | 1000001 | 上と同じエラー |
-| 金額 | `1.5`、`1,000`、`abc`、`0x10`、`+5`、`1 0`（途中の空白） | 「金額は整数で入力してください」 |
-| 金額 | `１２３`（全角の数字） | OK（半角の 123 として受け付ける。R13） |
-| 摘要 | 30文字 | OK |
-| 摘要 | 31文字 | 「摘要は30文字以内で入力してください」 |
-| 摘要 | 空欄、前後に空白だけ | OK（未入力として保存。詳細で空欄） |
-| 科目・取引先・支払方法 | 未選択（開発者ツールで `value` を空にして送る） | 「科目を選択してください」「取引先を選択してください」「支払方法を選択してください」 |
+登録の画面のテストは `TransactionControllerTest.registerWithInvalidInputRedisplaysTheFormAndSavesNothing`（メッセージの文、エラーが1項目に1つ、何も保存されない）と `registerWithInvalidInputKeepsTheEnteredValue`（入力値が残る）。編集は `updateWithInvalidInputRedisplaysTheEditFormKeepsValuesAndChangesNothing`。下の表では、この 2 つを「上の画面のテスト」と呼ぶ。
 
-- 取引の入力エラーでは、入力した日付・金額・摘要と、選んだ科目などが残る。
+| 項目 | 入力 | 期待 | 確かめている自動テスト |
+|---|---|---|---|
+| 日付 | 空欄 | 「日付を入力してください」 | `TransactionFormTest.dateNullIsOnlyRequired`、上の画面のテスト |
+| 日付 | 2000-02-29 | 「日付は2000年3月1日から2100年12月31日までで入力してください」（R15） | `TransactionFormTest.dateRange`、上の画面のテスト |
+| 日付 | 2000-03-01、2100-12-31 | OK | `TransactionFormTest.dateRange`、`TransactionControllerTest.registerAcceptsBoundaryValues` |
+| 日付 | 2101-01-01 | 上と同じエラー | 同上 |
+| 日付 | `2026-02-30` など存在しない日付 | 「日付を正しく入力してください」（欄が `type="date"` で入力できないときは、開発者ツールで値を書き換えて送る） | `TransactionFormTest.dateBinding`、上の画面のテスト。**ブラウザの日付欄の動きは、ブラウザだけ**（B4 で見る） |
+| 金額 | 空欄 | 「金額を入力してください」 | `TransactionFormTest.amountNullIsOnlyRequired`、`amountNotSentIsRequired`、上の画面のテスト |
+| 金額 | 0、-1 | 「金額は1円以上1,000,000円以下で入力してください」 | `TransactionFormTest.amountRange`、上の画面のテスト |
+| 金額 | 1、1000000 | OK | `TransactionFormTest.amountRange`、`TransactionControllerTest.registerAcceptsBoundaryValues` |
+| 金額 | 1000001 | 上と同じエラー | 同上 |
+| 金額 | `1.5`、`1,000`、`abc`、`0x10`、`+5`、`1 0`（途中の空白） | 「金額は整数で入力してください」 | `StrictIntegerEditorTest`（文字の読み取りの全パターン）、`TransactionFormTest.amountBinding`、上の画面のテスト |
+| 金額 | `１２３`（全角の数字） | OK（半角の 123 として受け付ける。R13） | `StrictIntegerEditorTest`、`TransactionControllerTest.registerAcceptsAFullWidthAmount`、`updateAcceptsAFullWidthAmount`。**IME で打つ動きは、ブラウザだけ**（B6 で見る） |
+| 摘要 | 30文字 | OK | `TransactionFormTest.descriptionOf30CharactersIsAllowedAnd31IsNot`、`TransactionControllerTest.registerAcceptsBoundaryValues` |
+| 摘要 | 31文字 | 「摘要は30文字以内で入力してください」 | 同上、`registerWithTooLongDescriptionShowsErrorAndKeepsIt` |
+| 摘要 | 空欄、前後に空白だけ | OK（未入力として保存。詳細で空欄） | `TransactionFormTest.blankDescriptionBecomesNull`、`TransactionControllerTest.registerStripsAmountAndDescriptionSpacesAndStoresNullForBlankDescription`、`detailWithoutDescriptionShowsBlankNotNull` |
+| 科目・取引先・支払方法 | 未選択（開発者ツールで `value` を空にして送る） | 「科目を選択してください」「取引先を選択してください」「支払方法を選択してください」 | `TransactionFormTest.idsNullAreOnlyRequired`、`idBinding`、上の画面のテスト（空・数字でない値）。**ブラウザでは省く** |
+
+- 取引の入力エラーでは、入力した日付・金額・摘要と、選んだ科目などが残る。→ `TransactionControllerTest.registerWithInvalidInputKeepsTheEnteredValue`、`registerWithErrorKeepsOtherValuesAndSelectedOptions`、`registerWithSeveralErrorsShowsEachOnItsField`。
 
 #### 科目・取引先・支払方法（`/categories`、`/vendors`、`/payment-methods`。追加と変更）
 
-| 項目 | 入力 | 期待 |
-|---|---|---|
-| 名前 | 空欄、空白だけ | 「科目名を入力してください」「取引先名を…」「支払方法名を…」 |
-| 科目・支払方法の名前 | 10文字 / 11文字 | OK / 「科目名は10文字以内で入力してください」「支払方法名は10文字以内で…」 |
-| 取引先の名前 | 20文字 / 21文字 | OK / 「取引先名は20文字以内で入力してください」 |
-| 名前の重複 | すでにある名前、大文字小文字・ひらがなカタカナ・全角半角だけが違う名前 | 「その科目名はすでにあります」「その取引先名は…」「その支払方法名は…」 |
-| 削除 | 取引で使われている科目・取引先・支払方法 | 「取引で使われているため削除できません」 |
-| 削除 | 0円でない予算がある科目 | 「予算が0円ではない季節があるため削除できません」 |
-| 削除 | 使われていないもの | 確認ダイアログのあと「削除しました」 |
+画面のテストは `CategoryControllerTest`・`VendorControllerTest`・`PaymentMethodControllerTest` の `addWith…`、`edit…`、`delete…`。
+
+| 項目 | 入力 | 期待 | 確かめている自動テスト |
+|---|---|---|---|
+| 名前 | 空欄、空白だけ | 「科目名を入力してください」「取引先名を…」「支払方法名を…」 | `CategoryFormTest.errors`、`VendorFormTest.blankNameIsRequiredError`、`PaymentMethodFormTest`。画面：`…ControllerTest.addWithBlankNameShowsErrorAndRedisplaysList`、`editWithBlankOrTooLongNameKeepsTheInputAndShowsError` |
+| 科目・支払方法の名前 | 10文字 / 11文字 | OK / 「科目名は10文字以内で入力してください」「支払方法名は10文字以内で…」 | `…FormTest`（長さの境界）、`…ControllerTest.addWithTheMaximumLengthSucceeds`、`addWithTooLongNameKeepsTheInputAndShowsError`（入力値が残る） |
+| 取引先の名前 | 20文字 / 21文字 | OK / 「取引先名は20文字以内で入力してください」 | `VendorFormTest.lengthBoundary`、`VendorControllerTest` の同じテスト |
+| 名前の重複 | すでにある名前、大文字小文字・ひらがなカタカナ・全角半角だけが違う名前 | 「その科目名はすでにあります」「その取引先名は…」「その支払方法名は…」 | `CategoryServiceTest.addDuplicateIsRejected`（`Food`／`FOOD`、`ひらがな`／`ヒラガナ`、`ｱｲｳ`／`アイウ`、`コンビニ`／`ｺﾝﾋﾞﾆ`。取引先・支払方法も同じ）。画面：`…ControllerTest.addDuplicateShowsErrorAndKeepsTheInput`、`addDuplicateIgnoresCaseAndOtherUsersNames`、`editToAnother…NameShowsErrorAndKeepsTheInput` |
+| 削除 | 取引で使われている科目・取引先・支払方法 | 「取引で使われているため削除できません」 | `…ServiceTest.deleteIsRejectedWhenUsedByATransaction`、`CategoryControllerTest.deleteOfCategoryInUseGoesBackToListWithTheReason`（取引先・支払方法は `deleteOfItemInUseGoesBackToListWithTheReason`） |
+| 削除 | 0円でない予算がある科目 | 「予算が0円ではない季節があるため削除できません」 | `CategoryServiceTest.deleteIsRejectedWhenAnyBudgetIsNotZero`、`CategoryControllerTest.deleteOfCategoryWithNonZeroBudgetGoesBackToListWithTheReason`、`whenBothReasonsApplyOnlyInUseIsShown` |
+| 削除 | 使われていないもの | 確認ダイアログのあと「削除しました」 | `…ControllerTest.deleteSucceedsAndRedirectsToList`、`listHasMenuAddFormEditLinkAndDeleteFormWithConfirm`（確認の文言がフォームにあること）。ダイアログが実際に出ることは、4.16 で確認済み |
+
+- 画面のメッセージの文そのものは、`MessagesTest`（`messages.properties` の文）でも確かめている。**ただし登録画面〔`registerForm`〕の文と、ログインの失敗の文は、`MessagesTest` に入っていない**（4.14 で足す）。
 
 #### 予算設定（`/budgets`）
 
-| 入力（予算額） | 期待 |
-|---|---|
-| 0、3000000 | OK（保存しました） |
-| 3000001、-1 | 「予算額は0円以上3,000,000円以下で入力してください」 |
-| 空欄 | 「予算額を入力してください」 |
-| `1.5`、`1,000`、`abc`、`0x10`、`+5` | 「予算額は整数で入力してください」 |
-| `１２３`（全角） | OK（半角の 123 として保存） |
-| 1行でもエラー | 何も保存されない。全行の入力値が残り、エラーの行の横にメッセージが出る |
+画面のテストは `BudgetControllerTest.invalidAmountRedisplaysKeepsAllInputsAndSavesNothing`（メッセージの文、エラーが1行に1つ、全行の入力値が残る、何も保存されない）、`typeMismatchKeepsTheTypedText`、`eachBadRowGetsItsOwnMessageInThePostedOrderWithNamesAndMarks`。下の表では「上の画面のテスト」と呼ぶ。
 
-- [ ] 上のすべてが、期待どおり（外れたものは 3.3 で記録する）
+| 入力（予算額） | 期待 | 確かめている自動テスト |
+|---|---|---|
+| 0、3000000 | OK（保存しました） | `BudgetFormTest.amountRange`、`BudgetControllerTest.saveBoundaryAmountsAndSpaces` |
+| 3000001、-1 | 「予算額は0円以上3,000,000円以下で入力してください」 | `BudgetFormTest.amountRange`、上の画面のテスト |
+| 空欄 | 「予算額を入力してください」 | `BudgetFormTest.nullAmountIsOnlyRequired`、上の画面のテスト |
+| `1.5`、`1,000`、`abc`、`0x10`、`+5` | 「予算額は整数で入力してください」 | `StrictIntegerEditorTest`、`BudgetFormTest.amountBinding`、上の画面のテスト |
+| `１２３`（全角） | OK（半角の 123 として保存） | `BudgetControllerTest.fullWidthAmountsAreSavedAsHalfWidth`、`BudgetFormTest.fullWidthAmountsAreConvertedOnEveryRow` |
+| 1行でもエラー | 何も保存されない。全行の入力値が残り、エラーの行の横にメッセージが出る | 上の画面のテスト、`BudgetFormTest.eachBadRowGetsItsOwnSingleError`、`rejectedValuesAreKept` |
+
+#### ブラウザで確かめる最小限の手順 A〜D
+
+自動テストで確かめられないもの〔エラーの文字の見え方、入力欄の動き、パスワード欄が空になること、IME の全角、画面に出る文そのもの〕を見る。**各行で「入力 → 期待」を見て、OK／NG を知らせる**。エラーのときは、**入力した値が残ること**も毎回見る。ログインする人は、取引・科目・取引先・支払方法・予算は `test1`、登録はログアウトして行う。パスワードは、文書に書かない。
+
+##### A. アカウント登録（`/register`。ログアウト状態で）
+
+| # | 入力 | 期待 |
+|---|---|---|
+| A1 | 両方とも空欄で登録 | 「ユーザー名を入力してください」「パスワードを入力してください」が、それぞれの欄の下に出る |
+| A2 | ユーザー名 `abc-1`、パスワード `abc12` | 「ユーザー名は半角英数字で入力してください」と「パスワードは8文字以上30文字以内で入力してください」。**ユーザー名は残り、パスワード欄は空** |
+| A3 | ユーザー名 `abcdefghijk`（11文字）、パスワード 31文字 | 「ユーザー名は10文字以内で入力してください」と「パスワードは8文字以上30文字以内で入力してください」 |
+| A4 | ユーザー名 `abcdefghij`、パスワード `abc 1234`（空白あり） | パスワードに「パスワードは半角の英数字と記号で入力してください」 |
+| A5 | ユーザー名 `TEST1`、パスワード `abcd1234` | 「このユーザー名はすでに使われています」。ユーザー名が残る |
+| A6 | 登録できる例。ユーザー名はちょうど 10 文字、パスワードは 30 文字（例：`chkzero001`） | 「登録しました。ログインしてください」。**このアカウントは 4.9 で使う**。パスワードは文書に書かない |
+
+- 7・8・31 文字のパスワードの境界は、自動テストで確かめてあるので、ブラウザでは省く。
+
+##### B. 取引（`test1` でログイン → 取引の登録）
+
+| # | 入力 | 期待 |
+|---|---|---|
+| B1 | 日付を消し、金額も空欄で登録 | 「日付を入力してください」「金額を入力してください」。選んだ科目などが残る |
+| B2 | 金額 `0`、次に `1000001` | 「金額は1円以上1,000,000円以下で入力してください」。打った数字が残る |
+| B3 | 金額 `1,000`、次に `1.5` | 「金額は整数で入力してください」。打った文字が残る |
+| B4 | 日付 `2000-02-29`（または 2101-01-01） | 「日付は2000年3月1日から2100年12月31日までで入力してください」。日付が残る |
+| B5 | 摘要 31 文字 | 「摘要は30文字以内で入力してください」。摘要が残る |
+| B6 | OK の例。日付 `2100-12-31`、金額を IME で `１２３`（全角）、摘要 30 文字 | 登録でき、一覧に 123 円と出る |
+| B7 | B6 の取引を編集し、金額を `0` にして保存 | 編集画面に戻り、メッセージが出る。ほかの値は残り、一覧の金額は変わらない |
+
+B6 で作った取引は、あとで削除して片付ける（4.17）。
+
+##### C. 科目・取引先・支払方法（`test1`）
+
+| # | 入力 | 期待 |
+|---|---|---|
+| C1 | 科目：空白だけで追加 | 「科目名を入力してください」 |
+| C2 | 科目：11 文字で追加 | 「科目名は10文字以内で入力してください」。名前が残る |
+| C3 | 科目：すでにある名前で追加 | 「その科目名はすでにあります」。名前が残る |
+| C4 | 科目：変更画面で、ほかの科目と同じ名前に変更 | 変更画面に戻り、同じメッセージが出る |
+| C5 | 取引先：21 文字で追加 | 「取引先名は20文字以内で入力してください」 |
+| C6 | 支払方法：11 文字で追加 | 「支払方法名は10文字以内で入力してください」 |
+| C7 | 取引で使っている科目を削除（ダイアログで「OK」） | 「取引で使われているため削除できません」 |
+
+##### D. 予算設定（`test1`）
+
+| # | 入力 | 期待 |
+|---|---|---|
+| D1 | 2026年の冬。1 行目に `abc`、2 行目に `777` で保存 | 1 行目の横に「予算額は整数で入力してください」。**全行の入力値が残る**。ページを開き直すと、何も保存されていない |
+| D2 | 1 行目に `3000001` | 「予算額は0円以上3,000,000円以下で入力してください」 |
+| D3 | OK の例。2030年の春。1 行目に `０`、2 行目に `3000000`、3 行目に `１２３`（全角） | 「保存しました」。**3 行目が 123 と表示される** |
+
+D3 で作った 2030 年春の予算の行は、4.17 の SQL で消す〔予算の行が増えるので、「9 行」の確認のときに分かるようにする〕。
+
+- [x] 手順 A（A1〜A6）が、期待どおり
+- [x] 手順 B（B1〜B7）が、期待どおり
+- [x] 手順 C（C1〜C7）が、期待どおり
+- [x] 手順 D（D1〜D3）が、期待どおり
+- [x] 上の表のうち、A〜D で見ていない項目は、右の列の自動テストで確かめてある〔未選択の送信、存在しない日付、7・8・31 文字のパスワード、ユーザー名の前後の全角空白など〕
+- [x] 外れたものは 3.3 で記録した（なし）
+- [x] A6、B6 などで作ったデータを、4.17 の片付けの対象として控えた（`chkzero001` など。パスワードは書かない）
+
+（実施の記録・4.7：2026年11月2日。あなたが A〜D を行い、**すべて期待どおり**。外れたものは**なし**。A6 で新しいアカウント `chkzero001` を作った〔4.9 で使う。パスワードは書かない〕。B6 の取引〔2100-12-31、123円〕と、D3 の 2030年春の予算の行〔`test1`〕は、4.17 で片付ける。登録画面のメッセージの文の自動テストは、4.14 で足す。）
 
 ### 4.8 これまでの Phase から引き継いだ、ブラウザで未確認の項目
 
-実行計画書の Phase 8「引き継ぐこと」の項目のうち、4.5〜4.7 に含まれないものです。
+実行計画書の Phase 8「引き継ぐこと」の項目のうち、4.5〜4.7 に含まれないものです。4.7 と同じように、各項目を **①すでに済んでいるもの**、**②自動テストで確かめているもの**、**③まだブラウザや SQL で見ていないもの** に分けて整理した〔2026年11月2日に Claude Code が照合した。コードは変えていない〕。
 
-- [ ] **Phase 5**：別タブで科目を削除したあとに、古い画面から取引を送信する（科目がもう無い → 404 になる。何も保存されない）
-- [ ] **Phase 5**：取引で使われている科目・取引先・支払方法が、削除できない（取引の画面で登録した科目〔「確認科目」など〕で確かめる）
-- [ ] **Phase 5**：SQL での確認：取引の摘要を空で登録したとき、`transactions.description` が NULL（空文字でも空白でもない）：`SELECT id, description IS NULL AS is_null, description FROM transactions;`
-- [ ] **Phase 5**：プルダウンが空のとき（B2）の案内：取引の登録画面で、科目・取引先・支払方法のどれかが0件だと、足りない種類の案内とリンクが出て、フォームは出ない（4.9 の手順 7 と一緒に確かめる。取引先・支払方法が0件のときも、新しいアカウントで1回ずつ）
-- [ ] **Phase 6**：2100年冬の端（`/budgets?year=2100&season=winter`）、`test2` から科目 ID を書き換えた送信（4.6 の(6)）、`budgets` の SQL での確認（保存した季節だけ行がある）
-- [ ] **Phase 6**：予算設定で、257行以上を送ったとき（開発者ツールで行を増やす）の動き：400 の画面、何も保存されない（R14）。`rows[-1]`、`rows[abc]` も 400（4.6 の(7)）。`rows=`（空）を送ったとき、行が空のまま表示される（直さないと決めた）
-- [ ] **Phase 6**：全角の数字（`１２３`）が半角に直して受け付けられる（4.7 で確認）。`0x10`・`+5`・途中の空白・全角のマイナスが型変換のエラー（4.7 で確認）
-- [ ] **Phase 6**：保存ボタンを素早く2回押したとき（Q6-6 の A）：二重には保存されない。同時保存で一意制約に拒否された場合の動きは、再現が難しい（Q8-11）
-- [ ] **Phase 7**：範囲の端と 404（予算設定と予実比較の両方。4.5 と 4.6 の(7)）
-- [ ] **Phase 7**：取引の日付の下限（R15）：`2000-02-29` がエラー、`2000-03-01` と `2100-12-31` が登録できる（4.7）。DB の CHECK 制約（`ck_transactions_date`）が `schema.sql` と同じ範囲（`SHOW CREATE TABLE transactions;`）
+#### 一覧（元の 10 項目の整理）
+
+| # | 項目（Phase） | 分類 | 済んでいる確認／確かめている自動テスト |
+|---|---|---|---|
+| 1 | 別タブで科目を削除したあとに、古い画面から取引を送信する → 404、何も保存されない（5） | ②＋③ | 自動：`TransactionControllerTest.registerWithNonexistentItemIsNotFound`（存在しない科目・取引先・支払方法の ID → 404、何も保存されない）。**別タブでの実際の操作は、まだ見ていない → 手順 E1** |
+| 2 | 取引で使われている科目・取引先・支払方法が削除できない（5） | ①＋② | 済み：4.7 の C7（取引で使っている科目）。4.9 の手順 3（予算が0円でない）。自動：`…ServiceTest.deleteIsRejectedWhenUsedByATransaction`、`…ControllerTest.deleteOfCategoryInUseGoesBackToListWithTheReason`（取引先・支払方法は `deleteOfItemInUseGoesBackToListWithTheReason`） |
+| 3 | SQL：摘要を空で登録したとき `transactions.description` が NULL（5） | ②＋③ | 自動：`TransactionControllerTest.registerStripsAmountAndDescriptionSpacesAndStoresNullForBlankDescription`、`TransactionFormTest.blankDescriptionBecomesNull`（実際の DB に保存して確かめている）。**画面から登録した行を SQL で見るのは、まだ → 手順 E2** |
+| 4 | プルダウンが空のとき（B2）の案内（5） | ②＋③（4.9 で行う） | 自動：`TransactionControllerTest.newFormWithNoMastersShowsGuidanceAndNoForm`、`newFormWithOnlySomeMastersMissingNamesOnlyTheMissingOnes`、`BudgetControllerTest.noCategoriesShowsGuidanceAndNoSaveButton`。ブラウザ：**科目が0件の分は 4.9 の手順 8。取引先・支払方法が0件の分は、まだ → 4.9 に手順を足す**（下の「4.9 に足すこと」） |
+| 5-a | 2100年冬の端（`/budgets?year=2100&season=winter`）（6） | ① | 済み：4.5（予算設定・予実比較の5つの指定）、4.6 の(7)（範囲外は 404） |
+| 5-b | `test2` から科目 ID を書き換えた送信（6） | ① | 済み：4.6 の(6) |
+| 5-c | `budgets` の SQL での確認（保存した季節だけ行がある）（6） | ②＋③ | 自動：`BudgetControllerTest.showingDoesNotCreateRows`、`categoriesNotSentAndOtherSeasonsAndUsersAreUntouched`、`saveSucceedsRedirectsToTheSameSeasonAndCreatesAllRows`。**実際の DB を SQL で見るのは、まだ → 手順 E3** |
+| 6-a | 257行以上を送ったとき → 400、何も保存されない（R14）（6） | ② | 自動：`BudgetControllerTest.sending257RowsIs400AndSavesNothing`、`saving256RowsWorks`、`row255IsStillBoundSoTheCategoryIdIsChecked`、`the400PageHasALinkBack`。**ブラウザでは省く**（開発者ツールで 257 行を作る手間が大きい。同じ 400 の画面と仕組みを、`rows[-1]` で 4.6 の(7)で確認済み） |
+| 6-b | `rows[-1]`、`rows[abc]` も 400（6） | ①＋② | 済み：`rows[-1]` は 4.6 の(7)。自動：`BudgetControllerTest.tamperedRowIndexIs400AndSavesNothing`（`rows[abc]` など）。`rows[abc]` のブラウザは、`rows[-1]` と同じ仕組みなので省く |
+| 6-c | `rows=`（空）を送ったとき、行が空のまま表示される（直さないと決めた）（6） | ② | 自動：`BudgetControllerTest.postWithNoRowsSavesNothingAndRedirects`。ブラウザでは省く（通常の画面からは送れない） |
+| 7 | 全角の数字が半角に直る。`0x10`・`+5`・途中の空白・全角のマイナスが型変換のエラー（6） | ① | 済み：4.7（取引の B6・B3、予算設定の D3）。自動：`StrictIntegerEditorTest`、`BudgetControllerTest`、`TransactionControllerTest` |
+| 8 | 保存ボタンを素早く2回押したとき、二重には保存されない（Q6-6 の A）。同時保存で一意制約に拒否されたときの動きは、再現が難しい（Q8-11）（6） | ②＋③ | 自動：`BudgetControllerTest.marksDisappearAfterSavingAndSavingAgainDoesNotAddRows`（続けて2回保存しても行は増えない）。**素早い二度押しは、まだ → 手順 E4**。同時保存の拒否の再現は難しいので、行わない（Q8-11） |
+| 9 | 範囲の端と 404（予算設定と予実比較の両方）（7） | ① | 済み：4.5、4.6 の(7) |
+| 10 | 取引の日付の下限（R15）：`2000-02-29` がエラー、`2000-03-01` と `2100-12-31` が登録できる。DB の CHECK 制約（`ck_transactions_date`）が `schema.sql` と同じ範囲（7） | ①＋②＋③ | 済み：4.7 の B4 ほか。自動：`TransactionRepositoryTest`（DB の CHECK が 2000-02-29 を拒否する。実際の開発用 DB で確かめている）、`TransactionFormTest.dateRange`、`TransactionControllerTest.registerAcceptsBoundaryValues`。**`SHOW CREATE TABLE` で見るのは、まだ → 手順 E3 の SQL（読むだけ）** |
+
+#### 4.9 に足すこと（項目 4 の残り）
+
+4.9 の手順 8 のあと〔科目が0件のアカウントで、予算設定・取引の登録の案内を見たあと〕に、次を足す案：新しいアカウントで、**取引先を3つとも削除**して取引の登録画面を開く（「取引先」を追加する案内とリンクが出る）→ 取引先を1つ追加し、**支払方法を2つとも削除**して開く（「支払方法」の案内）。科目・取引先・支払方法の「どれが足りないか」の案内が出分けられることを見る。4.9 を進めるとき、手順書に書く。
+
+#### まだ見ていないもの：手順 E1〜E4（あなたが順に行う）
+
+ログインするのは `test1`。**E1 → E2 → E4 → E3 の順**がよい〔E3 の SQL で、E2・E4 の結果もまとめて見るため〕。パスワードや接続先は、文書に書かない。SQL は、あなたが MySQL にログインして実行する。
+
+##### E1. 別タブで科目を削除したあとに、古い画面から取引を送信する（項目 1）
+
+1. 科目の画面（`/categories`）で、科目 `別タブ` を追加する（使われていない科目。削除できる）。
+2. **タブ 1**：`/transactions/new` を開く。日付・金額（例：100円）・摘要を入れ、科目で `別タブ` を選ぶ。取引先・支払方法も選ぶ。**まだ送信しない**。
+3. **タブ 2**：`/categories` を開き、`別タブ` を削除する（確認で OK）。「削除しました」。
+4. **タブ 1**：そのまま「登録」を押す。
+5. 期待：**「ページが見つかりません」の画面（404）**。何も保存されない（取引一覧に 100円の取引が増えていない）。
+
+##### E2. 摘要が空の取引が、DB で NULL になる（項目 3）
+
+1. `/transactions/new` で、日付・金額（例：200円）を入れ、**摘要は空欄**にして登録する。一覧に出る。詳細を開くと、摘要が空欄（「null」と出ない）。
+2. SQL（読むだけ）。
+
+   ```sql
+   SELECT id, description IS NULL AS is_null, description FROM transactions;
+   SELECT COUNT(*) FROM transactions WHERE description IS NOT NULL AND TRIM(description) = '';
+   ```
+
+   期待：1 つ目で、今登録した取引の `is_null` が **1**（`description` は NULL）。摘要を入れた取引は `is_null` が 0。2 つ目は **0**（空文字や空白だけの行がない）。
+
+##### E4. 保存ボタンを素早く2回押す（項目 8）
+
+1. 予算設定を、まだ保存したことのない季節で開く：`/budgets?year=2031&season=spring`。
+2. 各科目の予算額を入れる（例：すべて `100`）。
+3. 「保存」を**素早く2回**押す（ダブルクリック）。〔押しにくければ、入力欄で Enter を2回続けて押す。〕
+4. 期待：「保存しました」が出る。**500 のエラー画面にならない**のが望ましい。ただし、同時に拒否される場合の画面は、特別な扱いをしない〔500 番台の画面。何も二重には保存されない。Q6-6 の A〕と決めてある。どちらになったか、**見たとおり**を知らせる。
+5. 保存後に `/budgets?year=2031&season=spring` を開き直して、各科目の額が入っている。行が重なって増えていない（E3 の SQL で数える）。
+
+##### E3. SQL で、`budgets` と `transactions` を見る（項目 5-c、10）
+
+読むだけの SQL。
+
+```sql
+SELECT u.username, b.season_year, b.season, COUNT(*) AS rows_count
+FROM budgets b JOIN users u ON u.id = b.user_id
+GROUP BY u.username, b.season_year, b.season
+ORDER BY u.username, b.season_year, b.season;
+
+SHOW CREATE TABLE transactions;
+```
+
+期待：
+- 1 つ目：**保存した季節の行だけ**がある〔`season` は `SPRING`・`AUTUMN` など大文字で保存されている〕。`test1` では、初期の 2026年秋、4.5〜4.6 で保存した季節、4.7 の D3 の 2030年春、E4 の 2031年春、など。**見ただけの季節〔2000年春、2100年冬、前後の季節など〕の行がない**。各季節の `rows_count` は、そのアカウントの科目の数と同じ。E4 の 2031年春が、科目の数と同じ件数〔二重になっていない〕。**保存した覚えのない季節の行があれば NG**。
+- 2 つ目：`ck_transactions_date` が `BETWEEN '2000-03-01' AND '2100-12-31'`、`ck_transactions_amount` が `BETWEEN 1 AND 1000000`。`schema.sql` と同じ範囲。
+
+##### 手順 E で作るデータ（4.17 で片付ける）
+
+- 科目 `別タブ`（E1。手順の中で削除済み。残っていれば削除）。
+- 取引：E2 の 200円（摘要なし）。E1 でエラーになった 100円は、保存されていないはず。
+- 予算：2031年春の `test1` の行（E4）。4.7 の D3 の 2030年春と合わせて、4.17 の SQL で消す。
+
+#### チェック
+
+- [ ] 項目 1（E1）：別タブで削除した科目で送信 → 404、何も保存されない
+- [x] 項目 2：使われている科目・取引先・支払方法が削除できない（4.7 の C7、4.9 の手順 3、自動テスト）
+- [ ] 項目 3（E2）：摘要が空の取引が NULL で保存される
+- [ ] 項目 4：プルダウンが空の案内。科目は 4.9 の手順 8、取引先・支払方法は 4.9 に足した手順で確認する
+- [x] 項目 5-a：2100年冬の端（4.5、4.6 の(7)）
+- [x] 項目 5-b：`test2` から科目 ID を書き換えた送信（4.6 の(6)）
+- [ ] 項目 5-c（E3）：`budgets` に、保存した季節だけ行がある
+- [x] 項目 6-a〜6-c：257行以上の 400、`rows[abc]`、`rows=`（自動テストで確認。`rows[-1]` は 4.6 の(7)）
+- [x] 項目 7：全角の数字、`0x10`・`+5`・途中の空白・全角のマイナス（4.7）
+- [ ] 項目 8（E4）：保存ボタンの二度押しで、二重には保存されない
+- [x] 項目 9：範囲の端と 404（4.5、4.6 の(7)）
+- [ ] 項目 10（E3）：DB の CHECK 制約が `schema.sql` と同じ範囲〔日付の下限の画面の確認は 4.7 で済み〕
+- [ ] E で作ったデータを、4.17 の片付けの対象として控えた
+
+（実施の記録：あなたが E1〜E4 を行ったあとに書く。）
 
 ### 4.9 科目が0件のアカウントで、予実比較をブラウザで確かめる
 
@@ -976,6 +1134,7 @@ Set-NetConnectionProfile -InterfaceAlias "（1 で読んだ InterfaceAlias）" -
 4. `.\mvnw test` が全部成功する（件数を記録する）。テストのあと、DB にテスト用の行が残っていない（4.1 の SQL と同じ結果）。
 
 - [ ] 一覧を作り、足りないものを報告した
+- [ ] **登録画面のメッセージのテストを足す**〔4.7 で決めた。2026年11月2日〕：①`MessagesTest` に、登録画面の文〔`NotBlank.registerForm.username`、`Pattern.registerForm.username`、`Size.registerForm.username`、`NotEmpty.registerForm.password`、`Pattern.registerForm.password`、`Size.registerForm.password`〕と、`error.duplicate.user`、`error.login.failed`、`success.register`、`success.logout` を足す。②`SecurityBehaviorTest`〔または登録画面のテスト〕に、`POST /register` で、ユーザー名が空欄・11文字、パスワードが空欄・空白入りのとき、**画面に**それぞれの文が出ることを確かめるテストを足す〔今は `あいう`／`short` と重複の2ケースだけ〕。テストを先に書く。
 - [ ] 足すと決めたテストを足した（なければ「なし」と記録）
 - [ ] `.\mvnw test` が全部成功する
 
