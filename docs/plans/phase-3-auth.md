@@ -491,7 +491,7 @@ git grep -n -i -e password -- . ":(exclude)docs"
 #### 確認結果（Claude Code が実行したコマンドの結果）
 
 - `git status`：作業ツリーは clean（コミット済み）。追跡中のファイルに、`.env`、ダンプ、`.bak`、`backup/`、`application-local.properties`、`target/`、`HELP.md` はない
-- `HB_DB_URL=` など、環境変数に値を代入した行は、リポジトリにない。`jdbc:mysql`、`3306`、`@localhost` も、`docs` 以外にない（`docs/plans/phase-2-base.md` に、接続先の入力例 `jdbc:mysql://localhost:3306/householdbudget` がある。パスワードではなく、秘密でもない）
+- `HB_DB_URL=` など、環境変数に値を代入した行は、リポジトリにない。`jdbc:mysql`、`3306`、`@localhost` も、`docs` 以外にない（`docs/plans/phase-2-base.md` に接続先の入力例の具体的な値があったが、Phase 8 の 4.4 で、伏せた形に直した）
 - `git grep -i password`（`docs` を除く）の結果の内訳：
 
 | 場所 | 何の行か |

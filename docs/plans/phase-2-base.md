@@ -289,7 +289,7 @@ ALTER DATABASE householdbudget COLLATE utf8mb4_0900_as_ci;
 
 | 用途 | 環境変数の名前 | 入れる値 |
 |---|---|---|
-| 接続先 | `HB_DB_URL` | `jdbc:mysql://localhost:3306/householdbudget`（データベース名は 4.4 に合わせる） |
+| 接続先 | `HB_DB_URL` | `jdbc:mysql://（ホスト）:（ポート）/（データベース名）` の形（ホストは自分のパソコン、ポートは MySQL の既定、データベース名は 4.4 に合わせる。具体的な値は文書に書かない） |
 | DB ユーザー名 | `HB_DB_USER` | 4.4 で作ったユーザー名（`root` ではない） |
 | DB パスワード | `HB_DB_PASSWORD` | 4.4 で決めたパスワード |
 

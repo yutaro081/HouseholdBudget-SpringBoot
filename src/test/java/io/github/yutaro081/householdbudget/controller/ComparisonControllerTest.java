@@ -163,6 +163,28 @@ class ComparisonControllerTest {
 		assertThat(body).contains("href=\"/comparison?year=2027&amp;season=spring\">次の季節");
 	}
 
+	/** 「戻る」で覚えていた画面を開き直す JavaScript（別ファイル。設計書 7.10）を、ログイン中の画面も読む */
+	@Test
+	void loadsTheBackReloadScriptAsAnExternalFile() throws Exception {
+		Owner a = createOwner("ctrlcmp4");
+
+		String body = open(a, null, null);
+
+		assertThat(body).contains("src=\"/js/back-reload.js\"");
+		assertThat(body).doesNotContainPattern("<script(?![^>]*\ssrc=)");
+	}
+
+	/** エラー画面（404）も同じ枠なので、JavaScript を読む */
+	@Test
+	void errorScreenLoadsTheBackReloadScriptToo() throws Exception {
+		Owner a = createOwner("ctrlcmp5");
+
+		String body = mockMvc.perform(get("/comparison").param("year", "1999").param("season", "winter").with(a.login()))
+				.andExpect(status().isNotFound()).andReturn().getResponse().getContentAsString();
+
+		assertThat(body).contains("ページが見つかりません", "src=\"/js/back-reload.js\"");
+	}
+
 	@ParameterizedTest(name = "year={0} season={1} → 「{2}」「{3}」、前は {4}、次は {5}")
 	@CsvSource(delimiter = '|', value = {
 			"2026|spring|2026年 春|（3月〜5月）|year=2025&amp;season=winter|year=2026&amp;season=summer",

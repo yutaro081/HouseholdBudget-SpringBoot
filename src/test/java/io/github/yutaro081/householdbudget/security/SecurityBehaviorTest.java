@@ -63,9 +63,29 @@ class SecurityBehaviorTest {
 	}
 
 	@ParameterizedTest(name = "未ログインでも {0} は開ける")
-	@ValueSource(strings = { "/login", "/register", "/css/style.css", "/css/bootstrap.min.css" })
+	@ValueSource(strings = { "/login", "/register", "/css/style.css", "/css/bootstrap.min.css",
+			"/js/back-reload.js" })
 	void publicUrlsAreOpen(String path) throws Exception {
 		mockMvc.perform(get(path)).andExpect(status().isOk());
+	}
+
+	// ---- 「戻る」で覚えていた画面を開き直す JavaScript（7.10、Q8-25・Q8-26） ----
+
+	private static final String BACK_RELOAD_TAG = "src=\"/js/back-reload.js\"";
+
+	@Test
+	void backReloadScriptReopensTheSameUrlWithGetWhenThePageComesFromTheBackForwardCache() throws Exception {
+		String js = mockMvc.perform(get("/js/back-reload.js")).andExpect(status().isOk())
+				.andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+		assertThat(js).contains("pageshow", "event.persisted", "window.location.replace(window.location.href)");
+		assertThat(js).as("再送信の確認が出るので reload() は使わない").doesNotContain("window.location.reload");
+	}
+
+	@ParameterizedTest(name = "未ログインの {0} の画面が script タグで JavaScript を読む")
+	@ValueSource(strings = { "/login", "/register" })
+	void screensWithoutLoginLoadTheBackReloadScript(String path) throws Exception {
+		assertThat(mockMvc.perform(get(path)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString())
+				.contains(BACK_RELOAD_TAG);
 	}
 
 	// ---- CSRF（7.6）：トークンなしの POST は 403 ----

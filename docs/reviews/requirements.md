@@ -74,7 +74,7 @@
 - Java
 - Spring Boot
 - MySQL
-- Bootstrap（見た目を整えるための CSS だけを使う。JavaScript は使わない）
+- Bootstrap（見た目を整えるための CSS だけを使う。Bootstrap の JavaScript は使わない）
 - VS Code
 - Git / GitHub
 - Claude Code

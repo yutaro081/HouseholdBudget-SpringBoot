@@ -11,6 +11,8 @@
     <!--/* Bootstrap の CSS（アプリの中に置く。CDN は使わない。JavaScript は入れない。設計書 1.2）を先に、自作の CSS を後に読む */-->
     <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}">
     <link rel="stylesheet" th:href="@{/css/style.css}">
+    <!--/* 「戻る」で覚えていた画面が出たとき、開き直す短い JavaScript（別ファイル。設計書 7.10）。ログイン前の画面でも読むので /js/** は誰でも開ける（7.3） */-->
+    <script defer th:src="@{/js/back-reload.js}"></script>
 </head>
 <body>
 
