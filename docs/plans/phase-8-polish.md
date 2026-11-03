@@ -1730,16 +1730,26 @@ WHERE NOT EXISTS (SELECT 1 FROM e
 
 ### 4.19 コミット前の確認と、コミット・push
 
-- [ ] `git status` で、含めたくないファイル（`target/`、`.env`、ダンプ、`application-local.properties`）が入っていない（7.9）
-- [ ] パスワード・実際の接続先・確認用アカウントのパスワードが、コード・設定・テスト・ドキュメントのどこにも書かれていない。次で確かめる：
+- [x] `git status` で、含めたくないファイル（`target/`、`.env`、ダンプ、`application-local.properties`）が入っていない（7.9）
+- [x] パスワード・実際の接続先・確認用アカウントのパスワードが、コード・設定・テスト・ドキュメントのどこにも書かれていない。次で確かめる：
 
 ```powershell
 git grep -n -i -e password -- . ":(exclude)docs" ":(exclude)mvnw" ":(exclude)mvnw.cmd"
 ```
 
   期待：Phase 7 のタグ（`phase-7-done`）の時点から**増えていない**こと（ダミーのハッシュを増やした場合は、何の行かを一覧にする）
-- [ ] 1つのタスクごとにコミットする（例：issue 001 の処理、整理、テストの追加、不具合の修正、文書）
+- [x] 1つのタスクごとにコミットする（例：issue 001 の処理、整理、テストの追加、不具合の修正、文書）
 - [ ] `git push` する
+
+（実施の記録・4.19 のコミット前の確認：2026年11月3日。Claude Code が読むだけで調べた。
+- **`git status`**：変更なし〔作業ツリーはきれい〕。追跡されているファイルに、`target/`・`.env`・`*.dump`・`*.bak`・`application-local.properties`・`backup/` はない。`.gitignore` で `target/`・`.env`・`application-local.properties` が無視されている。ブランチ `feature/phase-8-polish`、`main` より 19 コミット先〔`main` に取り込まれていない新しい変更はない〕。まだ push していない〔上流が未設定〕。
+- **秘密情報**：`git grep -n -i -e password -- . ":(exclude)docs" ":(exclude)mvnw" ":(exclude)mvnw.cmd"` は **103 行**〔`phase-7-done` の時点は 96 行。**7 行増えた**〕。増えた 7 行は、すべて**名前・説明・画面の部品**で、値ではない：画面の `type="password"` と「パスワード」の見出し〔Bootstrap のクラスを付けた `login.html`・`register.html`〕、`MessagesTest` のキーの名前 3 行〔`…registerForm.password`〕、`SecurityBehaviorTest` の引数名〔`password`〕。テストの入力に使う文字列〔`abcd1234` など〕は、実在するアカウントのものではない〔ダミー〕。
+- 接続先〔`jdbc:mysql://ホスト…/データベース名` の具体的な値〕、BCrypt のハッシュ〔`$2a$` など〕、鍵〔`PRIVATE KEY`〕、`api_key`、`secret=`：`docs` を除く全体で **0 件**。文書〔`docs`〕にも、接続先の具体的な値はない〔F1 で直した〕。パソコンの IP アドレスの具体的な値も、リポジトリにない。コミットメッセージにも `password`・`jdbc` はない。
+- **コミット**：Phase 8 の 19 コミットは、タスクごと〔issue 001、G1、Bootstrap、iPad の記録、F2 の修正、💮、今の季節、4.14、4.15、4.17・4.18〕に分かれている。
+- **変更の大きさ**〔`main` との差〕：62 ファイル、+3,622／−336。`src/main` と `src/test` が 47 ファイル〔+1,239／−250〕、文書 12 ファイル、`README.md`・`THIRD-PARTY-NOTICES.md`・`.gitattributes`。`schema.sql`・`pom.xml`・`application.properties` は変わっていない。
+- **ビルドとテスト**：`.\mvnw compile` は成功。`.\mvnw test` は 1348 件成功〔4.15 のあと、コードは変わっていない〕。
+- `git push` は、あなたが行う。）
+
 
 ### 4.20 「今の季節」に戻るボタンを足す（issue 007。Phase 8 の中で、4.10 のあと・4.14 の前に行う）
 
