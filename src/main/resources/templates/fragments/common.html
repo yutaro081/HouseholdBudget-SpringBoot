@@ -8,14 +8,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="${title}">タイトル</title>
+    <!--/* Bootstrap の CSS（アプリの中に置く。CDN は使わない。JavaScript は入れない。設計書 1.2）を先に、自作の CSS を後に読む */-->
+    <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}">
     <link rel="stylesheet" th:href="@{/css/style.css}">
+    <!--/* 「戻る」で覚えていた画面が出たとき、開き直す短い JavaScript（別ファイル。設計書 7.10）。ログイン前の画面でも読むので /js/** は誰でも開ける（7.3） */-->
+    <script defer th:src="@{/js/back-reload.js}"></script>
 </head>
 <body>
 
 <!--/* ヘッダー（ログイン後の全画面）：メニュー、ログイン中のユーザー名、ログアウトボタン（2.3）。
      メニューは、作った画面の分だけ出す（Q3-4）。ログアウトは POST のフォーム。th:action で CSRF のトークンが自動で入る（7.6） */-->
-<header th:fragment="header" class="app-header">
-    <nav class="menu">
+<header th:fragment="header" class="app-header bg-body-tertiary border-bottom">
+    <nav class="menu d-flex flex-wrap">
         <a th:href="@{/transactions}">取引一覧</a>
         <a th:href="@{/categories}">科目</a>
         <a th:href="@{/vendors}">取引先</a>
@@ -23,10 +27,10 @@
         <a th:href="@{/budgets}">予算</a>
         <a th:href="@{/comparison}">予実比較</a>
     </nav>
-    <div class="user-area">
+    <div class="user-area d-flex align-items-center gap-2">
         <span class="user-name" sec:authentication="name">ユーザー名</span>
         <form th:action="@{/logout}" method="post" class="logout-form">
-            <button type="submit">ログアウト</button>
+            <button type="submit" class="btn btn-outline-secondary btn-sm">ログアウト</button>
         </form>
     </div>
 </header>
@@ -34,8 +38,8 @@
 <!--/* 成功メッセージ・エラーメッセージの表示場所（画面の上部、2.3）。
      Controller が、messages.properties のキーを successMessageKey / errorMessageKey で渡す */-->
 <div th:fragment="messages">
-    <div class="message success" th:if="${successMessageKey}" th:text="${#messages.msg(successMessageKey)}">成功メッセージ</div>
-    <div class="message error" th:if="${errorMessageKey}" th:text="${#messages.msg(errorMessageKey)}">エラーメッセージ</div>
+    <div class="message success alert alert-success" th:if="${successMessageKey}" th:text="${#messages.msg(successMessageKey)}">成功メッセージ</div>
+    <div class="message error alert alert-danger" th:if="${errorMessageKey}" th:text="${#messages.msg(errorMessageKey)}">エラーメッセージ</div>
 </div>
 
 </body>

@@ -3,7 +3,7 @@
 <head th:replace="~{fragments/common :: head('取引の詳細')}"></head>
 <body>
 <header th:replace="~{fragments/common :: header}"></header>
-<main class="narrow">
+<main class="container narrow">
     <div th:replace="~{fragments/common :: messages}"></div>
 
     <h1>取引の詳細</h1>
@@ -27,10 +27,10 @@
     <!--/* 編集・削除のボタンは、この画面にだけ置く（U3）。
          削除の確認ダイアログの文言は固定。利用者の入力は埋め込まない（設計書 2.1、7.5）。th:action でトークンが入る（7.6） */-->
     <div class="button-row">
-        <a th:href="@{/transactions/{id}/edit(id=${transaction.id})}">編集</a>
+        <a class="btn btn-outline-secondary" th:href="@{/transactions/{id}/edit(id=${transaction.id})}">編集</a>
         <form th:action="@{/transactions/{id}/delete(id=${transaction.id})}" method="post"
               class="inline-form" onsubmit="return confirm('削除しますか？')">
-            <button type="submit">削除</button>
+            <button type="submit" class="btn btn-outline-danger">削除</button>
         </form>
     </div>
 

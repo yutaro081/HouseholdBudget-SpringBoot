@@ -115,7 +115,7 @@ class ComparisonServiceTest {
 
 		ComparisonResult result = compare(a, AUTUMN_2026);
 
-		// 手順書 4.9 の画面の確認と同じ値
+		// Phase 7 の手順書 4.9 の画面の確認と同じ値
 		assertThat(result.rows()).hasSize(3);
 		assertRow(result.rows().get(0), "交通費", 25_000L, 0, 25_000L, BudgetColor.BLUE);
 		assertRow(result.rows().get(1), "食費", 20_000L, 1_500, 18_500L, BudgetColor.BLUE);
@@ -164,6 +164,82 @@ class ComparisonServiceTest {
 		ComparisonResult result = compare(a, AUTUMN_2026);
 
 		assertRow(result.rows().get(0), "食費", 30_000L, 35_000, -5_000L, BudgetColor.RED);
+	}
+
+	// ---- 予算内の印（💮。Phase 8 の issue 005、Q8-27〜Q8-33） ----
+
+	/** 科目の行：色なしで、予算 ＞ 0・実績 ＞ 0・実績 ≦ 予算 の行だけ true（赤・青・予算0円・未設定・実績0円は false）。合計行にも同じ判定 */
+	@Test
+	void withinBudgetMarkIsOnlyOnTheNoColorRowsWithAnActual() {
+		Owner a = createOwner("cmptest20");
+		Category over = category(a, "超過");
+		Category exact = category(a, "ちょうど");
+		Category third = category(a, "三分の一");
+		Category justOver = category(a, "三分の一超");
+		Category zeroZero = category(a, "ゼロ");
+		Category zeroSpent = category(a, "ゼロ超過");
+		Category noSpending = category(a, "実績なし");
+		Category unset = category(a, "未設定");
+		budget(a, over, AUTUMN_2026, 30_000);
+		budget(a, exact, AUTUMN_2026, 30_000);
+		budget(a, third, AUTUMN_2026, 30_000);
+		budget(a, justOver, AUTUMN_2026, 30_000);
+		budget(a, zeroZero, AUTUMN_2026, 0);
+		budget(a, zeroSpent, AUTUMN_2026, 0);
+		budget(a, noSpending, AUTUMN_2026, 30_000);
+		spend(a, over, LocalDate.of(2026, 10, 1), 30_001);
+		spend(a, exact, LocalDate.of(2026, 10, 1), 30_000);
+		spend(a, third, LocalDate.of(2026, 10, 1), 10_000);
+		spend(a, justOver, LocalDate.of(2026, 10, 1), 10_001);
+		spend(a, zeroSpent, LocalDate.of(2026, 10, 1), 1);
+		spend(a, unset, LocalDate.of(2026, 10, 1), 5_000);
+
+		ComparisonResult result = compare(a, AUTUMN_2026);
+
+		assertThat(result.rows()).extracting(ComparisonRow::categoryName, ComparisonRow::withinBudget).containsExactly(
+				org.assertj.core.api.Assertions.tuple("超過", false),
+				org.assertj.core.api.Assertions.tuple("ちょうど", true),
+				org.assertj.core.api.Assertions.tuple("三分の一", false),
+				org.assertj.core.api.Assertions.tuple("三分の一超", true),
+				org.assertj.core.api.Assertions.tuple("ゼロ", false),
+				org.assertj.core.api.Assertions.tuple("ゼロ超過", false),
+				org.assertj.core.api.Assertions.tuple("実績なし", false),
+				org.assertj.core.api.Assertions.tuple("未設定", false));
+		// 合計：予算 30,000×5 ＝ 150,000円、実績 30,001＋30,000＋10,000＋10,001＋1＋5,000 ＝ 85,003円。85,003×3 ＞ 150,000 で、実績 ≦ 予算
+		assertRow(result.total(), null, 150_000L, 85_003, 64_997L, BudgetColor.NONE);
+		assertThat(result.total().withinBudget()).isTrue();
+	}
+
+	/** 合計行も、色の判定と同じ決まりで true／false になる（予算内、青、赤、全科目が未設定） */
+	@Test
+	void totalRowWithinBudgetMarkFollowsTheSameRule() {
+		Owner within = createOwner("cmptest21");
+		Category withinFood = category(within, "食費");
+		budget(within, withinFood, AUTUMN_2026, 30_000);
+		spend(within, withinFood, LocalDate.of(2026, 10, 1), 20_000);
+		assertThat(compare(within, AUTUMN_2026).total().withinBudget()).isTrue();
+
+		Owner blue = createOwner("cmptest22");
+		Category blueFood = category(blue, "食費");
+		budget(blue, blueFood, AUTUMN_2026, 30_000);
+		spend(blue, blueFood, LocalDate.of(2026, 10, 1), 1_000);
+		ComparisonResult blueResult = compare(blue, AUTUMN_2026);
+		assertThat(blueResult.total().color()).isEqualTo(BudgetColor.BLUE);
+		assertThat(blueResult.total().withinBudget()).isFalse();
+
+		Owner red = createOwner("cmptest23");
+		Category redFood = category(red, "食費");
+		budget(red, redFood, AUTUMN_2026, 30_000);
+		spend(red, redFood, LocalDate.of(2026, 10, 1), 30_001);
+		ComparisonResult redResult = compare(red, AUTUMN_2026);
+		assertThat(redResult.total().color()).isEqualTo(BudgetColor.RED);
+		assertThat(redResult.total().withinBudget()).isFalse();
+
+		Owner unset = createOwner("cmptest24");
+		spend(unset, category(unset, "食費"), LocalDate.of(2026, 10, 1), 5_000);
+		ComparisonResult unsetResult = compare(unset, AUTUMN_2026);
+		assertThat(unsetResult.total().budget()).isNull();
+		assertThat(unsetResult.total().withinBudget()).isFalse();
 	}
 
 	// ---- 予算が未設定 ----

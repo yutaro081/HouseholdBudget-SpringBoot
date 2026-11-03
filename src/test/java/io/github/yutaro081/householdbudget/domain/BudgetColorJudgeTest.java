@@ -120,11 +120,137 @@ class BudgetColorJudgeTest {
 		assertThat(BudgetColorJudge.judge(30_000L, 30_001L)).isEqualTo(BudgetColor.RED);
 	}
 
-	/** 手順書 4.9 の画面の確認：食費 予算20,000円・実績1,500円、合計 予算75,000円・実績1,500円 → どちらも青 */
+	/** Phase 7 の手順書 4.9 の画面の確認：食費 予算20,000円・実績1,500円、合計 予算75,000円・実績1,500円 → どちらも青 */
 	@Test
 	void browserCheckValues() {
 		assertThat(BudgetColorJudge.judge(20_000L, 1_500L)).isEqualTo(BudgetColor.BLUE);
 		assertThat(BudgetColorJudge.judge(75_000L, 1_500L)).isEqualTo(BudgetColor.BLUE);
+	}
+
+	// ================================================================
+	// 予算内の印（💮。Phase 8 の issue 005、設計書 5.9、Q8-27〜Q8-33）
+	// 色の判定で④（それ以外は色なし）に当たり、かつ予算が設定されていて、予算 ＞ 0、実績 ＞ 0 の行に付ける。
+	// 式にすると：予算が設定されていて、実績 ≦ 予算 かつ 実績 × 3 ＞ 予算。
+	// ================================================================
+
+	/** 設計書 5.9 の表の、💮 の列（予算が未設定の行は、下の unsetBudgetIsNeverWithin で確かめる） */
+	@ParameterizedTest(name = "予算 {0} ・実績 {1} → 💮 {2}")
+	@CsvSource({
+			"30000, 20000, true",
+			"30000, 30000, true",
+			"30000, 10001, true",
+			"30000, 10000, false",
+			"30000, 0,     false",
+			"30000, 30001, false",
+			"0,     1,     false",
+			"0,     0,     false"
+	})
+	void withinBudgetDesignTable(long budget, long actual, boolean expected) {
+		assertThat(BudgetColorJudge.isWithinBudget(budget, actual)).isEqualTo(expected);
+	}
+
+	/** 予算が未設定（null）なら、実績がいくつでも付けない */
+	@ParameterizedTest(name = "未設定・実績 {0} → 💮 なし")
+	@ValueSource(longs = { 0, 1, 5000, 3_000_000, 3_000_000_000L, Long.MAX_VALUE / 4 })
+	void unsetBudgetIsNeverWithin(long actual) {
+		assertThat(BudgetColorJudge.isWithinBudget(null, actual)).isFalse();
+	}
+
+	/** 予算ちょうど（実績 ＝ 予算）は付ける（Q8-29）。1円足りない・1円多い も確かめる */
+	@ParameterizedTest(name = "予算 30000 ・実績 {0} → 💮 {1}")
+	@CsvSource({
+			"29999, true",
+			"30000, true",
+			"30001, false"
+	})
+	void upperBoundaryIsTheBudgetItself(long actual, boolean expected) {
+		assertThat(BudgetColorJudge.isWithinBudget(30_000L, actual)).isEqualTo(expected);
+	}
+
+	/** 下の境界は、青との境目（ちょうど1/3は青で付けない。1円多いと付ける） */
+	@ParameterizedTest(name = "予算 30000 ・実績 {0} → 💮 {1}")
+	@CsvSource({
+			"9999,  false",
+			"10000, false",
+			"10001, true"
+	})
+	void lowerBoundaryIsTheOneThirdOfTheBudget(long actual, boolean expected) {
+		assertThat(BudgetColorJudge.isWithinBudget(30_000L, actual)).isEqualTo(expected);
+	}
+
+	/** 予算1円：実績0円は青、1円は付ける（1 × 3 ＞ 1 かつ 1 ≦ 1）、2円は赤 */
+	@ParameterizedTest(name = "予算 1 ・実績 {0} → 💮 {1}")
+	@CsvSource({
+			"0, false",
+			"1, true",
+			"2, false"
+	})
+	void budgetOfOneYen(long actual, boolean expected) {
+		assertThat(BudgetColorJudge.isWithinBudget(1L, actual)).isEqualTo(expected);
+	}
+
+	/** 予算が0円なら、実績が0円でも1円でも付けない（実績0円は色なし②、実績があれば赤） */
+	@ParameterizedTest(name = "予算 0 ・実績 {0} → 💮 なし")
+	@ValueSource(longs = { 0, 1, 1000 })
+	void zeroBudgetIsNeverWithin(long actual) {
+		assertThat(BudgetColorJudge.isWithinBudget(0L, actual)).isFalse();
+	}
+
+	/** 予算の上限3,000,000円 */
+	@ParameterizedTest(name = "予算 3000000 ・実績 {0} → 💮 {1}")
+	@CsvSource({
+			"0,       false",
+			"1000000, false",
+			"1000001, true",
+			"3000000, true",
+			"3000001, false"
+	})
+	void maximumBudgetForWithin(long actual, boolean expected) {
+		assertThat(BudgetColorJudge.isWithinBudget(3_000_000L, actual)).isEqualTo(expected);
+	}
+
+	/**
+	 * INT（約21億）を超える合計でも、あふれない（合計行。設計書 3.1）。
+	 * 「実績 × 3」を INT で計算すると、実績が1,000,000,001 のとき負の数にあふれて、付けるべき行を落とす。
+	 */
+	@ParameterizedTest(name = "予算 {0} ・実績 {1} → 💮 {2}")
+	@CsvSource({
+			"3000000000, 1000000000, false",
+			"3000000000, 1000000001, true",
+			"3000000000, 3000000000, true",
+			"3000000000, 3000000001, false",
+			"9000000000, 3000000000, false",
+			"9000000000, 3000000001, true"
+	})
+	void totalsBeyondIntRangeForWithin(long budget, long actual, boolean expected) {
+		assertThat(BudgetColorJudge.isWithinBudget(budget, actual)).isEqualTo(expected);
+	}
+
+	/**
+	 * 色の判定との整合：💮 が付くのは、色が「色なし」で、予算が設定されていて予算 ＞ 0、実績 ＞ 0 の行だけ（赤・青には付かない）。
+	 * 予算と実績の組み合わせを細かく並べて、すべてで確かめる（片方だけ直したときに食い違いに気づくため）。
+	 */
+	@Test
+	void withinBudgetIsExactlyTheNoColorRowsWithABudgetAndAnActual() {
+		long[] values = { 0, 1, 2, 3, 4, 5, 9, 10, 11, 29, 30, 31, 99, 100, 101, 299, 300, 301, 333, 334, 1000 };
+		for (long budget : values) {
+			for (long actual : values) {
+				boolean expected = BudgetColorJudge.judge(budget, actual) == BudgetColor.NONE && budget > 0 && actual > 0;
+				assertThat(BudgetColorJudge.isWithinBudget(budget, actual))
+						.as("予算 %d ・実績 %d（色は %s）", budget, actual, BudgetColorJudge.judge(budget, actual))
+						.isEqualTo(expected);
+			}
+		}
+		for (long actual : values) {
+			assertThat(BudgetColorJudge.isWithinBudget(null, actual)).as("未設定・実績 %d", actual).isFalse();
+		}
+	}
+
+	/** Phase 7 の手順書 4.9 の画面の確認の値：食費 予算20,000円・実績1,500円は青なので付けない。予算30,000円・実績20,000円は付ける */
+	@Test
+	void browserCheckValuesForWithin() {
+		assertThat(BudgetColorJudge.isWithinBudget(20_000L, 1_500L)).isFalse();
+		assertThat(BudgetColorJudge.isWithinBudget(30_000L, 20_000L)).isTrue();
 	}
 
 }

@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import io.github.yutaro081.householdbudget.entity.Category;
@@ -29,6 +30,7 @@ import jakarta.validation.Valid;
  * 画面に出す値（科目名など）は、テンプレートで th:text を使って出す（th:utext は使わない、設計書 7.5）。
  */
 @Controller
+@RequestMapping("/categories")
 public class CategoryController {
 
 	private final CategoryService categoryService;
@@ -38,7 +40,7 @@ public class CategoryController {
 	}
 
 	/** 科目の一覧（登録順）と、上の追加フォーム。 */
-	@GetMapping("/categories")
+	@GetMapping
 	public String list(@AuthenticationPrincipal LoginUser loginUser, Model model) {
 		model.addAttribute("categories", categoryService.list(loginUser.getUserId()));
 		model.addAttribute("categoryForm", new CategoryForm());
@@ -49,7 +51,7 @@ public class CategoryController {
 	 * 科目の追加。入力エラー・重複のときは、リダイレクトせずに一覧を表示し直す
 	 * （フォームに入力値とエラーを入れ、一覧は取り直して最新にする、設計書 6.9）。
 	 */
-	@PostMapping("/categories")
+	@PostMapping
 	public String add(@AuthenticationPrincipal LoginUser loginUser,
 			@Valid @ModelAttribute("categoryForm") CategoryForm categoryForm,
 			BindingResult bindingResult,
@@ -72,7 +74,7 @@ public class CategoryController {
 	}
 
 	/** 変更画面。今の名前の入ったフォームを表示する。 */
-	@GetMapping("/categories/{id}/edit")
+	@GetMapping("/{id}/edit")
 	public String showEdit(@AuthenticationPrincipal LoginUser loginUser, @PathVariable Long id, Model model) {
 		Category category = categoryService.get(loginUser.getUserId(), id);
 		model.addAttribute("categoryForm", new CategoryForm(category.getName()));
@@ -85,7 +87,7 @@ public class CategoryController {
 	 * 入力エラーのときでも、先に ID と user_id で探して、存在しない・他人の科目なら 404 にする
 	 * （入力が正しいときと間違っているときで、他人のデータの有無が分かる差を作らないため、設計書 7.8）。
 	 */
-	@PostMapping("/categories/{id}/edit")
+	@PostMapping("/{id}/edit")
 	public String edit(@AuthenticationPrincipal LoginUser loginUser,
 			@PathVariable Long id,
 			@Valid @ModelAttribute("categoryForm") CategoryForm categoryForm,
@@ -112,7 +114,7 @@ public class CategoryController {
 	 * 科目の削除。成功したら一覧へ戻る。削除できないときも、一覧へ戻り、理由を画面の上に表示する
 	 * （設計書 2.3、2.6）。確認ダイアログは、画面（ブラウザ）で行う。
 	 */
-	@PostMapping("/categories/{id}/delete")
+	@PostMapping("/{id}/delete")
 	public String delete(@AuthenticationPrincipal LoginUser loginUser,
 			@PathVariable Long id,
 			RedirectAttributes redirectAttributes) {

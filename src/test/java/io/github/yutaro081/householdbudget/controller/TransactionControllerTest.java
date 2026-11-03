@@ -256,7 +256,7 @@ class TransactionControllerTest {
 
 	@Test
 	void listShowsSuccessMessage() throws Exception {
-		for (String[] pair : new String[][] { { "success.registered", "登録しました" },
+		for (String[] pair : new String[][] { { "success.transactionRegistered", "登録しました" },
 				{ "success.transactionUpdated", "更新しました" }, { "success.deleted", "削除しました" } }) {
 			String body = body(mockMvc.perform(get("/transactions").with(asA).flashAttr("successMessageKey", pair[0])).andReturn());
 			assertThat(body).contains(pair[1]);
@@ -350,7 +350,7 @@ class TransactionControllerTest {
 		mockMvc.perform(valid(post("/transactions/new"), a).with(asA))
 				.andExpect(status().is3xxRedirection())
 				.andExpect(redirectedUrl("/transactions"))
-				.andExpect(flash().attribute("successMessageKey", "success.registered"));
+				.andExpect(flash().attribute("successMessageKey", "success.transactionRegistered"));
 
 		List<Transaction> list = transactionsOf(a);
 		assertThat(list).hasSize(1);

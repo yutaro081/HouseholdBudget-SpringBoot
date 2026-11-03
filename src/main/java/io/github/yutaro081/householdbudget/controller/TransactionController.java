@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.InitBinder;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import io.github.yutaro081.householdbudget.entity.Transaction;
@@ -36,6 +37,7 @@ import jakarta.validation.Valid;
  * 画面に出す値（摘要、科目名など）は、テンプレートで th:text を使って出す（th:utext は使わない、設計書 7.5）。
  */
 @Controller
+@RequestMapping("/transactions")
 public class TransactionController {
 
 	private final TransactionService transactionService;
@@ -66,14 +68,14 @@ public class TransactionController {
 	}
 
 	/** 取引の一覧（日付の新しい順、同じ日は登録の新しい順）。 */
-	@GetMapping("/transactions")
+	@GetMapping
 	public String list(@AuthenticationPrincipal LoginUser loginUser, Model model) {
 		model.addAttribute("transactions", transactionService.list(loginUser.getUserId()));
 		return "transactions/list";
 	}
 
 	/** 登録フォーム。日付の最初の値は今日（U7）。 */
-	@GetMapping("/transactions/new")
+	@GetMapping("/new")
 	public String showNew(@AuthenticationPrincipal LoginUser loginUser, Model model) {
 		TransactionForm form = new TransactionForm();
 		form.setTransactionDate(LocalDate.now(clock));
@@ -86,7 +88,7 @@ public class TransactionController {
 	 * 取引の登録。入力エラーのときは、リダイレクトせずにフォームを表示し直す
 	 * （入力値を残し、プルダウンの選択肢を取り直して、選んでいた値を残す、設計書 6.7、6.9）。
 	 */
-	@PostMapping("/transactions/new")
+	@PostMapping("/new")
 	public String register(@AuthenticationPrincipal LoginUser loginUser,
 			@Valid @ModelAttribute("transactionForm") TransactionForm transactionForm,
 			BindingResult bindingResult,
@@ -98,19 +100,19 @@ public class TransactionController {
 			return "transactions/form";
 		}
 		transactionService.register(userId, transactionForm);
-		redirectAttributes.addFlashAttribute("successMessageKey", "success.registered");
+		redirectAttributes.addFlashAttribute("successMessageKey", "success.transactionRegistered");
 		return "redirect:/transactions";
 	}
 
 	/** 取引の詳細。編集・削除のボタンは、ここにだけ置く（U3）。 */
-	@GetMapping("/transactions/{id}")
+	@GetMapping("/{id}")
 	public String detail(@AuthenticationPrincipal LoginUser loginUser, @PathVariable Long id, Model model) {
 		model.addAttribute("transaction", transactionService.get(loginUser.getUserId(), id));
 		return "transactions/detail";
 	}
 
 	/** 編集画面。登録済みの値の入ったフォームを表示する。 */
-	@GetMapping("/transactions/{id}/edit")
+	@GetMapping("/{id}/edit")
 	public String showEdit(@AuthenticationPrincipal LoginUser loginUser, @PathVariable Long id, Model model) {
 		Long userId = loginUser.getUserId();
 		Transaction transaction = transactionService.get(userId, id);
@@ -124,7 +126,7 @@ public class TransactionController {
 	 * 入力エラーのときでも、先に ID と user_id で探して、存在しない・他人の取引なら 404 にする
 	 * （入力が正しいときと間違っているときで、他人のデータの有無が分かる差を作らないため、設計書 7.8）。
 	 */
-	@PostMapping("/transactions/{id}/edit")
+	@PostMapping("/{id}/edit")
 	public String update(@AuthenticationPrincipal LoginUser loginUser,
 			@PathVariable Long id,
 			@Valid @ModelAttribute("transactionForm") TransactionForm transactionForm,
@@ -144,7 +146,7 @@ public class TransactionController {
 	}
 
 	/** 取引の削除。成功したら一覧へ戻る。確認ダイアログは、画面（ブラウザ）で行う。 */
-	@PostMapping("/transactions/{id}/delete")
+	@PostMapping("/{id}/delete")
 	public String delete(@AuthenticationPrincipal LoginUser loginUser,
 			@PathVariable Long id,
 			RedirectAttributes redirectAttributes) {

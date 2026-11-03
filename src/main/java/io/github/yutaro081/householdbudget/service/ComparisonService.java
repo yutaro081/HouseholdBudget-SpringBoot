@@ -100,7 +100,8 @@ public class ComparisonService {
 	private static ComparisonRow row(String name, Long budget, long actual) {
 		Long difference = budget == null ? null : budget - actual;
 		BudgetColor color = BudgetColorJudge.judge(budget, actual);
-		return new ComparisonRow(name, budget, actual, difference, color);
+		boolean withinBudget = BudgetColorJudge.isWithinBudget(budget, actual);
+		return new ComparisonRow(name, budget, actual, difference, color, withinBudget);
 	}
 
 }

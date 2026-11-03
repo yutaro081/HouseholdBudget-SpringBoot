@@ -19,9 +19,8 @@ import jakarta.validation.constraints.NotNull;
  */
 public class BudgetForm {
 
-	/** 科目ごとの行。画面の並び（科目の登録順）で送られる。行の中の注釈が働くように @Valid を付ける。 */
-	@Valid
-	private List<Row> rows = new ArrayList<>();
+	/** 科目ごとの行。画面の並び（科目の登録順）で送られる。行の中の注釈が働くように、型引数に @Valid を付ける（List<@Valid Row>。Phase 8 の Q8-7）。 */
+	private List<@Valid Row> rows = new ArrayList<>();
 
 	public BudgetForm() {
 	}

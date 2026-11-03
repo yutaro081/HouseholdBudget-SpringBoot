@@ -50,7 +50,7 @@ class MessagesTest {
 			"NotNull.transactionForm.paymentMethodId|支払方法を選択してください",
 			"typeMismatch.transactionForm.paymentMethodId|支払方法を選択してください",
 			"Size.transactionForm.description|摘要は30文字以内で入力してください",
-			"success.registered|登録しました",
+			"success.transactionRegistered|登録しました",
 			"success.transactionUpdated|更新しました",
 			"NotNull.budgetForm.rows.amount|予算額を入力してください",
 			"typeMismatch.budgetForm.rows.amount|予算額は整数で入力してください",
@@ -63,7 +63,18 @@ class MessagesTest {
 			"season.winter|冬",
 			"error.limit.category|科目は256個までです",
 			"error.limit.vendor|取引先は256個までです",
-			"error.limit.paymentMethod|支払方法は256個までです"
+			"error.limit.paymentMethod|支払方法は256個までです",
+			// アカウント登録・ログイン・ログアウト（Phase 8 の 4.14。4.7 で、登録画面の文が確かめられていないと分かった）
+			"NotBlank.registerForm.username|ユーザー名を入力してください",
+			"Pattern.registerForm.username|ユーザー名は半角英数字で入力してください",
+			"Size.registerForm.username|ユーザー名は10文字以内で入力してください",
+			"NotEmpty.registerForm.password|パスワードを入力してください",
+			"Pattern.registerForm.password|パスワードは半角の英数字と記号で入力してください",
+			"Size.registerForm.password|パスワードは8文字以上30文字以内で入力してください",
+			"error.duplicate.user|このユーザー名はすでに使われています",
+			"error.login.failed|ユーザー名またはパスワードが違います",
+			"success.accountRegistered|登録しました。ログインしてください",
+			"success.logout|ログアウトしました"
 	})
 	void messageText(String key, String expected) {
 		assertThat(messageSource.getMessage(key, null, Locale.JAPAN)).isEqualTo(expected);

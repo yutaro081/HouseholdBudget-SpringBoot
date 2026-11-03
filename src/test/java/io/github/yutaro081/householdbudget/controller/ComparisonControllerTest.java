@@ -163,6 +163,28 @@ class ComparisonControllerTest {
 		assertThat(body).contains("href=\"/comparison?year=2027&amp;season=spring\">次の季節");
 	}
 
+	/** 「戻る」で覚えていた画面を開き直す JavaScript（別ファイル。設計書 7.10）を、ログイン中の画面も読む */
+	@Test
+	void loadsTheBackReloadScriptAsAnExternalFile() throws Exception {
+		Owner a = createOwner("ctrlcmp4");
+
+		String body = open(a, null, null);
+
+		assertThat(body).contains("src=\"/js/back-reload.js\"");
+		assertThat(body).doesNotContainPattern("<script(?![^>]*\ssrc=)");
+	}
+
+	/** エラー画面（404）も同じ枠なので、JavaScript を読む */
+	@Test
+	void errorScreenLoadsTheBackReloadScriptToo() throws Exception {
+		Owner a = createOwner("ctrlcmp5");
+
+		String body = mockMvc.perform(get("/comparison").param("year", "1999").param("season", "winter").with(a.login()))
+				.andExpect(status().isNotFound()).andReturn().getResponse().getContentAsString();
+
+		assertThat(body).contains("ページが見つかりません", "src=\"/js/back-reload.js\"");
+	}
+
 	@ParameterizedTest(name = "year={0} season={1} → 「{2}」「{3}」、前は {4}、次は {5}")
 	@CsvSource(delimiter = '|', value = {
 			"2026|spring|2026年 春|（3月〜5月）|year=2025&amp;season=winter|year=2026&amp;season=summer",
@@ -199,6 +221,95 @@ class ComparisonControllerTest {
 		String afterFirst = open(a, "2000", "winter");
 		assertThat(afterFirst).contains("href=\"/comparison?year=2001&amp;season=spring\">次の季節",
 				"href=\"/comparison?year=2000&amp;season=autumn\">前の季節");
+	}
+
+	// ================================================================
+	// 年と季節を選ぶ欄（GET のフォーム。設計書 2.4、Phase 8 の G1）
+	// ================================================================
+
+	/** 季節を指定しないときは、今の季節（固定した Clock：2026年の冬）が選ばれている */
+	@Test
+	void seasonSelectShowsTheCurrentSeasonWhenNotSpecified() throws Exception {
+		Owner a = createOwner("ctrlcmp4");
+		category(a, "食費");
+
+		SeasonSelectAssertions.assertSeasonSelect(open(a, null, null), "/comparison", 2026, "winter");
+	}
+
+	@ParameterizedTest(name = "year={0} season={1} のとき、選ばれているのは同じ年と季節")
+	@CsvSource({ "2026,spring", "2026,summer", "2026,autumn", "2026,winter", "2000,spring", "2100,winter", "2027,winter" })
+	void seasonSelectShowsTheDisplayedSeason(int year, String season) throws Exception {
+		Owner a = createOwner("ctrlcmp5");
+
+		SeasonSelectAssertions.assertSeasonSelect(open(a, String.valueOf(year), season), "/comparison", year, season);
+	}
+
+	/** 範囲の端でも選ぶ欄は出る（リンクだけが、範囲外を指さないように出ない）。前・次のリンクも残っている */
+	@Test
+	void seasonSelectIsShownAtTheEdgesAndTheLinksRemain() throws Exception {
+		Owner a = createOwner("ctrlcmp6");
+
+		String first = open(a, "2000", "spring");
+		assertThat(first).doesNotContain("前の季節").contains("次の季節");
+		SeasonSelectAssertions.assertSeasonSelect(first, "/comparison", 2000, "spring");
+
+		String last = open(a, "2100", "winter");
+		assertThat(last).doesNotContain("次の季節").contains("前の季節");
+		SeasonSelectAssertions.assertSeasonSelect(last, "/comparison", 2100, "winter");
+	}
+
+	/** 科目が0件でも、選ぶ欄は出る（案内と一緒に） */
+	@Test
+	void seasonSelectIsShownEvenWithoutCategories() throws Exception {
+		Owner a = createOwner("ctrlcmp7");
+
+		String body = open(a, null, null);
+
+		assertThat(body).contains("先に科目を追加してください");
+		SeasonSelectAssertions.assertSeasonSelect(body, "/comparison", 2026, "winter");
+	}
+
+	// ================================================================
+	// 「今の季節」ボタン（Phase 8 の issue 007、設計書 2.4）
+	// ================================================================
+
+	/** 季節を指定しないとき（今の季節を見ているとき）も、ほかの季節を見ているときも、出る */
+	@ParameterizedTest(name = "「今の季節」が出る：year={0} season={1}")
+	@CsvSource(nullValues = "none", value = { "none,none", "2026,winter", "2030,summer", "2027,winter" })
+	void currentSeasonLinkIsShownWhetherOrNotTheCurrentSeasonIsDisplayed(String year, String season) throws Exception {
+		Owner a = createOwner("ctrlcmp8");
+		category(a, "食費");
+
+		SeasonSelectAssertions.assertCurrentSeasonLink(open(a, year, season), "/comparison");
+	}
+
+	/** 範囲の端（2000年春、2100年冬）でも出る */
+	@ParameterizedTest(name = "範囲の端でも「今の季節」が出る：{0}年 {1}")
+	@CsvSource({ "2000,spring", "2100,winter" })
+	void currentSeasonLinkIsShownAtTheEdges(String year, String season) throws Exception {
+		Owner a = createOwner("ctrlcmp9");
+
+		SeasonSelectAssertions.assertCurrentSeasonLink(open(a, year, season), "/comparison");
+	}
+
+	/** 科目が0件でも、見出しの行は出るので、ボタンも出る（案内と一緒に） */
+	@Test
+	void currentSeasonLinkIsShownEvenWithoutCategories() throws Exception {
+		Owner a = createOwner("ctrlcmp10");
+
+		String body = open(a, null, null);
+
+		assertThat(body).contains("先に科目を追加してください");
+		SeasonSelectAssertions.assertCurrentSeasonLink(body, "/comparison");
+	}
+
+	/** 選ぶ欄の送り先は、リンクと同じ形の URL。年と季節の組み合わせ（端を含む）を送ると、その季節が開く */
+	@ParameterizedTest(name = "選ぶ欄から year={0} season={1} を送ると、その季節が開く")
+	@CsvSource({ "2000,spring", "2000,winter", "2100,spring", "2100,winter", "2026,summer" })
+	void submittingTheSeasonSelectOpensThatSeason(String year, String season) throws Exception {
+		Owner a = createOwner("ctrlcmp8");
+
+		assertThat(open(a, year, season)).contains(year + "年 ");
 	}
 
 	// ================================================================
@@ -290,26 +401,214 @@ class ComparisonControllerTest {
 	}
 
 	// ================================================================
+	// 予算内の印（💮。Phase 8 の issue 005、設計書 2.3、5.9、Q8-27〜Q8-34）：新しい右端の列
+	// ================================================================
+
+	private static final String MARK = "<span aria-hidden=\"true\">💮</span><span class=\"visually-hidden\">予算内</span>";
+
+	/** 表の本体（&lt;tbody&gt; の中）。注記の 💮 を含めずに、行だけを調べるため */
+	private static String tbodyOf(String body) {
+		int start = body.indexOf("<tbody>");
+		assertThat(start).as("表の本体がある").isGreaterThanOrEqualTo(0);
+		return body.substring(start, body.indexOf("</tbody>", start));
+	}
+
+	/** 行の右端のセル（最後の &lt;td&gt;） */
+	private static String lastCellOf(String row) {
+		return row.substring(row.lastIndexOf("<td"));
+	}
+
+	private static int count(String text, String part) {
+		return text.split(java.util.regex.Pattern.quote(part), -1).length - 1;
+	}
+
+	/** 予算内の行（色なしで実績がある。ちょうども）と合計行の右端のセルに出る。赤・青・予算が未設定・実績0円の行には出ない */
+	@Test
+	void withinBudgetRowsGetTheMarkInTheRightmostCell() throws Exception {
+		Owner a = createOwner("ctrlcmp11");
+		autumn(a, category(a, "超過"), 5_000, 6_000);        // 赤
+		autumn(a, category(a, "余裕"), 20_000, 1_500);       // 青
+		autumn(a, category(a, "ふつう"), 10_000, 5_000);     // 予算内（5,000×3 ＞ 10,000）
+		autumn(a, category(a, "ちょうど"), 10_000, 10_000);  // 予算ちょうども予算内（Q8-29）
+		autumn(a, category(a, "予算なし"), null, 700);        // 予算が未設定
+		autumn(a, category(a, "実績なし"), 10_000, 0);        // 実績が0円（青）
+
+		String body = open(a, "2026", "autumn");
+
+		assertThat(lastCellOf(rowOf(body, "ふつう"))).contains(MARK);
+		assertThat(lastCellOf(rowOf(body, "ちょうど"))).contains(MARK);
+		for (String name : new String[] { "超過", "余裕", "予算なし", "実績なし" }) {
+			assertThat(rowOf(body, name)).as(name).doesNotContain("💮", "予算内");
+		}
+		// 合計：予算 5,000＋20,000＋10,000＋10,000＋10,000 ＝ 55,000円、実績 6,000＋1,500＋5,000＋10,000＋700 ＝ 23,200円 → 色なしで予算内
+		String total = rowOf(body, "合計");
+		assertThat(lastCellOf(total)).contains(MARK);
+		assertThat(count(tbodyOf(body), "💮")).as("ふつう・ちょうど・合計の3か所").isEqualTo(3);
+	}
+
+	/** 既存のセル（科目・予算・実績・差額）は変えず、右端に5つ目のセルを足す。印のない行のセルは空 */
+	@Test
+	void everyRowHasFiveCellsAndTheOldCellsAreUnchanged() throws Exception {
+		Owner a = createOwner("ctrlcmp12");
+		autumn(a, category(a, "ふつう"), 10_000, 5_000);
+		autumn(a, category(a, "余裕"), 20_000, 1_500);
+
+		String body = open(a, "2026", "autumn");
+
+		for (String name : new String[] { "ふつう", "余裕", "合計" }) {
+			assertThat(count(rowOf(body, name), "<td")).as(name).isEqualTo(5);
+		}
+		assertThat(rowOf(body, "ふつう")).contains("<td class=\"num\">10,000円</td>", "<td class=\"num\">5,000円</td>");
+		assertThat(lastCellOf(rowOf(body, "余裕"))).doesNotContain("💮", "visually-hidden");
+	}
+
+	/** 見出しの行は5列で、右端の見出しは画面に出さず、読み上げ用に「評価」とだけ添える（Q8-30、Q8-31） */
+	@Test
+	void theHeaderHasAFifthColumnThatIsOnlyReadAloud() throws Exception {
+		Owner a = createOwner("ctrlcmp13");
+		autumn(a, category(a, "食費"), 10_000, 5_000);
+
+		String body = open(a, "2026", "autumn");
+
+		String head = body.substring(body.indexOf("<thead>") + "<thead>".length(), body.indexOf("</thead>"));
+		assertThat(count(head, "<th")).isEqualTo(5);
+		assertThat(head).contains("<th><span class=\"visually-hidden\">評価</span></th>");
+	}
+
+	/** 絵文字は飾りとして読ませず（aria-hidden）、「予算内」を画面に出さない文字で添える（Q8-31） */
+	@Test
+	void theMarkIsHiddenFromScreenReadersAndReadAsWithinBudget() throws Exception {
+		Owner a = createOwner("ctrlcmp14");
+		autumn(a, category(a, "食費"), 10_000, 5_000);
+
+		String body = open(a, "2026", "autumn");
+
+		assertThat(rowOf(body, "食費")).contains("<span aria-hidden=\"true\">💮</span>", "<span class=\"visually-hidden\">予算内</span>");
+	}
+
+	/** 色の注記に 💮 の説明を足す。先頭の今までの文字列は、そのまま残る（Q8-32） */
+	@Test
+	void theLegendExplainsTheMark() throws Exception {
+		Owner a = createOwner("ctrlcmp15");
+		autumn(a, category(a, "食費"), 10_000, 5_000);
+
+		String body = open(a, "2026", "autumn");
+
+		assertThat(body).contains("赤：予算超過／青：予算の1/3以下／💮：予算内（予算の1/3を超え、予算以下）");
+		assertThat(body).contains("赤：予算超過／青：予算の1/3以下");
+	}
+
+	/** 予算が設定されていない季節（全科目が未設定）は、科目の行にも合計行にも出ない。科目が0件なら表ごと出ない */
+	@Test
+	void noMarkWhenNothingIsWithinBudget() throws Exception {
+		Owner a = createOwner("ctrlcmp16");
+		autumn(a, category(a, "食費"), 20_000, 5_000);
+
+		String unsetSeason = open(a, "2026", "winter");
+		assertThat(tbodyOf(unsetSeason)).doesNotContain("💮", "予算内");
+
+		Owner empty = createOwner("ctrlcmp17");
+		String noCategories = open(empty, "2026", "autumn");
+		assertThat(noCategories).doesNotContain("<table", "💮");
+	}
+
+	/** 💮 の行（科目の行も合計行も）だけが row-within。ちょうどの行も付く。赤・青・未設定・実績0円・予算0円の行には付かない（Q8-39） */
+	@Test
+	void onlyTheWithinBudgetRowsGetTheRowWithinClass() throws Exception {
+		Owner a = createOwner("ctrlcmp18");
+		autumn(a, category(a, "超過"), 5_000, 6_000);          // 赤
+		autumn(a, category(a, "余裕"), 20_000, 1_500);         // 青
+		autumn(a, category(a, "ふつう"), 10_000, 5_000);       // 予算内
+		autumn(a, category(a, "ちょうど"), 10_000, 10_000);    // 予算ちょうど：予算内（Q8-29）
+		autumn(a, category(a, "予算なし"), null, 700);          // 未設定
+		autumn(a, category(a, "実績なし"), 10_000, 0);          // 実績0円（青）
+		autumn(a, category(a, "ゼロ"), 0, 0);                  // 予算0円・実績0円（色なし）
+
+		String body = open(a, "2026", "autumn");
+
+		assertThat(rowOf(body, "ふつう")).startsWith("<tr class=\"row-within\">");
+		assertThat(rowOf(body, "ちょうど")).startsWith("<tr class=\"row-within\">");
+		assertThat(rowOf(body, "合計")).startsWith("<tr class=\"total-row row-within\">");
+		assertThat(rowOf(body, "超過")).startsWith("<tr class=\"row-over\">").doesNotContain("row-within");
+		assertThat(rowOf(body, "余裕")).startsWith("<tr class=\"row-low\">").doesNotContain("row-within");
+		for (String name : new String[] { "予算なし", "実績なし", "ゼロ" }) {
+			assertThat(rowOf(body, name)).as(name).doesNotContain("row-within");
+		}
+		assertThat(rowOf(body, "予算なし")).startsWith("<tr>");
+		assertThat(rowOf(body, "ゼロ")).startsWith("<tr>");
+		assertThat(count(tbodyOf(body), "row-within")).as("ふつう・ちょうど・合計の3か所").isEqualTo(3);
+	}
+
+	/** 合計行が赤・青のときは row-within は付かず、赤・青のクラスだけ（背景と文字の色は重ならない） */
+	@Test
+	void totalRowKeepsItsColorClassWhenItIsNotWithinBudget() throws Exception {
+		Owner blue = createOwner("ctrlcmp19");
+		autumn(blue, category(blue, "食費"), 30_000, 1_000);
+		assertThat(rowOf(open(blue, "2026", "autumn"), "合計")).startsWith("<tr class=\"total-row row-low\">");
+
+		Owner red = createOwner("ctrlcmp20");
+		autumn(red, category(red, "食費"), 30_000, 30_001);
+		assertThat(rowOf(open(red, "2026", "autumn"), "合計")).startsWith("<tr class=\"total-row row-over\">");
+	}
+
+	/** 右端のセルは、印のある行もない行も class="text-center within-mark"（大きさは CSS で指定する。Q8-38） */
+	@Test
+	void theRightmostCellHasTheMarkClass() throws Exception {
+		Owner a = createOwner("ctrlcmp21");
+		autumn(a, category(a, "ふつう"), 10_000, 5_000);
+		autumn(a, category(a, "余裕"), 20_000, 1_500);
+
+		String body = open(a, "2026", "autumn");
+
+		for (String name : new String[] { "ふつう", "余裕", "合計" }) {
+			assertThat(lastCellOf(rowOf(body, name))).as(name).startsWith("<td class=\"text-center within-mark\">");
+		}
+	}
+
+	/** style.css に、row-within と within-mark の規則がある（クラス名の食い違いに気づくため。値は確かめない） */
+	@Test
+	void styleSheetHasTheRulesForTheWithinBudgetRowAndMark() throws Exception {
+		String css = mockMvc.perform(get("/css/style.css")).andExpect(status().isOk())
+				.andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+
+		assertThat(css).contains(".comparison-table tr.row-within", "--bs-table-bg", ".comparison-table td.within-mark", "font-size");
+	}
+
+	/** XSS 対策（設計書 7.5）：科目名の < > は文字として出る。タグとしては出ない（科目名が表の行に出る画面。Phase 8 の 4.14） */
+	@Test
+	void categoryNamesAreEscaped() throws Exception {
+		Owner a = createOwner("ctrlcmp22");
+		autumn(a, category(a, "<b>x</b>"), 10_000, 5_000);
+		autumn(a, category(a, "<script>"), 10_000, 5_000);   // 科目名は10文字まで
+
+		String body = open(a, "2026", "autumn");
+
+		assertThat(body).contains("&lt;b&gt;x&lt;/b&gt;", "&lt;script&gt;");
+		assertThat(body).doesNotContain("<b>x</b>");
+		assertThat(body.replace("<script defer", "")).as("科目名の <script> がタグとして出ていない（画面の枠の script は src 付き）").doesNotContain("<script>");
+	}
+
+	// ================================================================
 	// 色：行の文字全体に付ける（F4）。合計行も同じ
 	// ================================================================
 
-	/** 赤・青・色なし・予算が未設定の行（色なし）。クラスは <tr> に付く（行の文字全体に効く） */
+	/** 赤・青・色なし（予算内の 💮 の行と、予算が未設定の行）。クラスは <tr> に付く（行の文字全体に効く）。予算内の行は row-within（背景。Q8-39） */
 	@Test
 	void colorClassIsOnTheWholeRow() throws Exception {
 		Owner a = createOwner("ctrlcmp9");
 		autumn(a, category(a, "超過"), 5_000, 6_000);       // 赤
 		autumn(a, category(a, "余裕"), 20_000, 1_500);      // 青
-		autumn(a, category(a, "ふつう"), 10_000, 5_000);    // 色なし（5,000×3 ＞ 10,000）
-		autumn(a, category(a, "予算なし"), null, 700);       // 予算が未設定：色なし
+		autumn(a, category(a, "ふつう"), 10_000, 5_000);    // 色なしで予算内（5,000×3 ＞ 10,000）：row-within
+		autumn(a, category(a, "予算なし"), null, 700);       // 予算が未設定：色なし、クラスなし
 
 		String body = open(a, "2026", "autumn");
 
 		assertThat(rowOf(body, "超過")).startsWith("<tr class=\"row-over\">");
 		assertThat(rowOf(body, "余裕")).startsWith("<tr class=\"row-low\">");
-		assertThat(rowOf(body, "ふつう")).startsWith("<tr>");
+		assertThat(rowOf(body, "ふつう")).startsWith("<tr class=\"row-within\">");
 		assertThat(rowOf(body, "予算なし")).startsWith("<tr>");
-		// 合計行：予算 35,000、実績 13,200 → 色なし（13,200×3 ＞ 35,000）
-		assertThat(rowOf(body, "合計")).startsWith("<tr class=\"total-row\">");
+		// 合計行：予算 35,000、実績 13,200 → 色なしで予算内（13,200×3 ＞ 35,000）：total-row row-within
+		assertThat(rowOf(body, "合計")).startsWith("<tr class=\"total-row row-within\">");
 	}
 
 	@Test

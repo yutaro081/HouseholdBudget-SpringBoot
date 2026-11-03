@@ -3,52 +3,60 @@
 <head th:replace="~{fragments/common :: head('予実比較')}"></head>
 <body>
 <header th:replace="~{fragments/common :: header}"></header>
-<main>
+<main class="container">
     <h1>予実比較</h1>
 
     <!--/* 見出し（年・季節・期間）と、前・次の季節のリンク。範囲の端ではリンクを出さない（設計書 2.4）。予算設定と共有する部品 */-->
     <div th:replace="~{fragments/season :: nav(${comparison.period}, ${comparison.previous}, ${comparison.next}, '/comparison')}"></div>
 
     <!--/* 科目が0件のときは、案内を出して、表と合計行は出さない（設計書 2.3、Q7-7 の A） */-->
-    <div class="notice" th:if="${#lists.isEmpty(comparison.rows)}">
+    <div class="notice alert alert-warning" th:if="${#lists.isEmpty(comparison.rows)}">
         <p>先に科目を追加してください。<a th:href="@{/categories}">科目の画面へ</a></p>
     </div>
 
     <!--/* 科目ごとの予算・実績・差額（科目の登録順）と、最下行の合計行。
          金額は 30,000円、差額のマイナスは -5,000円 の形（設計書 2.3、3.7）。予算が未設定なら「未設定」、差額は空欄。
          色は行の文字全体に付ける（F4）：赤は row-over、青は row-low、色なしはクラスなし。合計行も同じ。
-         色の判定は BudgetColorJudge で済んでいて、ここでは判定しない。文言はテンプレートに直接書く（Q7-5）。
+         予算内の印（💮。Phase 8 の issue 005、設計書 2.3）は、右端の列に出す。row.withinBudget が true の行（合計行も）だけ。
+         その行には row-within を付け、背景を薄い緑にする（赤・青は文字の色なので重ならない）。右端のセルの within-mark で 💮 を大きくする（style.css）。
+         絵文字は読み上げに使わず（aria-hidden）、「予算内」を画面に出さない文字（visually-hidden）で添える。見出しの「評価」も同じ。
+         色の判定も 💮 の判定も BudgetColorJudge で済んでいて、ここでは判定しない。文言はテンプレートに直接書く（Q7-5）。
          科目名は th:text で出す。th:utext は使わない（7.5） */-->
     <th:block th:unless="${#lists.isEmpty(comparison.rows)}">
-        <table class="list comparison-table">
+        <div class="table-responsive">
+            <table class="list comparison-table table align-middle">
             <thead>
             <tr>
                 <th>科目</th>
                 <th class="num">予算</th>
                 <th class="num">実績</th>
                 <th class="num">差額</th>
+                <th><span class="visually-hidden">評価</span></th>
             </tr>
             </thead>
             <tbody>
             <tr th:each="row : ${comparison.rows}"
-                th:classappend="${row.color.name() == 'RED'} ? 'row-over' : (${row.color.name() == 'BLUE'} ? 'row-low')">
+                th:classappend="${row.color.name() == 'RED'} ? 'row-over' : (${row.color.name() == 'BLUE'} ? 'row-low' : (${row.withinBudget} ? 'row-within'))">
                 <td th:text="${row.categoryName}">食費</td>
                 <td class="num" th:text="${row.budget != null} ? |${#numbers.formatInteger(row.budget, 1, 'COMMA')}円| : '未設定'">30,000円</td>
                 <td class="num" th:text="|${#numbers.formatInteger(row.actual, 1, 'COMMA')}円|">1,500円</td>
                 <td class="num" th:text="${row.difference != null} ? |${#numbers.formatInteger(row.difference, 1, 'COMMA')}円| : ''">28,500円</td>
+                <td class="text-center within-mark"><th:block th:if="${row.withinBudget}"><span aria-hidden="true">💮</span><span class="visually-hidden">予算内</span></th:block></td>
             </tr>
             <tr class="total-row"
-                th:classappend="${comparison.total.color.name() == 'RED'} ? 'row-over' : (${comparison.total.color.name() == 'BLUE'} ? 'row-low')">
+                th:classappend="${comparison.total.color.name() == 'RED'} ? 'row-over' : (${comparison.total.color.name() == 'BLUE'} ? 'row-low' : (${comparison.total.withinBudget} ? 'row-within'))">
                 <td>合計</td>
                 <td class="num" th:text="${comparison.total.budget != null} ? |${#numbers.formatInteger(comparison.total.budget, 1, 'COMMA')}円| : '未設定'">75,000円</td>
                 <td class="num" th:text="|${#numbers.formatInteger(comparison.total.actual, 1, 'COMMA')}円|">1,500円</td>
                 <td class="num" th:text="${comparison.total.difference != null} ? |${#numbers.formatInteger(comparison.total.difference, 1, 'COMMA')}円| : ''">73,500円</td>
+                <td class="text-center within-mark"><th:block th:if="${comparison.total.withinBudget}"><span aria-hidden="true">💮</span><span class="visually-hidden">予算内</span></th:block></td>
             </tr>
             </tbody>
-        </table>
+            </table>
+            </div>
 
-        <!--/* 色の意味の注記（Q7-6 の C） */-->
-        <p class="legend">赤：予算超過／青：予算の1/3以下</p>
+        <!--/* 色の意味の注記（Q7-6 の C）。💮 の説明も足した（Q8-32） */-->
+        <p class="legend">赤：予算超過／青：予算の1/3以下／💮：予算内（予算の1/3を超え、予算以下）</p>
     </th:block>
 </main>
 </body>

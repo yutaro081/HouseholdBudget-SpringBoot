@@ -244,6 +244,89 @@ class BudgetControllerTest {
 	}
 
 	// ================================================================
+	// 年と季節を選ぶ欄（GET のフォーム。設計書 2.4、Phase 8 の G1）
+	// ================================================================
+
+	/** 季節を指定しないときは、今の季節（固定した Clock：2026年の冬）が選ばれている */
+	@Test
+	void seasonSelectShowsTheCurrentSeasonWhenNotSpecified() throws Exception {
+		String body = body(mockMvc.perform(get("/budgets").with(asA)).andExpect(status().isOk()).andReturn());
+
+		SeasonSelectAssertions.assertSeasonSelect(body, "/budgets", 2026, "winter");
+	}
+
+	@ParameterizedTest(name = "year={0} season={1} のとき、選ばれているのは同じ年と季節")
+	@CsvSource({ "2026,spring", "2026,summer", "2026,autumn", "2026,winter", "2000,spring", "2100,winter", "2027,winter" })
+	void seasonSelectShowsTheDisplayedSeason(int year, String season) throws Exception {
+		String body = body(mockMvc.perform(get("/budgets").param("year", String.valueOf(year)).param("season", season).with(asA))
+				.andExpect(status().isOk()).andReturn());
+
+		SeasonSelectAssertions.assertSeasonSelect(body, "/budgets", year, season);
+	}
+
+	/** 範囲の端でも選ぶ欄は出る（リンクだけが、範囲外を指さないように出ない）。前・次のリンクも残っている */
+	@Test
+	void seasonSelectIsShownAtTheEdgesAndTheLinksRemain() throws Exception {
+		String first = body(mockMvc.perform(get("/budgets").param("year", "2000").param("season", "spring").with(asA)).andReturn());
+		assertThat(first).doesNotContain("前の季節").contains("次の季節");
+		SeasonSelectAssertions.assertSeasonSelect(first, "/budgets", 2000, "spring");
+
+		String last = body(mockMvc.perform(get("/budgets").param("year", "2100").param("season", "winter").with(asA)).andReturn());
+		assertThat(last).doesNotContain("次の季節").contains("前の季節");
+		SeasonSelectAssertions.assertSeasonSelect(last, "/budgets", 2100, "winter");
+	}
+
+	// ================================================================
+	// 「今の季節」ボタン（Phase 8 の issue 007、設計書 2.4）
+	// ================================================================
+
+	/** 季節を指定しないとき（今の季節を見ているとき）も、ほかの季節を見ているときも、出る */
+	@ParameterizedTest(name = "「今の季節」が出る：{0}")
+	@CsvSource(delimiter = '|', value = { "指定なし||", "今の季節（2026年冬）|2026|winter", "ほかの季節|2030|summer", "2027年冬|2027|winter" })
+	void currentSeasonLinkIsShownWhetherOrNotTheCurrentSeasonIsDisplayed(String label, String year, String season) throws Exception {
+		var request = get("/budgets").with(asA);
+		if (year != null && !year.isEmpty()) {
+			request.param("year", year).param("season", season);
+		}
+
+		String body = body(mockMvc.perform(request).andExpect(status().isOk()).andReturn());
+
+		SeasonSelectAssertions.assertCurrentSeasonLink(body, "/budgets");
+	}
+
+	/** 範囲の端（2000年春、2100年冬）でも出る */
+	@ParameterizedTest(name = "範囲の端でも「今の季節」が出る：{0}年 {1}")
+	@CsvSource({ "2000,spring", "2100,winter" })
+	void currentSeasonLinkIsShownAtTheEdges(String year, String season) throws Exception {
+		String body = body(mockMvc.perform(get("/budgets").param("year", year).param("season", season).with(asA))
+				.andExpect(status().isOk()).andReturn());
+
+		SeasonSelectAssertions.assertCurrentSeasonLink(body, "/budgets");
+	}
+
+	/** 科目が0件でも、見出しの行は出るので、ボタンも出る（案内と一緒に） */
+	@Test
+	void currentSeasonLinkIsShownEvenWhenThereAreNoCategories() throws Exception {
+		Long id = userRepository.save(new User("ctrlbud9", "dummy-hash-for-test")).getId();
+
+		String body = body(mockMvc.perform(get("/budgets").with(user(new LoginUser(id, "ctrlbud9", "x"))))
+				.andExpect(status().isOk()).andReturn());
+
+		assertThat(body).contains("先に科目を追加してください");
+		SeasonSelectAssertions.assertCurrentSeasonLink(body, "/budgets");
+	}
+
+	/** 選ぶ欄の送り先は、リンクと同じ形の URL。年と季節の組み合わせ（端を含む）を送ると、その季節が開く */
+	@ParameterizedTest(name = "選ぶ欄から year={0} season={1} を送ると、その季節が開く")
+	@CsvSource({ "2000,spring", "2000,winter", "2100,spring", "2100,winter", "2026,summer" })
+	void submittingTheSeasonSelectOpensThatSeason(String year, String season) throws Exception {
+		String body = body(mockMvc.perform(get("/budgets").param("year", year).param("season", season).with(asA))
+				.andExpect(status().isOk()).andExpect(view().name("budgets/form")).andReturn());
+
+		assertThat(body).contains(year + "年 ");
+	}
+
+	// ================================================================
 	// 404：範囲外・不正・片方だけ・空文字（GET も POST も、何も保存しない）
 	// ================================================================
 
@@ -347,6 +430,7 @@ class BudgetControllerTest {
 
 		assertThat(body).contains("href=\"/budgets\">予算");             // メニューの「予算」
 		assertThat(body).contains("予算設定", "保存");
+		assertThat(body).as("保存ボタンがある（0件のテストが否定で確かめる文字列と同じ。Bootstrap のクラスが付いても成り立つ形）").contains(">保存</button>");
 		assertThat(body).contains("name=\"_csrf\"");
 		assertThat(body).containsPattern("name=\"rows\\[0\\]\\.amount\" value=\"[0-9]+\"");   // 入力欄は数字だけ（カンマ・円なし）
 		assertThat(body).doesNotContain("value=\"30,000").doesNotContain("円\"");
@@ -373,7 +457,7 @@ class BudgetControllerTest {
 				.andExpect(status().isOk()).andReturn());
 
 		assertThat(body).contains("先に科目を追加してください", "href=\"/categories\"");
-		assertThat(body).doesNotContain("<button type=\"submit\">保存").doesNotContain("action=\"/budgets?");
+		assertThat(body).doesNotContain(">保存</button>").doesNotContain("action=\"/budgets?");
 		assertThat(body).contains("2026年 秋");      // 見出しは出る
 	}
 
