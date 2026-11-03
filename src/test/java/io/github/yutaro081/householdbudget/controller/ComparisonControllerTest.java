@@ -401,26 +401,200 @@ class ComparisonControllerTest {
 	}
 
 	// ================================================================
+	// 予算内の印（💮。Phase 8 の issue 005、設計書 2.3、5.9、Q8-27〜Q8-34）：新しい右端の列
+	// ================================================================
+
+	private static final String MARK = "<span aria-hidden=\"true\">💮</span><span class=\"visually-hidden\">予算内</span>";
+
+	/** 表の本体（&lt;tbody&gt; の中）。注記の 💮 を含めずに、行だけを調べるため */
+	private static String tbodyOf(String body) {
+		int start = body.indexOf("<tbody>");
+		assertThat(start).as("表の本体がある").isGreaterThanOrEqualTo(0);
+		return body.substring(start, body.indexOf("</tbody>", start));
+	}
+
+	/** 行の右端のセル（最後の &lt;td&gt;） */
+	private static String lastCellOf(String row) {
+		return row.substring(row.lastIndexOf("<td"));
+	}
+
+	private static int count(String text, String part) {
+		return text.split(java.util.regex.Pattern.quote(part), -1).length - 1;
+	}
+
+	/** 予算内の行（色なしで実績がある。ちょうども）と合計行の右端のセルに出る。赤・青・予算が未設定・実績0円の行には出ない */
+	@Test
+	void withinBudgetRowsGetTheMarkInTheRightmostCell() throws Exception {
+		Owner a = createOwner("ctrlcmp11");
+		autumn(a, category(a, "超過"), 5_000, 6_000);        // 赤
+		autumn(a, category(a, "余裕"), 20_000, 1_500);       // 青
+		autumn(a, category(a, "ふつう"), 10_000, 5_000);     // 予算内（5,000×3 ＞ 10,000）
+		autumn(a, category(a, "ちょうど"), 10_000, 10_000);  // 予算ちょうども予算内（Q8-29）
+		autumn(a, category(a, "予算なし"), null, 700);        // 予算が未設定
+		autumn(a, category(a, "実績なし"), 10_000, 0);        // 実績が0円（青）
+
+		String body = open(a, "2026", "autumn");
+
+		assertThat(lastCellOf(rowOf(body, "ふつう"))).contains(MARK);
+		assertThat(lastCellOf(rowOf(body, "ちょうど"))).contains(MARK);
+		for (String name : new String[] { "超過", "余裕", "予算なし", "実績なし" }) {
+			assertThat(rowOf(body, name)).as(name).doesNotContain("💮", "予算内");
+		}
+		// 合計：予算 5,000＋20,000＋10,000＋10,000＋10,000 ＝ 55,000円、実績 6,000＋1,500＋5,000＋10,000＋700 ＝ 23,200円 → 色なしで予算内
+		String total = rowOf(body, "合計");
+		assertThat(lastCellOf(total)).contains(MARK);
+		assertThat(count(tbodyOf(body), "💮")).as("ふつう・ちょうど・合計の3か所").isEqualTo(3);
+	}
+
+	/** 既存のセル（科目・予算・実績・差額）は変えず、右端に5つ目のセルを足す。印のない行のセルは空 */
+	@Test
+	void everyRowHasFiveCellsAndTheOldCellsAreUnchanged() throws Exception {
+		Owner a = createOwner("ctrlcmp12");
+		autumn(a, category(a, "ふつう"), 10_000, 5_000);
+		autumn(a, category(a, "余裕"), 20_000, 1_500);
+
+		String body = open(a, "2026", "autumn");
+
+		for (String name : new String[] { "ふつう", "余裕", "合計" }) {
+			assertThat(count(rowOf(body, name), "<td")).as(name).isEqualTo(5);
+		}
+		assertThat(rowOf(body, "ふつう")).contains("<td class=\"num\">10,000円</td>", "<td class=\"num\">5,000円</td>");
+		assertThat(lastCellOf(rowOf(body, "余裕"))).doesNotContain("💮", "visually-hidden");
+	}
+
+	/** 見出しの行は5列で、右端の見出しは画面に出さず、読み上げ用に「評価」とだけ添える（Q8-30、Q8-31） */
+	@Test
+	void theHeaderHasAFifthColumnThatIsOnlyReadAloud() throws Exception {
+		Owner a = createOwner("ctrlcmp13");
+		autumn(a, category(a, "食費"), 10_000, 5_000);
+
+		String body = open(a, "2026", "autumn");
+
+		String head = body.substring(body.indexOf("<thead>") + "<thead>".length(), body.indexOf("</thead>"));
+		assertThat(count(head, "<th")).isEqualTo(5);
+		assertThat(head).contains("<th><span class=\"visually-hidden\">評価</span></th>");
+	}
+
+	/** 絵文字は飾りとして読ませず（aria-hidden）、「予算内」を画面に出さない文字で添える（Q8-31） */
+	@Test
+	void theMarkIsHiddenFromScreenReadersAndReadAsWithinBudget() throws Exception {
+		Owner a = createOwner("ctrlcmp14");
+		autumn(a, category(a, "食費"), 10_000, 5_000);
+
+		String body = open(a, "2026", "autumn");
+
+		assertThat(rowOf(body, "食費")).contains("<span aria-hidden=\"true\">💮</span>", "<span class=\"visually-hidden\">予算内</span>");
+	}
+
+	/** 色の注記に 💮 の説明を足す。先頭の今までの文字列は、そのまま残る（Q8-32） */
+	@Test
+	void theLegendExplainsTheMark() throws Exception {
+		Owner a = createOwner("ctrlcmp15");
+		autumn(a, category(a, "食費"), 10_000, 5_000);
+
+		String body = open(a, "2026", "autumn");
+
+		assertThat(body).contains("赤：予算超過／青：予算の1/3以下／💮：予算内（予算の1/3を超え、予算以下）");
+		assertThat(body).contains("赤：予算超過／青：予算の1/3以下");
+	}
+
+	/** 予算が設定されていない季節（全科目が未設定）は、科目の行にも合計行にも出ない。科目が0件なら表ごと出ない */
+	@Test
+	void noMarkWhenNothingIsWithinBudget() throws Exception {
+		Owner a = createOwner("ctrlcmp16");
+		autumn(a, category(a, "食費"), 20_000, 5_000);
+
+		String unsetSeason = open(a, "2026", "winter");
+		assertThat(tbodyOf(unsetSeason)).doesNotContain("💮", "予算内");
+
+		Owner empty = createOwner("ctrlcmp17");
+		String noCategories = open(empty, "2026", "autumn");
+		assertThat(noCategories).doesNotContain("<table", "💮");
+	}
+
+	/** 💮 の行（科目の行も合計行も）だけが row-within。ちょうどの行も付く。赤・青・未設定・実績0円・予算0円の行には付かない（Q8-39） */
+	@Test
+	void onlyTheWithinBudgetRowsGetTheRowWithinClass() throws Exception {
+		Owner a = createOwner("ctrlcmp18");
+		autumn(a, category(a, "超過"), 5_000, 6_000);          // 赤
+		autumn(a, category(a, "余裕"), 20_000, 1_500);         // 青
+		autumn(a, category(a, "ふつう"), 10_000, 5_000);       // 予算内
+		autumn(a, category(a, "ちょうど"), 10_000, 10_000);    // 予算ちょうど：予算内（Q8-29）
+		autumn(a, category(a, "予算なし"), null, 700);          // 未設定
+		autumn(a, category(a, "実績なし"), 10_000, 0);          // 実績0円（青）
+		autumn(a, category(a, "ゼロ"), 0, 0);                  // 予算0円・実績0円（色なし）
+
+		String body = open(a, "2026", "autumn");
+
+		assertThat(rowOf(body, "ふつう")).startsWith("<tr class=\"row-within\">");
+		assertThat(rowOf(body, "ちょうど")).startsWith("<tr class=\"row-within\">");
+		assertThat(rowOf(body, "合計")).startsWith("<tr class=\"total-row row-within\">");
+		assertThat(rowOf(body, "超過")).startsWith("<tr class=\"row-over\">").doesNotContain("row-within");
+		assertThat(rowOf(body, "余裕")).startsWith("<tr class=\"row-low\">").doesNotContain("row-within");
+		for (String name : new String[] { "予算なし", "実績なし", "ゼロ" }) {
+			assertThat(rowOf(body, name)).as(name).doesNotContain("row-within");
+		}
+		assertThat(rowOf(body, "予算なし")).startsWith("<tr>");
+		assertThat(rowOf(body, "ゼロ")).startsWith("<tr>");
+		assertThat(count(tbodyOf(body), "row-within")).as("ふつう・ちょうど・合計の3か所").isEqualTo(3);
+	}
+
+	/** 合計行が赤・青のときは row-within は付かず、赤・青のクラスだけ（背景と文字の色は重ならない） */
+	@Test
+	void totalRowKeepsItsColorClassWhenItIsNotWithinBudget() throws Exception {
+		Owner blue = createOwner("ctrlcmp19");
+		autumn(blue, category(blue, "食費"), 30_000, 1_000);
+		assertThat(rowOf(open(blue, "2026", "autumn"), "合計")).startsWith("<tr class=\"total-row row-low\">");
+
+		Owner red = createOwner("ctrlcmp20");
+		autumn(red, category(red, "食費"), 30_000, 30_001);
+		assertThat(rowOf(open(red, "2026", "autumn"), "合計")).startsWith("<tr class=\"total-row row-over\">");
+	}
+
+	/** 右端のセルは、印のある行もない行も class="text-center within-mark"（大きさは CSS で指定する。Q8-38） */
+	@Test
+	void theRightmostCellHasTheMarkClass() throws Exception {
+		Owner a = createOwner("ctrlcmp21");
+		autumn(a, category(a, "ふつう"), 10_000, 5_000);
+		autumn(a, category(a, "余裕"), 20_000, 1_500);
+
+		String body = open(a, "2026", "autumn");
+
+		for (String name : new String[] { "ふつう", "余裕", "合計" }) {
+			assertThat(lastCellOf(rowOf(body, name))).as(name).startsWith("<td class=\"text-center within-mark\">");
+		}
+	}
+
+	/** style.css に、row-within と within-mark の規則がある（クラス名の食い違いに気づくため。値は確かめない） */
+	@Test
+	void styleSheetHasTheRulesForTheWithinBudgetRowAndMark() throws Exception {
+		String css = mockMvc.perform(get("/css/style.css")).andExpect(status().isOk())
+				.andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+
+		assertThat(css).contains(".comparison-table tr.row-within", "--bs-table-bg", ".comparison-table td.within-mark", "font-size");
+	}
+
+	// ================================================================
 	// 色：行の文字全体に付ける（F4）。合計行も同じ
 	// ================================================================
 
-	/** 赤・青・色なし・予算が未設定の行（色なし）。クラスは <tr> に付く（行の文字全体に効く） */
+	/** 赤・青・色なし（予算内の 💮 の行と、予算が未設定の行）。クラスは <tr> に付く（行の文字全体に効く）。予算内の行は row-within（背景。Q8-39） */
 	@Test
 	void colorClassIsOnTheWholeRow() throws Exception {
 		Owner a = createOwner("ctrlcmp9");
 		autumn(a, category(a, "超過"), 5_000, 6_000);       // 赤
 		autumn(a, category(a, "余裕"), 20_000, 1_500);      // 青
-		autumn(a, category(a, "ふつう"), 10_000, 5_000);    // 色なし（5,000×3 ＞ 10,000）
-		autumn(a, category(a, "予算なし"), null, 700);       // 予算が未設定：色なし
+		autumn(a, category(a, "ふつう"), 10_000, 5_000);    // 色なしで予算内（5,000×3 ＞ 10,000）：row-within
+		autumn(a, category(a, "予算なし"), null, 700);       // 予算が未設定：色なし、クラスなし
 
 		String body = open(a, "2026", "autumn");
 
 		assertThat(rowOf(body, "超過")).startsWith("<tr class=\"row-over\">");
 		assertThat(rowOf(body, "余裕")).startsWith("<tr class=\"row-low\">");
-		assertThat(rowOf(body, "ふつう")).startsWith("<tr>");
+		assertThat(rowOf(body, "ふつう")).startsWith("<tr class=\"row-within\">");
 		assertThat(rowOf(body, "予算なし")).startsWith("<tr>");
-		// 合計行：予算 35,000、実績 13,200 → 色なし（13,200×3 ＞ 35,000）
-		assertThat(rowOf(body, "合計")).startsWith("<tr class=\"total-row\">");
+		// 合計行：予算 35,000、実績 13,200 → 色なしで予算内（13,200×3 ＞ 35,000）：total-row row-within
+		assertThat(rowOf(body, "合計")).startsWith("<tr class=\"total-row row-within\">");
 	}
 
 	@Test

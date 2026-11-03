@@ -12,6 +12,7 @@ import io.github.yutaro081.householdbudget.domain.BudgetColor;
  * @param actual       実績（円）。期間内の取引の合計。取引がなければ0。合計行では全科目の合計。INT を超えうるので long
  * @param difference   差額（円）＝ 予算 − 実績（超過するとマイナス）。予算が未設定（null）なら null（画面では空欄）
  * @param color        色。予算が未設定なら色なし（BudgetColorJudge）
+ * @param withinBudget 予算内の印（💮）を出すか（Phase 8 の issue 005）。色とは別に持つ（BudgetColorJudge.isWithinBudget）。合計行にも同じ判定
  */
-public record ComparisonRow(String categoryName, Long budget, long actual, Long difference, BudgetColor color) {
+public record ComparisonRow(String categoryName, Long budget, long actual, Long difference, BudgetColor color, boolean withinBudget) {
 }

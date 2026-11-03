@@ -1,6 +1,6 @@
 /*
  * 画面の見た目（設計書 1.2）。Bootstrap の CSS（bootstrap.min.css）を先に読み、このファイルを後に読む（Phase 8、Q8-17〜Q8-20）。
- * ここに残すのは、Bootstrap にないものと、テストが確かめる HTML のクラス（field-error、num、row-over、row-low、total-row）のための規則だけ。
+ * ここに残すのは、Bootstrap にないものと、テストが確かめる HTML のクラス（field-error、num、row-over、row-low、row-within、total-row）のための規則だけ。
  * ボタン・入力欄・表・メッセージの基本の見た目は、HTML に付けた Bootstrap のクラスが受け持つ。
  */
 
@@ -155,6 +155,19 @@ dl.detail dd {
 
 .comparison-table tr.row-low td {
     color: #1565c0;
+}
+
+/* 予算内の行（💮。設計書 2.3、F5）：薄い緑の背景 #e3f8e9（ブラウザで見比べて決めた。Q8-36）。赤・青は文字の色なので、重ならない。
+   文字（#212529）との明るさの比は約 13.9 対 1。
+   Bootstrap の表の変数 --bs-table-bg だけを上書きするので、行にマウスを載せたときの色や、合計行の上の線は残る */
+.comparison-table tr.row-within {
+    --bs-table-bg: #e3f8e9;
+}
+
+/* 右端の 💮 を大きくする（絵文字の span の形は変えない。Q8-38） */
+.comparison-table td.within-mark {
+    font-size: 1.5em;
+    line-height: 1;
 }
 
 /* 合計行は、科目の行と区切る */
