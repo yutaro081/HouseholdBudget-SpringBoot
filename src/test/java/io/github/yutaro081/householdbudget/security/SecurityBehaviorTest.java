@@ -11,12 +11,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
+import java.util.stream.Stream;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -148,6 +154,69 @@ class SecurityBehaviorTest {
 		assertThat(body).contains("このユーザー名はすでに使われています");
 		assertThat(body).contains("value=\"SECTEST2\"");
 		assertThat(body).doesNotContain(DUMMY_PASSWORD);
+	}
+
+	/** 登録の入力エラー：ユーザー名・パスワードの各エラーが、画面に文として出る（Phase 8 の 4.14。4.7 の表）。一部の項目だけがエラーのこともある */
+	static Stream<Arguments> registerErrors() {
+		return Stream.of(
+				Arguments.of("", "abcd1234", "ユーザー名を入力してください"),
+				Arguments.of("   ", "abcd1234", "ユーザー名を入力してください"),
+				Arguments.of("abc-1", "abcd1234", "ユーザー名は半角英数字で入力してください"),
+				Arguments.of("abcdefghijk", "abcd1234", "ユーザー名は10文字以内で入力してください"),
+				Arguments.of("abcdefghij", "", "パスワードを入力してください"),
+				Arguments.of("abcdefghij", "abc12", "パスワードは8文字以上30文字以内で入力してください"),
+				Arguments.of("abcdefghij", "a".repeat(31), "パスワードは8文字以上30文字以内で入力してください"),
+				Arguments.of("abcdefghij", "abc 1234", "パスワードは半角の英数字と記号で入力してください"),
+				Arguments.of("abcdefghij", "あいうえおかきく", "パスワードは半角の英数字と記号で入力してください"));
+	}
+
+	@ParameterizedTest(name = "登録の入力エラー：ユーザー名 [{0}] → 「{2}」")
+	@MethodSource("registerErrors")
+	void registerErrorShowsTheMessageOnTheScreenAndKeepsOnlyTheUsername(String username, String password, String message)
+			throws Exception {
+		MvcResult result = mockMvc.perform(post("/register").with(csrf())
+				.param("username", username).param("password", password))
+				.andExpect(status().isOk())
+				.andExpect(view().name("register"))
+				.andReturn();
+
+		String body = result.getResponse().getContentAsString();
+		assertThat(body).contains(message);
+		assertThat(body).contains("class=\"field-error\"");
+		if (!username.isBlank()) {
+			assertThat(body).contains("value=\"" + username + "\"");        // ユーザー名は残る
+		}
+		if (!password.isEmpty()) {
+			assertThat(body).doesNotContain(password);                         // パスワードは残らない
+		}
+	}
+
+	// ---- エラー画面の文言（設計書 7.7。Phase 8 の 4.14）----
+
+	private static final String CLIENT_ERROR_MESSAGE = "操作を完了できませんでした。もう一度やり直してください";
+
+	/**
+	 * 403（CSRF のトークンなしなど）と 405（許されない方法）の画面。MockMvc は /error への転送をしないので、
+	 * Spring Boot が使う /error に、エラーの状態コードを付けて直接開き（ブラウザと同じ Accept: text/html。付けないと JSON が返る）、画面の名前と文言を確かめる（状態コードは応答に付く）。画面の名前は MockMvc からは分からないので、文言で確かめる（403.html と 4xx.html は同じ文言）。
+	 */
+	@ParameterizedTest(name = "状態コード {0} の画面（{1}）")
+	@CsvSource({ "403, error/403", "405, error/4xx" })
+	void errorScreenHasTheMessageAndTheStatus(int statusCode, String templateName) throws Exception {
+		MvcResult result = mockMvc.perform(get("/error").accept(MediaType.TEXT_HTML).requestAttr("jakarta.servlet.error.status_code", statusCode))
+				.andExpect(status().is(statusCode))
+				.andReturn();
+
+		String body = result.getResponse().getContentAsString();
+		assertThat(body).contains(CLIENT_ERROR_MESSAGE);
+		assertThat(body).as("詳しい中身を出さない").doesNotContain("Whitelabel", "Exception", "trace");
+	}
+
+	/** 実際の流れ：削除の URL を GET で開くと 405（削除は POST だけ） */
+	@ParameterizedTest(name = "GET {0} は 405")
+	@ValueSource(strings = { "/categories/1/delete", "/vendors/1/delete", "/payment-methods/1/delete", "/transactions/1/delete" })
+	void deleteByGetIsMethodNotAllowed(String path) throws Exception {
+		mockMvc.perform(get(path).with(user(new LoginUser(1L, "x", "x"))))
+				.andExpect(status().isMethodNotAllowed());
 	}
 
 	// ---- ログイン・ログアウト（2.6、U5、B8、7.10） ----

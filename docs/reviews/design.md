@@ -1605,7 +1605,7 @@ Spring 標準の変換（`Integer` の項目に何も足さない場合）は、
 - セッションの Cookie には、`HttpOnly`（JavaScript から読めない）と `SameSite=Lax`（他のサイトからの POST に付かない）を明示的に設定する（S1）。
 - セッションIDの受け渡しは、**Cookie だけ**にする。URL に付ける方式（`;jsessionid=…`）は使わない（S8）。
 - `Secure`（HTTPS のときだけ送る）は、今は自分のパソコンの HTTP なので付けない。インターネットへの公開（要件9章）をするときに必要になる。
-- 画面を返すときの HTTP のヘッダー（クリックジャッキング対策など、Spring Security が標準で付けるもの）は、**そのまま使い、外さない**。
+- 画面を返すときの HTTP のヘッダー（クリックジャッキング対策など、Spring Security が標準で付けるもの）は、**そのまま使い、外さない**。`Cache-Control: no-store` が付いていることは、自動テスト `CacheControlHeaderTest` で確かめる（Phase 8、4.14）。
 
 ### 7.11 守りの確認（Phase 8）
 

@@ -574,6 +574,20 @@ class ComparisonControllerTest {
 		assertThat(css).contains(".comparison-table tr.row-within", "--bs-table-bg", ".comparison-table td.within-mark", "font-size");
 	}
 
+	/** XSS 対策（設計書 7.5）：科目名の < > は文字として出る。タグとしては出ない（科目名が表の行に出る画面。Phase 8 の 4.14） */
+	@Test
+	void categoryNamesAreEscaped() throws Exception {
+		Owner a = createOwner("ctrlcmp22");
+		autumn(a, category(a, "<b>x</b>"), 10_000, 5_000);
+		autumn(a, category(a, "<script>"), 10_000, 5_000);   // 科目名は10文字まで
+
+		String body = open(a, "2026", "autumn");
+
+		assertThat(body).contains("&lt;b&gt;x&lt;/b&gt;", "&lt;script&gt;");
+		assertThat(body).doesNotContain("<b>x</b>");
+		assertThat(body.replace("<script defer", "")).as("科目名の <script> がタグとして出ていない（画面の枠の script は src 付き）").doesNotContain("<script>");
+	}
+
 	// ================================================================
 	// 色：行の文字全体に付ける（F4）。合計行も同じ
 	// ================================================================

@@ -1240,10 +1240,58 @@ Set-NetConnectionProfile -InterfaceAlias "（1 で読んだ InterfaceAlias）" -
 3. 足すと決めたものを、**テストを先に書く**。失敗することを確かめる必要があるのは、直す不具合があるときだけ（新しく書くテストが、すでに合格するのは、普通）。
 4. `.\mvnw test` が全部成功する（件数を記録する）。テストのあと、DB にテスト用の行が残っていない（4.1 の SQL と同じ結果）。
 
-- [ ] 一覧を作り、足りないものを報告した
-- [ ] **登録画面のメッセージのテストを足す**〔4.7 で決めた。2026年11月2日〕：①`MessagesTest` に、登録画面の文〔`NotBlank.registerForm.username`、`Pattern.registerForm.username`、`Size.registerForm.username`、`NotEmpty.registerForm.password`、`Pattern.registerForm.password`、`Size.registerForm.password`〕と、`error.duplicate.user`、`error.login.failed`、`success.register`、`success.logout` を足す。②`SecurityBehaviorTest`〔または登録画面のテスト〕に、`POST /register` で、ユーザー名が空欄・11文字、パスワードが空欄・空白入りのとき、**画面に**それぞれの文が出ることを確かめるテストを足す〔今は `あいう`／`short` と重複の2ケースだけ〕。テストを先に書く。
-- [ ] 足すと決めたテストを足した（なければ「なし」と記録）
-- [ ] `.\mvnw test` が全部成功する
+- [x] 一覧を作り、足りないものを報告した〔下の記録〕
+- [x] **`Cache-Control: no-store` のテストを足す**〔4.13 の案 (b)。あなたが「足す」と決めた。2026年11月3日〕：`CacheControlHeaderTest`
+- [x] **登録画面のメッセージのテストを足す**〔4.7 で決めた。2026年11月2日〕：①`MessagesTest` に、登録画面の文〔`NotBlank.registerForm.username`、`Pattern.registerForm.username`、`Size.registerForm.username`、`NotEmpty.registerForm.password`、`Pattern.registerForm.password`、`Size.registerForm.password`〕と、`error.duplicate.user`、`error.login.failed`、`success.register`、`success.logout` を足す。②`SecurityBehaviorTest`〔または登録画面のテスト〕に、`POST /register` で、ユーザー名が空欄・11文字、パスワードが空欄・空白入りのとき、**画面に**それぞれの文が出ることを確かめるテストを足す〔今は `あいう`／`short` と重複の2ケースだけ〕。テストを先に書く。
+- [x] 足すと決めたテストを足した（登録画面のメッセージ、`Cache-Control`。そのほかの足りないものは、下の記録のとおり、足していない）
+- [x] `.\mvnw test` が全部成功する
+
+（実施の記録・4.14：2026年11月3日。
+**① 対応表**〔要件の各項目 → 確かめている自動テスト〕：
+
+| 要件 | 確かめている自動テスト |
+|---|---|
+| 3・4.1 アカウント登録・ログイン・ログアウト | `SecurityBehaviorTest`（登録の成功・入力エラー・重複、ログイン成功・失敗、ログアウト）、`RegisterFormTest`、`RegistrationServiceTest` |
+| 4.1 データ分離 | 各 `…ControllerTest`・`…ServiceTest`・`…RepositoryTest` の「他人」「別ユーザー」のテスト（取引、科目、取引先、支払方法、予算、予実比較） |
+| 4.2 取引（登録・一覧・詳細・編集・削除、削除の確認） | `TransactionControllerTest`、`TransactionServiceTest`、`TransactionFormTest`、`TransactionRepository*Test` |
+| 4.3 科目・取引先・支払方法（追加・変更・削除、使用中・予算 0円でない科目の削除不可、初期データ、追加時の予算 0円の行） | 各 `…ControllerTest`・`…ServiceTest`、`RegistrationServiceTest`、`CategoryServiceTest` |
+| 4.3 予算（季節ごと、年と季節を選ぶ欄、指定なしは今の季節） | `BudgetServiceTest`、`BudgetControllerTest`、`BudgetFormTest`、`SeasonPeriodTest` |
+| 4.4 予実比較（集計、色、💮、合計行、未設定、季節の境目） | `ComparisonServiceTest`、`ComparisonControllerTest`、`BudgetColorJudgeTest`、`SeasonPeriodTest`、`TransactionRepositorySumTest` |
+| 5 入力チェック（文字数、範囲、整数、全角、日付、256 個の上限） | 各 `…FormTest`、各 `…ControllerTest`、`StrictIntegerEditorTest`、`MasterLimit*Test`、`MessagesTest` |
+| 6 ハッシュ化 | `RegistrationServiceTest.passwordIsHashed`、`sameRawPasswordGivesDifferentHashes` |
+| 6 ログイン必須、CSRF | `SecurityBehaviorTest`、各 `…ControllerTest` の未ログイン・トークンなしのテスト |
+| 6 XSS（画面での無害化） | `CategoryControllerTest`・`VendorControllerTest`・`PaymentMethodControllerTest`・`TransactionControllerTest`・`BudgetControllerTest` の `…AreEscaped…` |
+| 画面の応答ヘッダー（`no-store`）、404・400 の画面 | `CacheControlHeaderTest`〔今回足した〕、`GlobalExceptionHandlerTest`、`BudgetControllerTest`（400） |
+
+**② 足りないもの**〔Q8-6 の A：一覧にして報告する。勝手に足さない。4.6 のブラウザで済んでいるものが多い〕：
+1. **予実比較の画面で、科目名が無害化される**こと〔`<b>x</b>` が文字として出る〕の自動テストがない〔ほかの画面にはある。ブラウザは 4.6 の(4)で済み〕。
+2. **`th:utext` を使っていない**ことの自動テスト〔テンプレートの検索テスト〕がない〔4.4 の検索で 0 件を確認済み〕。
+3. **403 の画面**〔CSRF のトークンなし〕と **5xx の画面**、**405 の画面**の文言・画面名の自動テストがない〔403 は状態コードだけ確かめている。400 は `BudgetControllerTest`。ブラウザは 4.6 の(5)(7)で済み〕。
+4. **セッションの Cookie の設定**〔`HttpOnly`、`SameSite=Lax`、URL に `;jsessionid` が付かない〕を確かめる自動テストがない〔`application.properties`。ブラウザは 4.6 の(8)で済み〕。
+5. **SQL インジェクション用の文字列**〔`' OR '1'='1` など〕を入れる自動テストがない〔JPA のパラメータ化で守っている。4.4 の検索と 4.6 の(3)で済み〕。
+6. ログイン後にセッション ID が変わること〔MockMvc では確かめられない。ブラウザで済み〕。
+→ **あなたの決定**〔2026年11月3日〕：
+- **1（予実比較の科目名の無害化）：足す。** → `ComparisonControllerTest.categoryNamesAreEscaped`
+- **2（`th:utext` を使っていない）：足す。** → `TemplateSafetyTest`
+- **3：403 と 405 の画面の文言だけ足す。5xx は足さない**〔4.6 の(7)のブラウザ確認で済んでいる〕。 → `SecurityBehaviorTest.errorScreenHasTheMessageAndTheStatus`、`deleteByGetIsMethodNotAllowed`
+- **4（セッションの Cookie の設定）：足さない。** 理由：`HttpOnly`・`SameSite=Lax`・`;jsessionid` が付かないことは、**ブラウザで確認済み**〔4.6 の(8)〕。設定は `application.properties` の数行で、プロパティの文字列を確かめるテストは、設定を写すだけで、動きの保証にならない。
+- **5（SQL インジェクション用の文字列）：足さない。** 理由：**仕組みで守られている**〔JPA のパラメータ化。文字列連結の SQL を作っていないことは、4.4 の検索で確認済み。ブラウザでも 4.6 の(3)で確認済み〕。個別の文字列を入れるテストは、仕組みの代わりにならない。
+- **6（ログイン後にセッション ID が変わる）：足さない。** 理由：**MockMvc では確かめられない**〔本物のサーバーと動きが違う。設計書 7.10。ブラウザで確認済み〕。
+
+**③ 足したテスト**〔あなたの指示：登録画面のメッセージ、`Cache-Control`〕：
+- `MessagesTest`：+10 件〔`registerForm` の 6 つの文、`error.duplicate.user`、`error.login.failed`、`success.register`、`success.logout`〕
+- `SecurityBehaviorTest`：+9 件〔登録の入力エラーで、画面に文が出る：ユーザー名の空欄・空白だけ・全角・11 文字、パスワードの空欄・7 文字以下・31 文字・空白入り・日本語。入力エラーでも、ユーザー名は残り、パスワードは残らない〕
+- `CacheControlHeaderTest`〔新しいクラス〕：+15 件〔ログイン中の画面 10 か所〔一覧、入力、設定、比較、404〕、ログイン前の画面 4 か所、未ログインの移動とログアウトの応答に `Cache-Control: no-store`〕。**確かめ方**：`SecurityConfig` に一時的に `headers(h -> h.cacheControl(c -> c.disable()))` を足して実行すると **15 件すべて失敗**した〔元に戻した。差分なし〕。
+- これらは、テストが既存の動きの確認なので、足した直後から合格する〔不具合を直すものではない〕。
+
+**⑥ 足りないものの追加分**〔上の決定の 1〜3。同日〕：
+- `ComparisonControllerTest.categoryNamesAreEscaped`〔+1。`<b>x</b>` と `<script>` が、`&lt;…&gt;` として出る。科目名は 10 文字までなので、`<script>` だけ〕。
+- `TemplateSafetyTest`〔新しいクラス。+1。全テンプレートに、`th:utext=`・`data-th-utext=`・`[( … )]` がない。コメントの「th:utext は使わない」には `=` が続かないので引っかからない。テンプレートが 15 個より多く見つかることも確かめる〕。**確かめ方**：`login.html` に一時的に `th:utext` を足すと **失敗**した〔元に戻した。差分なし〕。
+- `SecurityBehaviorTest`〔+6。403 と 405 の画面の文言：`/error` に状態コードを付けて、ブラウザと同じ `Accept: text/html` で開く〔付けないと JSON が返る〕。画面の名前は MockMvc から分からないので、文言と状態コードで確かめる。削除の URL〔科目・取引先・支払方法・取引〕を GET で開くと 405〕。
+
+**④ Q8-7 の ①**〔手順書では 4.15 の項目だが、「手順書の 4.14 のとおりに」のご指示で、ここで行った〕：`BudgetForm.rows` を `@Valid private List<Row>` から `private List<@Valid Row>` に直した〔動きは変わらない〕。ログの `HV000271`〔2 回出ていた〕が **0 回**になった。`BudgetFormTest`・`BudgetControllerTest` は全部通る。② Mockito の警告は、決めたとおり直さない〔ログに残っている〕。4.15 のチェックは、そこで付ける。
+
+**⑤ 結果**：`.\mvnw test` は ①〜④ の時点で 1340 件、⑥ を足して **1348 件成功**〔1306 → 1348：+42 件〕、失敗 0、エラー 0。テスト後に DB に行が残っていないことの確認は、4.17 の片付けのあとに行う〔4.17 に書いた〕。）
 
 ### 4.15 コードの整理（使っていないコードの削除、分かりにくい名前の修正、コメント）
 
@@ -1327,8 +1375,11 @@ Set-NetConnectionProfile -InterfaceAlias "（1 で読んだ InterfaceAlias）" -
 - [ ] 新しいアカウント（`chkzero` など）をどうするか、Q8-4 の決定に従う（残す／SQL で消す）。消すとき：そのユーザーの `budgets`、`transactions`、`categories`、`vendors`、`payment_methods` を先に消し、最後に `users` の行を消す（外部キーのため。あなたが実行する SQL を、そのとき示す）
 - [x] ファイアウォールの許可ルール `HouseholdBudget-8080-temp` が残っていない（4.13 の手順 I）。**Java の広い許可ルール 12 個は、消さずに無効にした**〔戻すときは `Enable-NetFirewallRule`。4.13 の記録〕。モバイル ホットスポット・スマホのテザリングを使ったときは、オフにした
 - [x] ネットワークの種類（`Private`／`Public`）を、4.13 で変える前の状態に戻した（`Wi-Fi 2` を `Public` に戻した。4.13 の手順 J）
-- [ ] SQL で、`transactions` は **0**、`budgets` は **9**（`test1`・`test2` の分）、ほかの件数は 4.1 で控えた値と一致する（片付けの方法による。Q8-4）
-- [ ] `.\mvnw test` のあと、テスト用の行が残っていない（4.1 の SQL と同じ結果）
+- [ ] **片付けのあとの確認（この順に行う）**〔2026年11月3日。あなたの決定。4.14 の「テストのあと DB に行が残っていない」の確認も、ここで行う〕：
+  1. **件数の SQL**〔4.1 の 2 つ目の SQL。読むだけ〕を実行し、結果を控える。期待：4.1 で控えた値〔`users_rows` 2、`categories_rows` 6、`vendors_rows` 6、`payment_methods_rows` 4、`budgets_rows` 9、`transactions_rows` 0〕と一致する〔片付けの方法による。Q8-4〕。`users` も、`test1`・`test2` の 2 行だけ〔1 つ目の SQL〕
+  2. **`.\mvnw test`** を実行する。全部成功する〔件数を記録する〕
+  3. **もう一度、件数の SQL**〔同じもの〕を実行する。期待：手順 1 の結果と**同じ**〔テストが行を残さない〕
+- [ ] 手順 1 と 3 の件数が一致した〔違ったら、どの表が増えたかを教えてください〕
 
 ### 4.18 文書に反映する
 
