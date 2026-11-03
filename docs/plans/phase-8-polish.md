@@ -4,12 +4,12 @@
 
 - 前の Phase：[Phase 7 予実比較](phase-7-comparison.md)（☑ 完了。`main` に取り込み済み、タグ `phase-7-done`）
 - 次の Phase：[Phase 9 完成・引き渡し](execution-plan.md#phase-9完成引き渡し)
-- 状態：☐ 未着手（手順書を作り、「5. 決まっていない点」Q8-1〜Q8-23 は**すべて決定済み**。4.3 の G1〔年と季節を選ぶ欄〕と Bootstrap の導入を 4.11・4.12 に足した。4.11 からは、コードを変える）
+- 状態：☑ 完了（4.1〜4.18 済み。「5. 決まっていない点」Q8-1〜Q8-41 は**すべて決定済み**。4.19 のコミット・push、`main` への取り込み、タグは本人が行う）
 - 作業ブランチ：`feature/phase-8-polish`
 
 ## 次に再開するところ（2026年11月3日の状態）
 
-**4.20（issue 007）は済み**〔コード・テスト・ブラウザ。1255 件成功〕。**4.21（issue 005）の 💮 は、コード・テスト・ブラウザ確認まで済み〔1302 件成功〕。「4.21 の続き」〔💮 の行の背景を薄い緑に、💮 を大きく〕も、ブラウザの確認まで済み〔1306 件成功〕。issue 005・007 は対応済み。次は 4.14〜。**
+**〔11月3日の続き：4.17・4.18 まで済み。残りは 4.19 のコミット・push、`main` への取り込み、タグ〔本人〕。〕4.20（issue 007）は済み**〔コード・テスト・ブラウザ。1255 件成功〕。**〔11月3日の続き：4.14・4.15・4.16 は済み。いまは 4.17 の準備〔読むだけの SQL の結果待ち〕。〕4.21（issue 005）の 💮 は、コード・テスト・ブラウザ確認まで済み〔1302 件成功〕。「4.21 の続き」〔💮 の行の背景を薄い緑に、💮 を大きく〕も、ブラウザの確認まで済み〔1306 件成功〕。issue 005・007 は対応済み。次は 4.14〜。**
 
 - **済み**：4.1〜4.13、4.16（F2 の修正。iPad の Safari の確認は Phase 9）。`.\mvnw test` は **1255 件**成功。4.9・4.10・4.20 も済み〔`chkzero001` は残してある〕。
 - **4.21 の文書は直した**：要件定義書〔3章と 4.4 の 💮〕、設計書〔2.3、2.4、4.4.2、4.5、`ComparisonRow`、5.9、P13、F5〕、issue 005・007。Q8-27〜Q8-35 は決定済み〔すべて A〕。
@@ -1309,7 +1309,7 @@ Set-NetConnectionProfile -InterfaceAlias "（1 で読んだ InterfaceAlias）" -
 
 直すと決めたものの手順：文書（設計書・コメント）→ コード → `.\mvnw test`（件数は変わらないか、減る理由を説明できる）→ ブラウザで関係する画面を開く。
 
-- [ ] 一覧を作り、報告した（直すもの・直さないものを、あなたが決めた）〔一覧は下の記録。あなたが決めた：直す＝B1〜B3、D1、E1〜E2、C の一部。直さない＝D2、D3、Mockito の警告、C の残り〕
+- [x] 一覧を作り、報告した（直すもの・直さないものを、あなたが決めた）〔一覧は下の記録。あなたが決めた：直す＝B1〜B3、D1、E1〜E2、C の一部。直さない＝D2、D3、Mockito の警告、C の残り〕
 - [x] 警告 ① `HV000271`（`BudgetForm.rows` の `@Valid`）を `List<@Valid Row>` に直した〔4.14 で済ませた。ログの警告は 2 回 → 0 回。`.\mvnw test` 全部成功〕。② Mockito の警告は、Q8-7 の A のとおり直さない〔記録するだけ〕
 - [x] 直すと決めたものを直した。`.\mvnw test` が全部成功する〔1348 件。下の記録〕
 - [x] issue 001 を決めたとおりに処理した（4.2。6 つの Controller に `@RequestMapping` をまとめた。issue 001 は「対応済み」）
@@ -1376,11 +1376,36 @@ Set-NetConnectionProfile -InterfaceAlias "（1 で読んだ InterfaceAlias）" -
 
 ### 4.16 見つかった不具合を直し、記録する
 
-- [ ] 4.4〜4.10 で見つかった不具合を、3.3 の手順で、`docs/issues/`（004 から）か、この手順書に記録した
-- [ ] 直したものは、直ったことを確かめた（再現した操作をもう一度行った）
-- [ ] 直さないものは、理由を記録した（完了条件 6 の「既知の不具合が残っていない（残る場合は理由を記録）」）
+- [x] 4.4〜4.10 で見つかった不具合を、3.3 の手順で、`docs/issues/`（004 から）か、この手順書に記録した
+- [x] 直したものは、直ったことを確かめた（再現した操作をもう一度行った）〔F1、F2 の PC のブラウザ、G1。F2 の iPad の Safari は Phase 9 で確かめる〕
+- [x] 直さないものは、理由を記録した（完了条件 6 の「既知の不具合が残っていない（残る場合は理由を記録）」）
 
-（実施の記録：Phase 8 の作業中に書く。）
+（実施の記録・4.16：2026年11月3日。**Phase 8 で見つかったものの一覧と、記録の場所・状態**〔Claude Code が手順書と `docs/issues/` を見直して確認した〕。
+
+**A. 不具合・食い違い・指摘**〔4.3〜4.10 の確認と、4.13、4.14 で見つかったもの。この手順書に記録した〕
+
+| # | 内容 | 見つかった所 | 記録の場所 | 状態 |
+|---|---|---|---|---|
+| G1 | 要件 4.3「年と季節を選べる」に対して、選ぶ入力欄がなかった〔前後のリンクと URL の書き換えだけ〕 | 4.3 | 4.3 の記録、4.11 | **直した**〔年と季節を選ぶ欄を足した。ブラウザで確認済み〕 |
+| F1 | 文書〔`phase-2-base.md`、`phase-3-auth.md`〕に、接続先の URL の具体的な値が書いてあった | 4.4 の秘密の検索 | 4.4 の記録 | **直した**〔伏せた形に。あなたが確認済み。履歴には元の文が残る。値はパスワードなしの自分のパソコンの既定のものなので、履歴の書き換えはしない〕 |
+| F2 | ログアウトのあと、ブラウザの「戻る」で、取引一覧が表示されたままになる〔PC のブラウザ。iPad の Safari では一瞬〕。サーバーは正しく断っている | 4.6 の 8-4（4.13 の iPad の確認でも一瞬） | 4.6 の F2、Q8-25、Q8-26、4.16 の「F2 の修正」 | **直した**〔案 F：`back-reload.js`。PC のブラウザで確認済み〕。**iPad の Safari の確認は Phase 9 のリハーサル** |
+| T1 | 登録画面のメッセージの文を確かめる自動テストが足りなかった | 4.7 の照合 | 4.7、4.14 | **足した**〔4.14〕 |
+| T2 | 4.14 の対応表で、足りないテストが 6 件 | 4.14 | 4.14 の記録 | 1・2・3 を**足した**。4・5・6 は足さない〔下の C〕 |
+| C1 | 古いコメント、紛らわしい名前〔`success.register`／`success.registered` など〕 | 4.15 | 4.15 の記録 | **直した** |
+
+**B. 確認で期待どおりでなかった項目**：4.5〜4.10 の確認〔4.5 の全画面、4.6 のセキュリティ、4.7 の入力チェック、4.8 の引き継ぎ項目、4.9 の科目 0 件、4.10 の 256 個の上限〕は、**すべて期待どおり**。500 の画面、`LazyInitializationException`、Whitelabel は出なかった。
+
+**C. 直さないもの〔理由〕**
+- **F2 の限界**：POST だけで開ける URL〔削除、ログアウト〕のエラー画面〔403・404〕を、ブラウザが覚えていて「戻る」で開き直すと、別のエラー画面〔405・404〕になる。理由：エラー画面から別のエラー画面になるだけで、データは出ない。ふだんの削除・ログアウトは移動で終わるので、起きるのは異常のときだけ〔設計書 7.10 の限界に書いた。Phase 9 の README の「既知の制限」に載せるかを決める〕。JavaScript が無効なブラウザでは働かない、画面を開き直すので入力途中の値が消える、も同じ〔7.10〕。
+- **4.14 の 4〔セッションの Cookie の設定〕**：ブラウザで確認済み〔4.6 の(8)〕で、設定を写すだけのテストは動きの保証にならない。**5〔SQL インジェクション用の文字列〕**：JPA のパラメータ化で守られている〔4.4 の検索と 4.6 の(3)で確認済み〕。**6〔ログイン後にセッション ID が変わる〕**：MockMvc では確かめられない〔ブラウザで確認済み〕。**5xx の画面**：4.6 の(7)のブラウザ確認で済んでいる。
+- **Mockito の「self-attaching」の警告**〔Q8-7 の A〕：今の JDK 25 では動いていて、直すには `pom.xml` のテスト設定を変える必要があり、効果に比べて変更が大きい。ログに残る〔Phase 9 の README の「既知の制限」に載せるかを決める〕。
+- **D2・D3〔「変更」と「更新」、「追加」と「登録」の言い方の違い〕**：決定済みの違い〔U2、Q5-8、要件定義書の言い方〕。
+- **C〔経過を書いたコメント〕の大半**：いつ足したかだけを書いたもので、事実として正しい。
+- **Java の広い許可ルール 12 個を無効にしてある**：不具合ではなく環境の設定。消さずに無効にした〔戻すときは `Enable-NetFirewallRule`。4.13 の記録〕。
+
+**D. 要望**〔不具合ではない。`docs/issues/` に記録した〕：001〔Controller の `@RequestMapping`、対応済み〕、004〔CSV 出力、候補〕、005〔💮、対応済み〕、006〔ユーザー名とパスワードの変更、候補〕、007〔今の季節のボタン、対応済み〕、008〔ブラウザを自動で動かすテスト、候補〕。002・003 は Phase 8 の前の不具合で、対応済み。
+
+**E. 完了条件 6〔既知の不具合が残っていない、残る場合は理由を記録〕**：残っている既知の不具合は、F2 の iPad の確認〔Phase 9〕と、C の限界〔理由を記録した〕だけ。）
 
 
 #### F2 の修正（Q8-25 の案 F。ログアウト後の「戻る」で、前の画面を見せない）
@@ -1432,15 +1457,247 @@ Set-NetConnectionProfile -InterfaceAlias "（1 で読んだ InterfaceAlias）" -
 
 ### 4.17 片付け（Q8-4）
 
-- [ ] 確認のために作った取引、一時的な科目・取引先・支払方法（`T1科目`、`T2科目`、`<b>x</b>`、`x' OR 1=1` など）を、画面から削除する。`test1`・`test2` の予算の行は残す（消せない）
-- [ ] 新しいアカウント（`chkzero` など）をどうするか、Q8-4 の決定に従う（残す／SQL で消す）。消すとき：そのユーザーの `budgets`、`transactions`、`categories`、`vendors`、`payment_methods` を先に消し、最後に `users` の行を消す（外部キーのため。あなたが実行する SQL を、そのとき示す）
+**準備（まだ何も消さない。2026年11月3日）**
+
+**目標**〔Q8-4 の A〕：ユーザー **2 人**〔`test1`・`test2`〕、取引 **0 件**、予算 **9 行**〔4.1 で控えた値に戻す：`users_rows` 2、`categories_rows` 6、`vendors_rows` 6、`payment_methods_rows` 4、`budgets_rows` 9、`transactions_rows` 0〕。アカウントを消す画面は無いので、確認用のアカウント〔`chkipad`、`chkzero001`〕と、`test1`・`test2` の確認用データは、SQL で消す〔あなたが実行する〕。
+
+**まず、今の DB の状態を見る**〔`hb_app` でログイン。**読むだけの SQL**。結果を貼ってください。パスワードや接続先は貼らない。**消す SQL は、結果を見てから示す**〕。
+
+```sql
+-- ① ユーザーごとの件数（1 行が 1 ユーザー）
+SELECT u.id, u.username,
+       (SELECT COUNT(*) FROM categories      c WHERE c.user_id = u.id) AS categories,
+       (SELECT COUNT(*) FROM vendors         v WHERE v.user_id = u.id) AS vendors,
+       (SELECT COUNT(*) FROM payment_methods p WHERE p.user_id = u.id) AS payment_methods,
+       (SELECT COUNT(*) FROM transactions    t WHERE t.user_id = u.id) AS transactions,
+       (SELECT COUNT(*) FROM budgets         b WHERE b.user_id = u.id) AS budgets
+FROM users u ORDER BY u.id;
+
+-- ② 合計（4.1 の SQL と同じ。比べ元：users 2、categories 6、vendors 6、payment_methods 4、budgets 9、transactions 0）
+SELECT
+  (SELECT COUNT(*) FROM users)           AS users_rows,
+  (SELECT COUNT(*) FROM categories)      AS categories_rows,
+  (SELECT COUNT(*) FROM vendors)         AS vendors_rows,
+  (SELECT COUNT(*) FROM payment_methods) AS payment_methods_rows,
+  (SELECT COUNT(*) FROM budgets)         AS budgets_rows,
+  (SELECT COUNT(*) FROM transactions)    AS transactions_rows;
+
+-- ③ 科目・取引先・支払方法の名前（どれが確認用かを見分けるため。ユーザー名、種類、ID の順）
+SELECT u.username, 'category' AS kind, c.id, c.name FROM categories c JOIN users u ON u.id = c.user_id
+UNION ALL
+SELECT u.username, 'vendor', v.id, v.name FROM vendors v JOIN users u ON u.id = v.user_id
+UNION ALL
+SELECT u.username, 'payment_method', p.id, p.name FROM payment_methods p JOIN users u ON u.id = p.user_id
+ORDER BY username, kind, id;
+
+-- ④ 予算の行を、ユーザーと季節ごとに数える
+SELECT u.username, b.season_year, b.season, COUNT(*) AS rows_count
+FROM budgets b JOIN users u ON u.id = b.user_id
+GROUP BY u.username, b.season_year, b.season
+ORDER BY u.username, b.season_year, b.season;
+
+-- ⑤ 取引（全件。金額と日付と摘要。どのユーザーのものか）
+SELECT t.id, u.username, t.transaction_date, t.amount, t.description
+FROM transactions t JOIN users u ON u.id = t.user_id
+ORDER BY t.id;
+```
+
+**見るところ**（Claude Code が、結果を見て、消す SQL を決める）：
+- ①：`test1`・`test2` のほかに、`chkipad`・`chkzero001` がある。`test1`・`test2` の科目などが、初期の件数〔科目 3、取引先 3、支払方法 2〕より多い。
+- ③：確認用の名前〔`T1科目`、`T2科目`、`<b>x</b>`、`x' OR 1=1`、4.6 で作ったもの、ほか〕と、初期の名前〔交通費・食費・雑費／コンビニ・ガソリンスタンド・Amazon／現金・クレジットカード〕。
+- ④：`test1`・`test2` の初期の予算〔4.1 の 9 行〕のほかに、確認で保存した季節〔2026年冬、2030年春、2031年春など〕の行がある。
+- ⑤：取引は、確認で登録したもの〔4.5 の 1,500円、4.7 の B6、4.8 の E2 など〕。目標は 0 件。
+
+**読むだけの SQL の結果と、消す対象の照合**〔2026年11月3日。結果はあなたが貼った。合計は ② の値〕：
+
+| 表 | 今 | 消す | 残る（目標） | 消す ID |
+|---|---|---|---|---|
+| users | 4 | 2 | 2 | chkipad 28045、chkzero001 32032 |
+| categories | 14 | 8 | 6 | chkipad 86704・86705・86706、chkzero001 103788、test1 の 86710・86711・86714、test2 の 86713 |
+| vendors | 13 | 7 | 6 | chkipad 44299・44300・44301、chkzero001 52272、test1 の 44304・44305、test2 の 44306 |
+| payment_methods | 9 | 5 | 4 | chkipad 43278・43279、test1 の 43284・43285、test2 の 43286 |
+| budgets | 29 | 20 | 9 | chkipad 3、chkzero001 1、test1 の 2030年春 6 と 2031年春 6、test1 の秋のうち消す科目 3、test2 の秋のうち消す科目 1 |
+| transactions | 9 | 9 | 0 | 66608・66609・66610・66612・66613・66614・66615・66616・104622 |
+
+- 件数は、①のユーザーごとの合計と、②の合計が一致する〔科目 6＋4＋3＋1＝14、取引先 5＋4＋3＋1＝13、支払方法 4＋3＋2＋0＝9、予算 21＋4＋3＋1＝29、取引 5＋1＋3＋0＝9〕。
+- 残る 6 科目は `test1`〔19 交通費・20 食費・21 雑費〕と `test2`〔26・27・28〕、取引先 6、支払方法 4 も初期の名前〔③〕。消す科目・取引先・支払方法の名前は、確認用〔`x' OR 1=1`、`<b>x</b>`、`' OR '1'='1`、`T1科目`、`T2科目`、`T2先`、`T2払`〕と、`chkipad`・`chkzero001` のもの。**あなたの計算と一致した**。
+- 予算：残る 9 行＝`test1` の秋 6−3＝3、冬 3、`test2` の秋 4−1＝3。**⑥〔予算の ID と金額〕の結果は、まだない**〔ファイルに追加したが、貼られていない〕ので、冬の 3 行がどの科目のものか、金額が期待どおりかは、**消したあとの (D)(E) の確認で確かめる**。
+
+**消す SQL**〔Part 1。**実行はあなた**。アプリは止めておく〕：
+
+```sql
+-- 4.17 片付け（Q8-4）Part 1：消す → 確かめる。COMMIT はまだしない。
+-- ID を名指しで消す。外部キーの順：取引 → 予算 → 科目・取引先・支払方法 → ユーザー。
+-- 各 DELETE のあとに出る「N rows affected」が、コメントの「期待」と同じかを見る。
+
+START TRANSACTION;
+
+-- (1) 取引：全部（9 件）
+DELETE FROM transactions
+WHERE id IN (66608, 66609, 66610, 66612, 66613, 66614, 66615, 66616, 104622);
+-- 期待：9 rows affected
+
+-- (2) 予算：20 行
+-- (2-a) chkipad（28045）と chkzero001（32032）の全行
+DELETE FROM budgets WHERE user_id IN (28045, 32032);
+-- 期待：4 rows affected（chkipad 3、chkzero001 1）
+
+-- (2-b) test1（27）の 2030 年・2031 年の全行
+DELETE FROM budgets WHERE user_id = 27 AND season_year IN (2030, 2031);
+-- 期待：12 rows affected（2030 年春 6、2031 年春 6）
+
+-- (2-c) 消す科目（86710、86711、86714、86713）に残っている予算の行（秋の分）
+DELETE FROM budgets WHERE category_id IN (86710, 86711, 86714, 86713);
+-- 期待：4 rows affected（test1 の秋 3、test2 の秋 1）。ここが 4 でないときは、冬の行などが入っている → ROLLBACK
+
+-- (3) 科目：8 件（chkipad 3、chkzero001 1、test1 の 3、test2 の 1）
+DELETE FROM categories
+WHERE id IN (86704, 86705, 86706, 103788, 86710, 86711, 86714, 86713);
+-- 期待：8 rows affected
+
+-- (4) 取引先：7 件（chkipad 3、chkzero001 1、test1 の 2、test2 の 1）
+DELETE FROM vendors
+WHERE id IN (44299, 44300, 44301, 52272, 44304, 44305, 44306);
+-- 期待：7 rows affected
+
+-- (5) 支払方法：5 件（chkipad 2、test1 の 2、test2 の 1）
+DELETE FROM payment_methods
+WHERE id IN (43278, 43279, 43284, 43285, 43286);
+-- 期待：5 rows affected
+
+-- (6) ユーザー：2 件（chkipad、chkzero001）
+DELETE FROM users WHERE id IN (28045, 32032);
+-- 期待：2 rows affected
+
+-- ===== ここから確認（読むだけ。まだトランザクションの中）=====
+
+-- (A) 合計。期待：users 2、categories 6、vendors 6、payment_methods 4、budgets 9、transactions 0
+SELECT
+  (SELECT COUNT(*) FROM users)           AS users_rows,
+  (SELECT COUNT(*) FROM categories)      AS categories_rows,
+  (SELECT COUNT(*) FROM vendors)         AS vendors_rows,
+  (SELECT COUNT(*) FROM payment_methods) AS payment_methods_rows,
+  (SELECT COUNT(*) FROM budgets)         AS budgets_rows,
+  (SELECT COUNT(*) FROM transactions)    AS transactions_rows;
+
+-- (B) ユーザーごと。期待：test1 は 3・3・2・0・6、test2 は 3・3・2・0・3
+SELECT u.id, u.username,
+       (SELECT COUNT(*) FROM categories      c WHERE c.user_id = u.id) AS categories,
+       (SELECT COUNT(*) FROM vendors         v WHERE v.user_id = u.id) AS vendors,
+       (SELECT COUNT(*) FROM payment_methods p WHERE p.user_id = u.id) AS payment_methods,
+       (SELECT COUNT(*) FROM transactions    t WHERE t.user_id = u.id) AS transactions,
+       (SELECT COUNT(*) FROM budgets         b WHERE b.user_id = u.id) AS budgets
+FROM users u ORDER BY u.id;
+
+-- (C) 残った名前。期待：初期の名前だけ（交通費・食費・雑費／コンビニ・ガソリンスタンド・Amazon／現金・クレジットカード）が、test1 と test2 に 1 つずつ
+SELECT u.username, 'category' AS kind, c.id, c.name FROM categories c JOIN users u ON u.id = c.user_id
+UNION ALL
+SELECT u.username, 'vendor', v.id, v.name FROM vendors v JOIN users u ON u.id = v.user_id
+UNION ALL
+SELECT u.username, 'payment_method', p.id, p.name FROM payment_methods p JOIN users u ON u.id = p.user_id
+ORDER BY username, kind, id;
+
+-- (D) 残した予算 9 行の金額。期待：test1 秋 交通費 25000・食費 20000・雑費 30000、test1 冬 30000・20000・30000、test2 秋 30000 ずつ
+SELECT u.username, b.season_year, b.season, c.name AS category_name, b.category_id, b.amount, b.id
+FROM budgets b JOIN users u ON u.id = b.user_id JOIN categories c ON c.id = b.category_id
+ORDER BY u.username, b.season_year, b.season, b.category_id;
+
+-- (E) 期待との差。期待の 9 行と、実際の 9 行を比べる。期待：0 行（1 行でも出たら、金額・科目・季節の違い → ROLLBACK）
+-- ※ test1 の冬の 3 行は、初期の科目（19 交通費、20 食費、21 雑費）の行のはず
+WITH e(user_id, category_id, season_year, season, amount) AS (
+  VALUES ROW(27, 19, 2026, 'AUTUMN', 25000),
+         ROW(27, 20, 2026, 'AUTUMN', 20000),
+         ROW(27, 21, 2026, 'AUTUMN', 30000),
+         ROW(27, 19, 2026, 'WINTER', 30000),
+         ROW(27, 20, 2026, 'WINTER', 20000),
+         ROW(27, 21, 2026, 'WINTER', 30000),
+         ROW(36, 26, 2026, 'AUTUMN', 30000),
+         ROW(36, 27, 2026, 'AUTUMN', 30000),
+         ROW(36, 28, 2026, 'AUTUMN', 30000)
+)
+SELECT 'missing_or_wrong_amount' AS problem, e.user_id, e.category_id, e.season_year, e.season, e.amount
+FROM e
+WHERE NOT EXISTS (SELECT 1 FROM budgets b
+                  WHERE b.user_id = e.user_id AND b.category_id = e.category_id
+                    AND b.season_year = e.season_year AND b.season = e.season AND b.amount = e.amount)
+UNION ALL
+SELECT 'unexpected_row', b.user_id, b.category_id, b.season_year, b.season, b.amount
+FROM budgets b
+WHERE NOT EXISTS (SELECT 1 FROM e
+                  WHERE e.user_id = b.user_id AND e.category_id = b.category_id
+                    AND e.season_year = b.season_year AND e.season = b.season AND e.amount = b.amount);
+
+-- ここで止まる。結果を見て、Part 2（COMMIT か ROLLBACK のどちらか 1 つ）を実行する。
+```
+
+**Part 2：結果を見て、どちらか 1 つだけ実行する**
+
+- (A)〜(E) がすべて期待どおり〔各 DELETE の件数、合計 2・6・6・4・9・0、ユーザーごとの件数、初期の名前だけ、(E) が 0 行〕のとき：
+  ```sql
+  COMMIT;
+  ```
+- 1 つでも違うとき〔何もコミットしない。教えてください〕：
+  ```sql
+  ROLLBACK;
+  ```
+
+**そのあとの確認**〔下のチェックの順：件数の SQL → `.\mvnw test` → 件数の SQL〕。
+
+**消す順番の方針**〔外部キーがあるため。SQL は結果を見てから示す〕：取引 → 予算 → 科目・取引先・支払方法 → ユーザー。`test1`・`test2` は、ユーザーも初期のデータ〔科目 3・取引先 3・支払方法 2・予算の行〕も**残す**。
+
+（実施の記録・4.17 の片付け：2026年11月3日。あなたが Part 1 を実行して、`COMMIT` した。
+- **DELETE の件数**：9・4・12・4・8・7・5・2〔期待どおり：取引 9、予算 4＋12＋4、科目 8、取引先 7、支払方法 5、ユーザー 2〕。確認の (A)〔合計 2・6・6・4・9・0〕、(B)〔ユーザーごと〕、(C)〔残った名前＝初期の名前だけ〕、(D)〔予算 9 行の金額〕は、**期待どおり**。
+- **(E)〔期待との差〕で 1 か所だけ違い**：`test1` の 2026年秋の**食費の予算が 20,000円ではなく 30,000円**。手順書では「1 行でも出たら ROLLBACK」としていたが、あなたは「片付けの SQL は金額を変えていない〔`DELETE` だけで、`UPDATE` はない〕ので、確認の途中で画面から保存したもの」と判断して `COMMIT` した。**この判断は筋が通っている**〔今回の SQL は予算の金額を変えない。原因の画面の保存は特定していない〕。ただし、**手順書のルールとは違う進め方**なので、ここに記録する。
+- **食費の予算を戻した**：予算設定の画面〔`test1`、2026年秋〕で、食費を 20,000円に戻した〔あなたの報告。記述に「戻さなかった場合は、そう書く」と読める文が混ざっていたため、戻したものとして記録し、**次の SQL で金額を確かめる**〕。
+- 画面から保存すると、その季節の全科目の行が表示どおりに保存される〔設計書 5.7〕。今の `test1` の秋は 3 科目だけなので、行は増えない〔9 行のまま〕。）
+
+**このあとの確認**〔下のチェック。この順に行う〕
+
+1. **件数の SQL**〔読むだけ。結果を控える〕：
+
+   ```sql
+   -- 合計。期待：users 2、categories 6、vendors 6、payment_methods 4、budgets 9、transactions 0
+   SELECT
+     (SELECT COUNT(*) FROM users)           AS users_rows,
+     (SELECT COUNT(*) FROM categories)      AS categories_rows,
+     (SELECT COUNT(*) FROM vendors)         AS vendors_rows,
+     (SELECT COUNT(*) FROM payment_methods) AS payment_methods_rows,
+     (SELECT COUNT(*) FROM budgets)         AS budgets_rows,
+     (SELECT COUNT(*) FROM transactions)    AS transactions_rows;
+
+   -- ユーザーごと。期待：test1 は 3・3・2・0・6、test2 は 3・3・2・0・3
+   SELECT u.id, u.username,
+          (SELECT COUNT(*) FROM categories      c WHERE c.user_id = u.id) AS categories,
+          (SELECT COUNT(*) FROM vendors         v WHERE v.user_id = u.id) AS vendors,
+          (SELECT COUNT(*) FROM payment_methods p WHERE p.user_id = u.id) AS payment_methods,
+          (SELECT COUNT(*) FROM transactions    t WHERE t.user_id = u.id) AS transactions,
+          (SELECT COUNT(*) FROM budgets         b WHERE b.user_id = u.id) AS budgets
+   FROM users u ORDER BY u.id;
+
+   -- 残した予算の金額。期待：test1 秋 交通費 25000・食費 20000・雑費 30000、test1 冬 30000・20000・30000、test2 秋 30000 ずつ
+   SELECT u.username, b.season_year, b.season, c.name AS category_name, b.category_id, b.amount, b.id
+   FROM budgets b JOIN users u ON u.id = b.user_id JOIN categories c ON c.id = b.category_id
+   ORDER BY u.username, b.season_year, b.season, b.category_id;
+   ```
+2. **`.\mvnw test`**〔環境変数を設定した PowerShell で。全部成功する。件数を記録する。期待：1348 件〕
+3. **もう一度、手順 1 の SQL**〔同じもの〕を実行する。期待：手順 1 の結果と**同じ**〔特に `transactions_rows` が 0 のまま、`budgets_rows` が 9 のまま〕。
+
+
+- [x] 確認のために作った取引、一時的な科目・取引先・支払方法（`T1科目`、`T2科目`、`<b>x</b>`、`x' OR 1=1` など）を、画面から削除する。`test1`・`test2` の予算の行は残す（消せない）〔**画面ではなく SQL で消した**。下の記録〕
+- [x] 新しいアカウント（`chkzero` など）をどうするか、Q8-4 の決定に従う（残す／SQL で消す）。消すとき：そのユーザーの `budgets`、`transactions`、`categories`、`vendors`、`payment_methods` を先に消し、最後に `users` の行を消す（外部キーのため。あなたが実行する SQL を、そのとき示す）〔`chkipad`・`chkzero001` を SQL で消した。下の記録〕
 - [x] ファイアウォールの許可ルール `HouseholdBudget-8080-temp` が残っていない（4.13 の手順 I）。**Java の広い許可ルール 12 個は、消さずに無効にした**〔戻すときは `Enable-NetFirewallRule`。4.13 の記録〕。モバイル ホットスポット・スマホのテザリングを使ったときは、オフにした
 - [x] ネットワークの種類（`Private`／`Public`）を、4.13 で変える前の状態に戻した（`Wi-Fi 2` を `Public` に戻した。4.13 の手順 J）
-- [ ] **片付けのあとの確認（この順に行う）**〔2026年11月3日。あなたの決定。4.14 の「テストのあと DB に行が残っていない」の確認も、ここで行う〕：
+- [x] **片付けのあとの確認（この順に行う）**〔2026年11月3日。あなたの決定。4.14 の「テストのあと DB に行が残っていない」の確認も、ここで行う〕：
   1. **件数の SQL**〔4.1 の 2 つ目の SQL。読むだけ〕を実行し、結果を控える。期待：4.1 で控えた値〔`users_rows` 2、`categories_rows` 6、`vendors_rows` 6、`payment_methods_rows` 4、`budgets_rows` 9、`transactions_rows` 0〕と一致する〔片付けの方法による。Q8-4〕。`users` も、`test1`・`test2` の 2 行だけ〔1 つ目の SQL〕
   2. **`.\mvnw test`** を実行する。全部成功する〔件数を記録する〕
   3. **もう一度、件数の SQL**〔同じもの〕を実行する。期待：手順 1 の結果と**同じ**〔テストが行を残さない〕
-- [ ] 手順 1 と 3 の件数が一致した〔違ったら、どの表が増えたかを教えてください〕
+- [x] 手順 1 と 3 の件数が一致した〔違ったら、どの表が増えたかを教えてください〕
+
+（実施の記録・4.17 の片付けのあとの確認：2026年11月3日。あなたが行い、**期待どおり**。
+- **1 回目の件数の SQL**：users 2、categories 6、vendors 6、payment_methods 4、budgets 9、transactions 0。ユーザーごとも期待どおり。予算の金額も期待どおり〔`test1` 秋の食費は 20,000円に戻してあった〕。
+- **`.\mvnw test`**：全部成功。**件数は、あなたの報告には書かれていなかった**〔報告の欄が「（件数）」のままだった〕。同じ日に Claude Code が実行した結果は **1348 件成功**、失敗 0、エラー 0。
+- **2 回目の件数の SQL**：1 回目とまったく同じ。テストは行を残さない。
+- 4.1 で控えた値〔users 2、categories 6、vendors 6、payment_methods 4、budgets 9、transactions 0〕に戻った。）
 
 ### 4.18 文書に反映する
 
@@ -1456,7 +1713,20 @@ Set-NetConnectionProfile -InterfaceAlias "（1 で読んだ InterfaceAlias）" -
 | README.md（Phase 9）/ 面接の準備 | 4.13 で分かった、iPad から開く手順（IP アドレスの調べ方、ファイアウォールの許可と解除、ホットスポット）。Phase 9 の README か運用メモに載せるかは、Phase 9 で決める |
 | 実行計画書 | 進捗表で Phase 8 を ☑ にし、Phase 8 の節を概要とリンクだけに縮める。Phase 9 に引き継ぐことを反映する（8章） |
 
-- [ ] 文書が、実際の状態と合っている
+- [x] 文書が、実際の状態と合っている
+
+（実施の記録・4.18：2026年11月3日。**各行の確認と、直したもの**〔変えたファイルは、報告のとおり〕。
+
+| 直す場所 | 結果 |
+|---|---|
+| 設計書 4.4.1〔issue 001〕 | すでに書いてある〔「URL の読み方」。A・C と、`HomeController`・`AuthController` をまとめない理由〕。**変更なし** |
+| 設計書 7.11、8章 | 7.11 の確認表に「画面の応答ヘッダー、ログアウト後の戻る」の行を足した。8章：8.2〔Phase 9 で決める点〕と 8.3〔Phase 9 のリハーサルで確かめる点〕を足した〔iPad の Safari、デモ用アカウント、README の既知の制限〕 |
+| 要件定義書・設計書の仕様の変更 | 確認で見つかった仕様の変更〔G1、Bootstrap、JavaScript、💮 と薄い緑の背景、「今の季節」ボタン〕は、それぞれのときに**先に**直してある〔要件定義書は 3章・4.4・7章を、前後の文を見せて直した〕。今回の新しい変更は**なし** |
+| `docs/issues/` | 001・005・007 は「対応済み」、004・006・008 は「未対応の候補」、002・003 は Phase 8 の前に対応済み。**変更なし** |
+| README.md | 使い方の説明とずれた点を直した：予算設定と予実比較の「移動」に、「今の季節」ボタンと年と季節を選ぶ欄を足した。予実比較の色に、💮 と薄い緑の背景を足した。**仕上げ〔使用技術に Bootstrap、画面の画像、既知の制限、デモ用アカウント〕は Phase 9** |
+| README.md（Phase 9）/ iPad の手順 | Phase 9 で決める〔8章と、設計書 8.2 に書いた〕 |
+| 実行計画書 | 進捗表で Phase 8 を ☑ にした〔**4.19 のコミット・push、`main` への取り込み、タグは本人が行う**〕。Phase 8 の節を概要とリンクだけに縮めた〔細かい「引き継ぐこと」は手順書に残してある〕。Phase 9 のタスクに、引き継ぎを 1 行足した。候補の行に issue 008 を足した〔004・006 と同じ扱い〕。この手順書の先頭の状態も直した |
+）
 
 ### 4.19 コミット前の確認と、コミット・push
 
