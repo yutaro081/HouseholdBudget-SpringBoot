@@ -1309,9 +1309,70 @@ Set-NetConnectionProfile -InterfaceAlias "（1 で読んだ InterfaceAlias）" -
 
 直すと決めたものの手順：文書（設計書・コメント）→ コード → `.\mvnw test`（件数は変わらないか、減る理由を説明できる）→ ブラウザで関係する画面を開く。
 
-- [ ] 一覧を作り、報告した（直すもの・直さないものを、あなたが決めた）
-- [ ] 直すと決めたものを直した。`.\mvnw test` が全部成功する
-- [ ] issue 001 を決めたとおりに処理した（4.2）
+- [ ] 一覧を作り、報告した（直すもの・直さないものを、あなたが決めた）〔一覧は下の記録。あなたが決めた：直す＝B1〜B3、D1、E1〜E2、C の一部。直さない＝D2、D3、Mockito の警告、C の残り〕
+- [x] 警告 ① `HV000271`（`BudgetForm.rows` の `@Valid`）を `List<@Valid Row>` に直した〔4.14 で済ませた。ログの警告は 2 回 → 0 回。`.\mvnw test` 全部成功〕。② Mockito の警告は、Q8-7 の A のとおり直さない〔記録するだけ〕
+- [x] 直すと決めたものを直した。`.\mvnw test` が全部成功する〔1348 件。下の記録〕
+- [x] issue 001 を決めたとおりに処理した（4.2。6 つの Controller に `@RequestMapping` をまとめた。issue 001 は「対応済み」）
+
+（実施の記録・4.15 の一覧：2026年11月3日〔Claude Code が読むだけで調べた。コードは変えていない〕。**直さずに報告する**〔Q8-8〕。
+
+**調べた方法**：使っていないコードは、メソッド・クラス・`messages.properties` のキー・`style.css` のクラス・import を、`src/main`・`src/test`・テンプレートの全体から検索して、参照の数を数えた。古いコメントは、`Phase` ・`予定`・`で作る`・`あとで`・`仮` などの言葉を検索した。
+
+**A. 使っていないコード：なし**
+- メソッド・クラス：参照が宣言だけのものは、Spring が呼ぶもの〔`@GetMapping`、`@ExceptionHandler`、`isValid`、`loadUserByUsername`、`getAuthorities`、`securityFilterChain`、データ束縛の setter・`PropertyEditor` のメソッド〕だけだった。
+- `messages.properties` のキー：参照のないキーはなし〔検証の注釈のキーは名前の規則で使われる〕。
+- `style.css` のクラス：テンプレート・テストで使われていないものはなし。
+- import：未使用の import はなし〔`src/main`・`src/test` とも〕。
+- `findById` の呼び出しはなし〔`findByIdAndUserId` のみ。CLAUDE.md の決まりのとおり〕。`th:utext` はなし〔`TemplateSafetyTest`〕。
+
+**B. 古いコメント〔事実とずれたもの。直す候補〕**
+
+| # | 場所 | 今の文 | ずれ | おすすめ |
+|---|---|---|---|---|
+| B1 | `messages.properties` 68 行目 | 「日付の範囲の注釈の名前は TransactionDateRange（Q5-2 の A：自作の注釈。Phase 5 の 4.4 で作る）」 | もう作成済み | **直す**：「…自作の注釈。`TransactionDateRangeValidator` が確かめる」 |
+| B2 | `messages.properties` 93 行目 | 「行の番号なしの形（rows.amount）で、どの行にも当たる想定。Phase 6 の 4.5 の実験で当たることを確かめて確定する（Q6-…）」 | 確定済み〔`BudgetFormTest.messageCodesIncludeTheKeyWithoutRowNumber` で確認〕 | **直す**：「…どの行にも当たる。`BudgetFormTest` で確かめてある」 |
+| B3 | `DuplicateException.java` 4 行目 | 「ユーザー名（または、後の Phase で科目・取引先・支払方法の名前）が重複したときの例外」 | 後の Phase の分は、もう使っている | **直す**：「ユーザー名、または科目・取引先・支払方法の名前が重複したときの例外」 |
+
+**C. 経過を書いたコメント〔事実としては正しい。今の姿ではなく、作った順の書き方〕**
+- `SeasonPeriod`〔14〜15 行目：「Phase 3 で…Phase 6 で…」〕、`Transaction`〔20〜21 行目：「【Phase 4 の時点】前倒しで作った。【Phase 5】update を足した」〕、`Budget`〔22 行目〕、`BudgetRepository`〔18〜19・23 行目〕、`TransactionRepository`〔18〜19 行目〕、`application.properties`〔36 行目〕。
+- **おすすめ：直さない**〔事実として正しく、どの Phase で足したか分かる。書き直しは範囲が広い割に得るものが小さい〕。直すなら、各 Phase の言葉を消し、「今あるもの」だけを書く〔6 ファイル〕。
+
+**D. 紛らわしい名前・表記**
+
+| # | 内容 | おすすめ |
+|---|---|---|
+| D1 | メッセージのキー **`success.register`**（アカウント。「登録しました。ログインしてください」）と **`success.registered`**（取引。「登録しました」）が、1 字違いで紛らわしい | **直す**：`success.accountRegistered` と `success.transactionRegistered`〔`success.transactionUpdated` に合わせる〕。直す場所：`messages.properties`、`AuthController`、`TransactionController`、`MessagesTest`、`SecurityBehaviorTest`、`TransactionControllerTest`〔計 6 ファイル。動きは変わらない〕 |
+| D2 | ボタン・メッセージの「変更」（科目・取引先・支払方法）と「更新」（取引） | **直さない**〔決定済みの違い：U2、Q5-8。要件の言い方〕 |
+| D3 | 「追加」（科目など）と「登録」（取引、アカウント） | **直さない**〔要件定義書の言い方のとおり〕 |
+
+**E. 分かりにくいテストのコメント**
+
+| # | 場所 | 内容 | おすすめ |
+|---|---|---|---|
+| E1 | `BudgetColorJudgeTest` 123・249 行目、`ComparisonServiceTest` 118 行目 | 「手順書 4.9 の画面の確認」〔Phase 7 の手順書の 4.9 のこと。この Phase 8 の 4.9 と紛らわしい〕 | **直す**：「Phase 7 の手順書 4.9」 |
+| E2 | `SecurityBehaviorTest` 227 行目 | 「（手順書 4.13 の(7)）」〔どの Phase の手順書かが書かれていない。Phase 3 のもの〕 | **直す**：Phase を書く〔確かめて書く〕 |
+
+**F. 仮の名前・TODO：なし**〔`TODO`・`FIXME`・「仮」を検索。`SecurityConfig` の「全 URL を許可する仮の設定は作らない」は、守る決まりの文〕。
+
+**G. 警告**：`HV000271` は 4.14 で直した〔上のチェック〕。Mockito の「self-attaching」は、Q8-7 の A のとおり直さない〔ログに残る。README の既知の制限に載せるかは、Phase 9〕。
+
+**H. issue 001**：4.2 で処理済み〔上のチェック〕。
+
+**おすすめのまとめ**：直す＝B1〜B3、D1、E1〜E2。直さない＝C、D2〜D3、G の Mockito。）
+
+（実施の記録・4.15 の決定と修正：2026年11月3日。
+**決定**：直す＝B1〜B3、D1、E1〜E2（おすすめどおり）。直さない＝D2、D3、Mockito の警告。**C は基本は直さない。ただし、その時点の状態を書いていて、今は当てはまらず、読んだ人が「まだ仮の状態」と誤解しそうなものだけを、今の状態に合わせて直す。いつ足したかを書いただけのものは、そのまま残す。**
+
+**C の見直し**〔先に一覧にして、あなたに見せた〕：「前倒しで作った」「最初は」「暫定」「当面」「とりあえず」「現時点」「の時点」「まだ」「実験」などを検索し、C の 6 ファイルを読み直した。
+- **直す（1 か所）**：`Transaction.java` 20 行目「【Phase 4 の時点】科目・取引先・支払方法の『使用中』の確認のために前倒しで作った。」と 21 行目「【Phase 5】更新用の update を足した。」。「前倒しで作った」は、まだ途中の仮の状態に読める。今の姿〔使用中の確認にも使う。update を持つ。持ち主と id を変えるメソッドは作らない〕に書き直す。
+- **そのまま残す**：`SeasonPeriod`〔「Phase 3 で…作り、Phase 6 で…足した」。いつ足したかだけ〕、`Budget`〔「【Phase 6】changeAmount を足した。…作らない」。足した時期と、守る決まり〕、`BudgetRepository`・`TransactionRepository`〔「Phase 4 で…、Phase 6 で…」「Phase 5」「Phase 7」。足した時期。「Phase 6、Q6-4 の A」は決定の出どころ〕、`TransactionService`〔「Phase 4 の各 Service の get」。今ある Service を指す〕、`SecurityConfig`〔「Phase 3 の 4.11」は手順書の参照。「仮の設定は作らない」は守る決まり〕、`application.properties`〔「Phase 5 で true と false を比べて決めた」は決定の出どころ。「今は自分のパソコンの HTTP」は今も正しい〕。
+
+**直したもの**：
+- B1・B2：`messages.properties` の 2 つのコメント。B3：`DuplicateException` の説明。
+- C：`Transaction.java` の説明。
+- D1：キーの名前 `success.register` → `success.accountRegistered`、`success.registered` → `success.transactionRegistered`。`messages.properties`、`AuthController`、`TransactionController`、`MessagesTest`、`SecurityBehaviorTest`、`TransactionControllerTest`。設計書 6.8 の文も合わせた。Phase 5 の手順書〔Q5-8〕は、その時点の記録なので、そのまま。
+- E1：`BudgetColorJudgeTest`〔2 か所〕、`ComparisonServiceTest` の「手順書 4.9」→「Phase 7 の手順書 4.9」。E2：`SecurityBehaviorTest` の「手順書 4.13 の(7)」→「Phase 3 の手順書 4.13 の(7)」〔Phase 3 の手順書 4.13 の(7)「Cookie と C1」で確認した〕。
+- **`.\mvnw test`**：**1348 件成功**、失敗 0、エラー 0〔件数は変わらない〕。キーの古い名前〔`success.register`、`success.registered`〕は、`src` に残っていない。）
 
 ### 4.16 見つかった不具合を直し、記録する
 

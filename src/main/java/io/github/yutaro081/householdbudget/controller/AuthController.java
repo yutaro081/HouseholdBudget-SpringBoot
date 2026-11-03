@@ -62,7 +62,7 @@ public class AuthController {
 		if (!bindingResult.hasErrors()) {
 			try {
 				registrationService.register(registerForm);
-				redirectAttributes.addFlashAttribute("successMessageKey", "success.register");
+				redirectAttributes.addFlashAttribute("successMessageKey", "success.accountRegistered");
 				return "redirect:/login";
 			} catch (DuplicateException e) {
 				// ユーザー名の欄の横に「このユーザー名はすでに使われています」

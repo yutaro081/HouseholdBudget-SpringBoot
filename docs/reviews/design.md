@@ -1453,7 +1453,7 @@ Spring 標準の変換（`Integer` の項目に何も足さない場合）は、
   - ログイン失敗：`error.login.failed`。
 - 6.2 の「エラーメッセージ」の列の文を、そのまま `messages.properties` に書く。文末は、ていねいな言い方に統一する（「〜してください」「〜できません」「〜があります」）。
 - 文字コードは UTF-8 とし、日本語をそのまま書く。`application.properties` に `spring.messages.encoding=UTF-8` を書き、ファイルも UTF-8 で保存する。日本語が文字化けせずに画面に表示されることを、Phase 2 で確かめた（C2）。
-- 成功メッセージ（「登録しました」など、2.6）も、同じファイルに書く。科目・取引先・支払方法の「追加しました」「変更しました」「削除しました」は、3つで共通のキー（`success.added`、`success.updated`、`success.deleted`）を使う（Phase 4 で決定）。取引など、文言が違うものは別のキーを足す。取引は、登録が `success.registered`（登録しました）、更新が `success.transactionUpdated`（更新しました、U2）で、削除は `success.deleted` を使う（Phase 5、Q5-8 の A）。
+- 成功メッセージ（「登録しました」など、2.6）も、同じファイルに書く。科目・取引先・支払方法の「追加しました」「変更しました」「削除しました」は、3つで共通のキー（`success.added`、`success.updated`、`success.deleted`）を使う（Phase 4 で決定）。取引など、文言が違うものは別のキーを足す。取引は、登録が `success.transactionRegistered`（登録しました）、更新が `success.transactionUpdated`（更新しました、U2）で、削除は `success.deleted` を使う（Phase 5、Q5-8 の A。登録のキーの名前は、Phase 8 で `success.registered` から変えた）。アカウントの登録は `success.accountRegistered`（登録しました。ログインしてください。Phase 8 で `success.register` から変えた）。
 
 ### 6.9 画面でのエラー表示と入力値の保持
 

@@ -122,7 +122,7 @@ class SecurityBehaviorTest {
 		mockMvc.perform(post("/register").with(csrf()).param("username", "sectest1").param("password", DUMMY_PASSWORD))
 				.andExpect(status().is3xxRedirection())
 				.andExpect(redirectedUrl("/login"))
-				.andExpect(flash().attribute("successMessageKey", "success.register"));
+				.andExpect(flash().attribute("successMessageKey", "success.accountRegistered"));
 	}
 
 	@Test
@@ -224,7 +224,7 @@ class SecurityBehaviorTest {
 	/**
 	 * ログイン後にセッションIDが新しくなること（C1、7.10）は、このテスト（MockMvc）では確かめられない
 	 * （MockMvc は本物のサーバーと違い、セッションIDが変わらなかった）。ブラウザの開発者ツールで確かめた
-	 * （手順書 4.13 の(7)）。ここでは、ログイン成功後の移動先だけを確かめる。
+	 * （Phase 3 の手順書 4.13 の(7)）。ここでは、ログイン成功後の移動先だけを確かめる。
 	 */
 	@Test
 	void loginSuccessGoesToTransactions() throws Exception {

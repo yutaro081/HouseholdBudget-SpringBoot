@@ -120,7 +120,7 @@ class BudgetColorJudgeTest {
 		assertThat(BudgetColorJudge.judge(30_000L, 30_001L)).isEqualTo(BudgetColor.RED);
 	}
 
-	/** 手順書 4.9 の画面の確認：食費 予算20,000円・実績1,500円、合計 予算75,000円・実績1,500円 → どちらも青 */
+	/** Phase 7 の手順書 4.9 の画面の確認：食費 予算20,000円・実績1,500円、合計 予算75,000円・実績1,500円 → どちらも青 */
 	@Test
 	void browserCheckValues() {
 		assertThat(BudgetColorJudge.judge(20_000L, 1_500L)).isEqualTo(BudgetColor.BLUE);
@@ -246,7 +246,7 @@ class BudgetColorJudgeTest {
 		}
 	}
 
-	/** 手順書 4.9 の画面の確認の値：食費 予算20,000円・実績1,500円は青なので付けない。予算30,000円・実績20,000円は付ける */
+	/** Phase 7 の手順書 4.9 の画面の確認の値：食費 予算20,000円・実績1,500円は青なので付けない。予算30,000円・実績20,000円は付ける */
 	@Test
 	void browserCheckValuesForWithin() {
 		assertThat(BudgetColorJudge.isWithinBudget(20_000L, 1_500L)).isFalse();

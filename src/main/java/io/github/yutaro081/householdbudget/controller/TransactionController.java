@@ -100,7 +100,7 @@ public class TransactionController {
 			return "transactions/form";
 		}
 		transactionService.register(userId, transactionForm);
-		redirectAttributes.addFlashAttribute("successMessageKey", "success.registered");
+		redirectAttributes.addFlashAttribute("successMessageKey", "success.transactionRegistered");
 		return "redirect:/transactions";
 	}
 

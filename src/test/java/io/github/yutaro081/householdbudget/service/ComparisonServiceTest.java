@@ -115,7 +115,7 @@ class ComparisonServiceTest {
 
 		ComparisonResult result = compare(a, AUTUMN_2026);
 
-		// 手順書 4.9 の画面の確認と同じ値
+		// Phase 7 の手順書 4.9 の画面の確認と同じ値
 		assertThat(result.rows()).hasSize(3);
 		assertRow(result.rows().get(0), "交通費", 25_000L, 0, 25_000L, BudgetColor.BLUE);
 		assertRow(result.rows().get(1), "食費", 20_000L, 1_500, 18_500L, BudgetColor.BLUE);

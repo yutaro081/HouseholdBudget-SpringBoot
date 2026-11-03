@@ -17,8 +17,8 @@ import jakarta.persistence.Table;
  * user_id は数値のIDで持ち、科目・取引先・支払方法は関連で持つ（P7）。
  * 摘要（description）だけ NULL を許す（要件4.2）。
  * <p>
- * 【Phase 4 の時点】科目・取引先・支払方法の「使用中」の確認のために前倒しで作った。
- * 【Phase 5】更新用の update を足した。持ち主（user_id）と id を変えるメソッドは作らない。
+ * 科目・取引先・支払方法の「使用中」の確認（設計書 5.5）にも使う。
+ * 更新用の update を持つ。持ち主（user_id）と id を変えるメソッドは作らない。
  */
 @Entity
 @Table(name = "transactions")

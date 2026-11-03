@@ -50,7 +50,7 @@ class MessagesTest {
 			"NotNull.transactionForm.paymentMethodId|支払方法を選択してください",
 			"typeMismatch.transactionForm.paymentMethodId|支払方法を選択してください",
 			"Size.transactionForm.description|摘要は30文字以内で入力してください",
-			"success.registered|登録しました",
+			"success.transactionRegistered|登録しました",
 			"success.transactionUpdated|更新しました",
 			"NotNull.budgetForm.rows.amount|予算額を入力してください",
 			"typeMismatch.budgetForm.rows.amount|予算額は整数で入力してください",
@@ -73,7 +73,7 @@ class MessagesTest {
 			"Size.registerForm.password|パスワードは8文字以上30文字以内で入力してください",
 			"error.duplicate.user|このユーザー名はすでに使われています",
 			"error.login.failed|ユーザー名またはパスワードが違います",
-			"success.register|登録しました。ログインしてください",
+			"success.accountRegistered|登録しました。ログインしてください",
 			"success.logout|ログアウトしました"
 	})
 	void messageText(String key, String expected) {
