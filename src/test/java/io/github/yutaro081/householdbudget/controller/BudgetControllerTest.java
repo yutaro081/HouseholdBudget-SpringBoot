@@ -276,6 +276,46 @@ class BudgetControllerTest {
 		SeasonSelectAssertions.assertSeasonSelect(last, "/budgets", 2100, "winter");
 	}
 
+	// ================================================================
+	// 「今の季節」ボタン（Phase 8 の issue 007、設計書 2.4）
+	// ================================================================
+
+	/** 季節を指定しないとき（今の季節を見ているとき）も、ほかの季節を見ているときも、出る */
+	@ParameterizedTest(name = "「今の季節」が出る：{0}")
+	@CsvSource(delimiter = '|', value = { "指定なし||", "今の季節（2026年冬）|2026|winter", "ほかの季節|2030|summer", "2027年冬|2027|winter" })
+	void currentSeasonLinkIsShownWhetherOrNotTheCurrentSeasonIsDisplayed(String label, String year, String season) throws Exception {
+		var request = get("/budgets").with(asA);
+		if (year != null && !year.isEmpty()) {
+			request.param("year", year).param("season", season);
+		}
+
+		String body = body(mockMvc.perform(request).andExpect(status().isOk()).andReturn());
+
+		SeasonSelectAssertions.assertCurrentSeasonLink(body, "/budgets");
+	}
+
+	/** 範囲の端（2000年春、2100年冬）でも出る */
+	@ParameterizedTest(name = "範囲の端でも「今の季節」が出る：{0}年 {1}")
+	@CsvSource({ "2000,spring", "2100,winter" })
+	void currentSeasonLinkIsShownAtTheEdges(String year, String season) throws Exception {
+		String body = body(mockMvc.perform(get("/budgets").param("year", year).param("season", season).with(asA))
+				.andExpect(status().isOk()).andReturn());
+
+		SeasonSelectAssertions.assertCurrentSeasonLink(body, "/budgets");
+	}
+
+	/** 科目が0件でも、見出しの行は出るので、ボタンも出る（案内と一緒に） */
+	@Test
+	void currentSeasonLinkIsShownEvenWhenThereAreNoCategories() throws Exception {
+		Long id = userRepository.save(new User("ctrlbud9", "dummy-hash-for-test")).getId();
+
+		String body = body(mockMvc.perform(get("/budgets").with(user(new LoginUser(id, "ctrlbud9", "x"))))
+				.andExpect(status().isOk()).andReturn());
+
+		assertThat(body).contains("先に科目を追加してください");
+		SeasonSelectAssertions.assertCurrentSeasonLink(body, "/budgets");
+	}
+
 	/** 選ぶ欄の送り先は、リンクと同じ形の URL。年と季節の組み合わせ（端を含む）を送ると、その季節が開く */
 	@ParameterizedTest(name = "選ぶ欄から year={0} season={1} を送ると、その季節が開く")
 	@CsvSource({ "2000,spring", "2000,winter", "2100,spring", "2100,winter", "2026,summer" })

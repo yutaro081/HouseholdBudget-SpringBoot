@@ -269,6 +269,40 @@ class ComparisonControllerTest {
 		SeasonSelectAssertions.assertSeasonSelect(body, "/comparison", 2026, "winter");
 	}
 
+	// ================================================================
+	// 「今の季節」ボタン（Phase 8 の issue 007、設計書 2.4）
+	// ================================================================
+
+	/** 季節を指定しないとき（今の季節を見ているとき）も、ほかの季節を見ているときも、出る */
+	@ParameterizedTest(name = "「今の季節」が出る：year={0} season={1}")
+	@CsvSource(nullValues = "none", value = { "none,none", "2026,winter", "2030,summer", "2027,winter" })
+	void currentSeasonLinkIsShownWhetherOrNotTheCurrentSeasonIsDisplayed(String year, String season) throws Exception {
+		Owner a = createOwner("ctrlcmp8");
+		category(a, "食費");
+
+		SeasonSelectAssertions.assertCurrentSeasonLink(open(a, year, season), "/comparison");
+	}
+
+	/** 範囲の端（2000年春、2100年冬）でも出る */
+	@ParameterizedTest(name = "範囲の端でも「今の季節」が出る：{0}年 {1}")
+	@CsvSource({ "2000,spring", "2100,winter" })
+	void currentSeasonLinkIsShownAtTheEdges(String year, String season) throws Exception {
+		Owner a = createOwner("ctrlcmp9");
+
+		SeasonSelectAssertions.assertCurrentSeasonLink(open(a, year, season), "/comparison");
+	}
+
+	/** 科目が0件でも、見出しの行は出るので、ボタンも出る（案内と一緒に） */
+	@Test
+	void currentSeasonLinkIsShownEvenWithoutCategories() throws Exception {
+		Owner a = createOwner("ctrlcmp10");
+
+		String body = open(a, null, null);
+
+		assertThat(body).contains("先に科目を追加してください");
+		SeasonSelectAssertions.assertCurrentSeasonLink(body, "/comparison");
+	}
+
 	/** 選ぶ欄の送り先は、リンクと同じ形の URL。年と季節の組み合わせ（端を含む）を送ると、その季節が開く */
 	@ParameterizedTest(name = "選ぶ欄から year={0} season={1} を送ると、その季節が開く")
 	@CsvSource({ "2000,spring", "2000,winter", "2100,spring", "2100,winter", "2026,summer" })

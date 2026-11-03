@@ -103,6 +103,14 @@ dl.detail dd {
     text-align: right;
 }
 
+/* 見出しと「今の季節」ボタン（設計書 2.4、issue 007）：前後のリンクの間の真ん中に、縦に並べる */
+.season-nav .season-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
 .season-title {
     margin: 0;
     font-size: 1.2em;

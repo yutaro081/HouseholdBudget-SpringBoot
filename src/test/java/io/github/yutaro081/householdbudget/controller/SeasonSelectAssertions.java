@@ -72,6 +72,30 @@ final class SeasonSelectAssertions {
 		return form.substring(start, form.indexOf("</select>", start));
 	}
 
+	/**
+	 * 「今の季節」のボタン（Phase 8 の issue 007、設計書 2.4）の確認：リンクが1つだけあり、行き先は季節を指定しない URL（path のまま。? を含まない）。
+	 * 前後のリンクと同じボタンの見た目で、「前の季節」と「次の季節」の間（同じ行の真ん中）に並ぶ（範囲の端で、片方が出ないときはある方だけ）。
+	 */
+	static void assertCurrentSeasonLink(String body, String path) {
+		String text = ">今の季節</a>";
+		int end = body.indexOf(text);
+		assertThat(end).as("「今の季節」のリンクが画面にある").isGreaterThanOrEqualTo(0);
+		assertThat(body.indexOf(text, end + 1)).as("「今の季節」のリンクは1つだけ").isEqualTo(-1);
+
+		String tag = body.substring(body.lastIndexOf("<a", end), end + 1);
+		assertThat(tag).contains("href=\"" + path + "\"").doesNotContain("?");
+		assertThat(tag).as("前後のリンクと同じボタンの見た目").contains("class=\"btn btn-outline-secondary btn-sm\"");
+
+		int previous = body.indexOf("前の季節</a>");
+		if (previous >= 0) {
+			assertThat(previous).as("「前の季節」より後").isLessThan(end);
+		}
+		int next = body.indexOf("次の季節</a>");
+		if (next >= 0) {
+			assertThat(next).as("「次の季節」より前").isGreaterThan(end);
+		}
+	}
+
 	/** 年と季節を選ぶ欄の、まとめての確認：GET のフォームで、送り先が path。年は 2000〜2100、季節は 4 つ。最初の値は year と season */
 	static void assertSeasonSelect(String body, String path, int year, String season) {
 		String form = form(body);
