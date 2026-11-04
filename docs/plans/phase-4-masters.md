@@ -4,7 +4,7 @@
 
 - 前の Phase：[Phase 3 アカウント登録・ログイン](phase-3-auth.md)（☑ 完了）
 - 次の Phase：[Phase 5 取引](execution-plan.md#phase-5取引)
-- 状態：☑ 完了（`main` への取り込みとタグ `phase-4-done` は、このあと行う。ただし、「6. 完了条件」の未チェックの項目を確認してから）
+- 状態：☑ 完了（`main` に取り込み済み、タグ `phase-4-done`。「6. 完了条件」で未チェックだった項目は、Phase 8 に引き継いだ）
 - 作業ブランチ：`feature/phase-4-masters`
 
 ## 1. 目的

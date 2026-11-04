@@ -4,7 +4,7 @@
 
 - 前の Phase：[Phase 2 プロジェクトの土台づくり](phase-2-base.md)（☑ 完了）
 - 次の Phase：[Phase 4 科目・取引先・支払方法](execution-plan.md#phase-4科目取引先支払方法)
-- 状態：☑ 完了（`main` への取り込みとタグ `phase-3-done` は、このあと行う。ただし、「6. 完了条件」の未チェックの項目を確認してから）
+- 状態：☑ 完了（`main` に取り込み済み、タグ `phase-3-done`。「6. 完了条件」で未チェックだった項目は、Phase 8 に引き継いだ）
 - 作業ブランチ：`feature/phase-3-auth`
 
 ## 1. 目的

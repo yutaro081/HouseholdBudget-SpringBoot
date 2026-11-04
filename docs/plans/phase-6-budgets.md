@@ -4,7 +4,7 @@
 
 - 前の Phase：[Phase 5 取引](phase-5-transactions.md)（☑ 完了。`main` に取り込み済み、タグ `phase-5-done`）
 - 次の Phase：[Phase 7 予実比較](execution-plan.md#phase-7予実比較)
-- 状態：☑ 完了（`main` への取り込みとタグ `phase-6-done` は、このあと行う。ただし、「6. 完了条件」の未チェックの項目（DB に行が残っていないことの SQL での確認、全画面のブラウザでの確認、push）を確認してから）
+- 状態：☑ 完了（`main` に取り込み済み、タグ `phase-6-done`。「6. 完了条件」で未チェックだった項目は、Phase 8 に引き継いだ）
 - 作業ブランチ：`feature/phase-6-budgets`
 
 ## 1. 目的
