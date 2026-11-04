@@ -281,20 +281,56 @@ erDiagram
 
 「他の人のデータが見えない・変更できない」ことは、2 人のユーザーを作って、片方から他方のデータを開く・変更する・削除する・混ぜて送る、という形で確かめています。主なテスト（`クラス名.メソッド名`）は次のとおりです。
 
-| 対象 | テスト | 確かめること |
-|---|---|---|
-| 取引 | `TransactionControllerTest.listShowsOwnTransactionsNewestDateFirstAndNotOthers` | 一覧に、自分の取引だけが出る |
-| | `TransactionControllerTest.detailOfOtherUsersMissingAndNonNumericIdsAreTheSame404` | 他人の取引の詳細は、存在しない ID・数字でない ID と同じ 404 になる |
-| | `TransactionControllerTest.updateOfOtherUsersTransactionIsNotFoundWhetherOrNotTheInputIsValid`<br>`TransactionControllerTest.deleteOfOtherUsersTransactionIsNotFoundAndKeepsIt` | 他人の取引は、変更も削除もできない（データは残る） |
-| | `TransactionControllerTest.registerWithOtherUsersItemIsNotFound`<br>`TransactionServiceTest.registerWithOtherUsersItemsIsNotFoundAndSavesNothing` | 登録のとき、他人の科目・取引先・支払方法の ID を混ぜて送られても、保存しない |
-| 科目・取引先・支払方法 | `CategoryControllerTest.listShowsOwnCategoriesInOrderAndNotOthers`<br>`CategoryControllerTest.otherUsersCategoryIsNotFoundForViewEditAndDelete` | 一覧は自分のものだけ。他人のものは、変更・削除の画面も操作も 404 |
-| | `VendorControllerTest.otherUsersItemIsNotFoundForViewEditAndDelete`<br>`PaymentMethodControllerTest.otherUsersItemIsNotFoundForViewEditAndDelete` | 取引先・支払方法も同じ |
-| | `CategoryControllerTest.addDuplicateIgnoresCaseAndOtherUsersNames`<br>`MasterLimitControllerTest.anotherUsersFullListDoesNotBlockMe` | 他のユーザーと同じ名前でも追加できる。256 個の上限は、ユーザーごとに数える |
-| 予算 | `BudgetControllerTest.otherUsersCategoryIdIsNotFoundAndSavesNothingEvenIfOtherRowsAreValid`<br>`BudgetServiceTest.otherUsersCategoryIdMakesTheWholeSaveNotFound` | 他人の科目の ID が 1 つでも混ざっていたら、何も保存しない |
-| | `BudgetControllerTest.twoUsersSaveTheSameSeasonSeparately`<br>`BudgetServiceTest.saveDoesNotTouchOtherSeasonsOrOtherUsers` | 2 人が同じ季節の予算を保存しても、別々に保存される。他人の予算は変わらない |
-| 予実比較 | `ComparisonControllerTest.otherUsersDataIsNotShown`<br>`ComparisonServiceTest.otherUsersCategoriesBudgetsAndTransactionsAreNotIncluded`<br>`TransactionRepositorySumTest.otherUsersTransactionsAreNotCounted` | 他人の取引・予算が、実績・予算に混ざらない |
-| アカウント登録 | `RegistrationServiceTest.eachUserGetsSeparateInitialData` | 初期データ（科目・取引先・支払方法・予算）は、ユーザーごとに別の行として作る |
-| データベースの検索 | `TransactionRepositoryTest.findByIdAndUserIdFindsOnlyOwn` | 「ID」と「持ち主」の両方で探すと、自分の取引だけが見つかる |
+**取引**
+
+- 一覧に、自分の取引だけが出る
+  - `TransactionControllerTest.listShowsOwnTransactionsNewestDateFirstAndNotOthers`
+- 他人の取引の詳細は、存在しない ID・数字でない ID と同じ 404 になる
+  - `TransactionControllerTest.detailOfOtherUsersMissingAndNonNumericIdsAreTheSame404`
+- 他人の取引は、変更も削除もできない（データは残る）
+  - `TransactionControllerTest.updateOfOtherUsersTransactionIsNotFoundWhetherOrNotTheInputIsValid`
+  - `TransactionControllerTest.deleteOfOtherUsersTransactionIsNotFoundAndKeepsIt`
+- 登録のとき、他人の科目・取引先・支払方法の ID を混ぜて送られても、保存しない
+  - `TransactionControllerTest.registerWithOtherUsersItemIsNotFound`
+  - `TransactionServiceTest.registerWithOtherUsersItemsIsNotFoundAndSavesNothing`
+
+**科目・取引先・支払方法**
+
+- 一覧は自分のものだけ。他人のものは、変更・削除の画面も操作も 404
+  - `CategoryControllerTest.listShowsOwnCategoriesInOrderAndNotOthers`
+  - `CategoryControllerTest.otherUsersCategoryIsNotFoundForViewEditAndDelete`
+- 取引先・支払方法も同じ
+  - `VendorControllerTest.otherUsersItemIsNotFoundForViewEditAndDelete`
+  - `PaymentMethodControllerTest.otherUsersItemIsNotFoundForViewEditAndDelete`
+- 他のユーザーと同じ名前でも追加できる。256 個の上限は、ユーザーごとに数える
+  - `CategoryControllerTest.addDuplicateIgnoresCaseAndOtherUsersNames`
+  - `MasterLimitControllerTest.anotherUsersFullListDoesNotBlockMe`
+
+**予算**
+
+- 他人の科目の ID が 1 つでも混ざっていたら、何も保存しない
+  - `BudgetControllerTest.otherUsersCategoryIdIsNotFoundAndSavesNothingEvenIfOtherRowsAreValid`
+  - `BudgetServiceTest.otherUsersCategoryIdMakesTheWholeSaveNotFound`
+- 2 人が同じ季節の予算を保存しても、別々に保存される。他人の予算は変わらない
+  - `BudgetControllerTest.twoUsersSaveTheSameSeasonSeparately`
+  - `BudgetServiceTest.saveDoesNotTouchOtherSeasonsOrOtherUsers`
+
+**予実比較**
+
+- 他人の取引・予算が、実績・予算に混ざらない
+  - `ComparisonControllerTest.otherUsersDataIsNotShown`
+  - `ComparisonServiceTest.otherUsersCategoriesBudgetsAndTransactionsAreNotIncluded`
+  - `TransactionRepositorySumTest.otherUsersTransactionsAreNotCounted`
+
+**アカウント登録**
+
+- 初期データ（科目・取引先・支払方法・予算）は、ユーザーごとに別の行として作る
+  - `RegistrationServiceTest.eachUserGetsSeparateInitialData`
+
+**データベースの検索**
+
+- 「ID」と「持ち主」の両方で探すと、自分の取引だけが見つかる
+  - `TransactionRepositoryTest.findByIdAndUserIdFindsOnlyOwn`
 
 ブラウザでも、2 人のユーザーで、別のユーザーの ID を URL に入れる・送信の内容を書き換える、という確認をしました（Phase 8）。
 
@@ -441,11 +477,19 @@ GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, INDEX, REFERENCES ON householdbudg
 
 DB に接続するための設定を、環境変数から読みます。**値は、各自のパソコンで設定してください。この README やリポジトリには書きません。**
 
-| 環境変数の名前 | 用途 | 例 |
-|---|---|---|
-| `HB_DB_URL` | DB の接続先 | `jdbc:mysql://（ホスト）:（ポート）/householdbudget`（同じパソコンの MySQL なら、ホストは `localhost`、ポートは `3306`） |
-| `HB_DB_USER` | アプリ専用の DB ユーザー名 | `hb_app` |
-| `HB_DB_PASSWORD` | そのユーザーのパスワード | 手順 2 で決めたパスワード |
+| 環境変数の名前 | 用途 |
+|---|---|
+| `HB_DB_URL` | DB の接続先（形は、下のコードブロック） |
+| `HB_DB_USER` | アプリ専用の DB ユーザー名（手順 2 で作った `hb_app`） |
+| `HB_DB_PASSWORD` | そのユーザーのパスワード（手順 2 で決めたもの） |
+
+`HB_DB_URL` は、次の形です。
+
+```text
+jdbc:mysql://（ホスト）:（ポート）/householdbudget
+```
+
+同じパソコンの MySQL なら、ホストは `localhost`、ポートは `3306` です。
 
 Windows の設定画面（「環境変数を編集」）で設定するか、次のように設定します。
 
