@@ -4,7 +4,7 @@
 
 - 前の Phase：[Phase 1 設計の確定](phase-1-design.md)（☑ 完了）
 - 次の Phase：[Phase 3 アカウント登録・ログイン](execution-plan.md#phase-3アカウント登録ログイン)
-- 状態：☑ 完了（`main` への取り込みとタグ `phase-2-done` は、このあと行う）
+- 状態：☑ 完了（`main` に取り込み済み、タグ `phase-2-done`）
 - 作業ブランチ：`feature/phase-2-base`
 
 ## 1. 目的

@@ -2,3 +2,6 @@
 *.cmd text eol=crlf
 
 src/main/resources/static/css/bootstrap.min.css -text
+
+# README の画面の画像（Phase 9）：バイナリとして扱う（改行の変換や差分の表示をしない）
+docs/images/*.png binary

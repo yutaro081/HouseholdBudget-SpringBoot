@@ -4,7 +4,7 @@
 
 - 前の Phase：[Phase 6 予算](phase-6-budgets.md)（☑ 完了。`main` に取り込み済み、タグ `phase-6-done`。そのあとの issue 002 の修正も `main` に取り込み済み）
 - 次の Phase：[Phase 8 仕上げ](execution-plan.md#phase-8仕上げ総合テスト・セキュリティ確認)
-- 状態：☐ 未着手（手順書を作り、「5. 決まっていない点」Q7-1〜Q7-11 は決定済み。コードはまだ書いていない）
+- 状態：☑ 完了（`main` に取り込み済み、タグ `phase-7-done`）
 - 作業ブランチ：`feature/phase-7-comparison`
 
 ## 1. 目的
