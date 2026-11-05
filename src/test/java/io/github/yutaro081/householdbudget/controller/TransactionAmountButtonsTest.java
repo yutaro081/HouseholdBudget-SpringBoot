@@ -95,8 +95,11 @@ class TransactionAmountButtonsTest {
 		assertThat(body).as("ボタンの文字だけがカンマ付き。値はカンマなしの数字").doesNotContain(">+1000<", ">+10000<", "data-amount-add=\"1,000\"", "data-amount-add=\"10,000\"");
 		assertThat(body).contains("税込（10%）", "税込（8%）");
 		assertThat(body).as("クリアのボタンがある").contains("data-amount-clear", ">クリア</button>");
-		assertThat(body.indexOf("data-amount-add=\"10000\"")).as("クリアは、足すボタンのすぐ右（+10,000 のあと、税込の行の前）")
-				.isLessThan(body.indexOf("data-amount-clear")).isLessThan(body.indexOf("data-amount-tax=\"110\""));
+		assertThat(body.indexOf("data-amount-add=\"10000\"")).as("1 行目（足すボタン）→ 2 行目（税込 10% → 税込 8% → クリア）の順")
+				.isLessThan(body.indexOf("data-amount-tax=\"110\""));
+		assertThat(body.indexOf("data-amount-tax=\"110\"")).isLessThan(body.indexOf("data-amount-tax=\"108\""));
+		assertThat(body.indexOf("data-amount-tax=\"108\"")).as("クリアは、税込（8%）のすぐ右（足すボタンの行には置かない）")
+				.isLessThan(body.indexOf("data-amount-clear"));
 		assertThat(body.indexOf("data-amount-add=\"1\"")).as("足すボタンは 1 → 10 → 100 → 1000 → 10000 の順")
 				.isLessThan(body.indexOf("data-amount-add=\"10\"")).isLessThan(body.indexOf("data-amount-add=\"100\""))
 				.isLessThan(body.indexOf("data-amount-add=\"1000\"")).isLessThan(body.indexOf("data-amount-add=\"10000\""));
