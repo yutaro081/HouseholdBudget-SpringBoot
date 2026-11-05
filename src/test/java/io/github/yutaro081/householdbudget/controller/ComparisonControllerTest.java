@@ -565,7 +565,7 @@ class ComparisonControllerTest {
 		}
 	}
 
-	/** style.css に、row-within と within-mark の規則がある（クラス名の食い違いに気づくため。値は確かめない） */
+	/** style.css に、row-within と within-mark の規則がある（クラス名の食い違いに気づくため。色の値は ColorSchemeStyleSheetTest で確かめる） */
 	@Test
 	void styleSheetHasTheRulesForTheWithinBudgetRowAndMark() throws Exception {
 		String css = mockMvc.perform(get("/css/style.css")).andExpect(status().isOk())
@@ -647,7 +647,7 @@ class ComparisonControllerTest {
 
 		assertThat(body).doesNotContain("<b>x</b>");
 		assertThat(body).contains("&lt;b&gt;x&lt;/b&gt;");
-		assertThat(body).contains("<a href=\"/comparison\">予実比較</a>");
+		assertThat(body).as("予実比較の画面では、メニューの「予実比較」が、今開いている項目として示される（issue 015）").contains("<a href=\"/comparison\" aria-current=\"page\">予実比較</a>");
 	}
 
 	/** 他のユーザーの科目・予算・取引は、出ない（持ち主は、ログイン中のユーザー） */
