@@ -70,4 +70,11 @@ class AmountButtonsScriptTest {
 				.contains("field.value = ''", "setTaxLocked(false)", "field.focus()");
 	}
 
+	@Test
+	void taxButtonsStartLockedWhenTheFieldHasAValueAndUnlockedWhenItIsEmpty() throws IOException {
+		String code = code();
+		assertThat(code).as("最初の状態は、欄に値が入っているか（空白だけは空とみなす）で決める（Q009-18）").contains("setTaxLocked(field.value.trim() !== '')");
+		assertThat(code).as("サーバーからの印（data-tax-locked）は使わない").doesNotContain("data-tax-locked");
+	}
+
 }

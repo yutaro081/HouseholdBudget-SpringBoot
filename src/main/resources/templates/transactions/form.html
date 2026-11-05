@@ -32,10 +32,9 @@
             <input class="form-control" type="text" inputmode="numeric" th:field="*{amount}">
             <div class="field-error" th:each="message : ${#fields.errors('amount')}" th:text="${message}">エラー</div>
             <!--/* 金額の入力を助けるボタン（設計書 2.3、issue 009）。JavaScript が動いたときだけ見せる（hidden を外す）。
-                 ボタンは type="button"（送信しない）。どの欄に効くかは data-amount-target で指す。編集画面は、税込のボタンを最初から押せない（data-tax-locked）。
+                 ボタンは type="button"（送信しない）。どの欄に効くかは data-amount-target で指す。税込のボタンは、画面を開いたとき欄に値が入っていれば、JavaScript が最初から押せなくする（編集画面、エラーで表示し直した画面）。
                  文は固定で、JavaScript は見せる・隠すだけ。利用者の入力は使わない（7.5）。入力欄の th:field は変えない */-->
-            <div class="amount-buttons mt-2" data-amount-buttons data-amount-target="amount"
-                 th:attr="data-tax-locked=${transactionId != null}" hidden>
+            <div class="amount-buttons mt-2" data-amount-buttons data-amount-target="amount" hidden>
                 <div class="d-flex flex-wrap gap-2 mb-2">
                     <button type="button" class="btn btn-outline-secondary" data-amount-add="1">+1</button>
                     <button type="button" class="btn btn-outline-secondary" data-amount-add="10">+10</button>

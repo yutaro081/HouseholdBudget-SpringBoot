@@ -116,17 +116,17 @@ class TransactionAmountButtonsTest {
 	void newFormShowsTheButtonsHiddenUntilJavaScriptRunsAndTaxIsNotLocked() throws Exception {
 		String body = page("/transactions/new");
 		assertButtonsArePresent(body);
-		assertThat(body).as("登録画面は、最初は税込のボタンを押せる").contains("data-tax-locked=\"false\"");
+		assertThat(body).as("最初に押せるかどうかは、JavaScript が欄の値で決める。サーバーの印（data-tax-locked）は出さない（Q009-18）").doesNotContain("data-tax-locked");
 		// JavaScript が無効のとき、ボタンと文は出ない（hidden のまま。Q009-11）
 		assertThat(body).containsPattern("data-amount-buttons[^>]*\\shidden");
 		assertThat(body).containsPattern("data-amount-tax-note\\s+hidden");
 	}
 
 	@Test
-	void editFormShowsTheButtonsAndTaxIsLockedFromTheStart() throws Exception {
+	void editFormShowsTheButtonsAndTheSavedAmountIsInTheField() throws Exception {
 		String body = page("/transactions/" + transaction.getId() + "/edit");
 		assertButtonsArePresent(body);
-		assertThat(body).as("編集画面は、最初から税込のボタンを押せない（Q009-15 の (a)）").contains("data-tax-locked=\"true\"");
+		assertThat(body).as("編集画面も、サーバーの印は出さない。保存した金額が欄に入っているので、JavaScript が押せない状態で始める（Q009-18）").doesNotContain("data-tax-locked").contains("value=\"1200\"");
 	}
 
 	@Test
@@ -138,7 +138,7 @@ class TransactionAmountButtonsTest {
 				.param("paymentMethodId", String.valueOf(payment.getId())))
 				.andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
 		assertButtonsArePresent(body);
-		assertThat(body).as("入力値が残る（欄の th:field は変えていない）").contains("value=\"abc\"");
+		assertThat(body).as("入力値が残る（欄の th:field は変えていない）。値が入っているので、JavaScript が税込を押せない状態で始める（Q009-18）").contains("value=\"abc\"").doesNotContain("data-tax-locked");
 		assertThat(body).contains("金額は整数で入力してください");
 	}
 
