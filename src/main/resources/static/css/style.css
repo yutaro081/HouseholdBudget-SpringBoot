@@ -4,6 +4,102 @@
  * ボタン・入力欄・表・メッセージの基本の見た目は、HTML に付けた Bootstrap のクラスが受け持つ。
  */
 
+/*
+ * 色の決まり（設計書 2.3「色の決まり」、issue 015 の 1 回目）。
+ * 色は、ここの変数（--hb-…）にまとめる。Bootstrap の変数は、このファイルで上書きする（bootstrap.min.css は書き換えない）。
+ * --hb-teal（#0E9594）は、文字を乗せない所（棒、ロゴの地など）だけに使う。今の画面では、まだ使っていない。
+ * --hb-teal-pale は、今開いている画面のメニュー項目と、小さな印（チップなど）だけに使う。大きな面の背景には使わない。
+ * 赤（#c62828）・青（#1565c0）・💮 の行の背景（--hb-apricot）は、予実比較の意味の色。飾りに使わない。
+ * --hb-input-border（入力欄の枠）は、入力欄の地が白（--hb-input-bg）であることを前提に決めた値。地を変えるときは、枠も測り直す。
+ */
+:root {
+    --hb-teal: #0E9594;
+    --hb-teal-pale: #E1F3F2;
+    --hb-teal-text: #0B6E6B;
+    --hb-teal-button: #0B7F7E;
+    --hb-teal-button-hover: #09706F;
+    --hb-teal-button-active: #085A59;
+    --hb-text: #24302F;
+    --hb-text-sub: #56625F;
+    --hb-bg: #F6F8F8;
+    --hb-line: #E2E8E8;
+    --hb-input-border: #849290;
+    --hb-input-bg: #FFFFFF;
+    --hb-apricot: #FFF2E5;
+    --hb-danger: #B02A37;
+
+    /* Bootstrap の変数の上書き（本文・強調・補足の文字、背景、線、リンク） */
+    --bs-body-color: var(--hb-text);
+    --bs-body-color-rgb: 36, 48, 47;
+    --bs-emphasis-color: var(--hb-text);
+    --bs-emphasis-color-rgb: 36, 48, 47;
+    --bs-secondary-color: var(--hb-text-sub);
+    --bs-secondary-color-rgb: 86, 98, 95;
+    --bs-body-bg: var(--hb-bg);
+    --bs-body-bg-rgb: 246, 248, 248;
+    --bs-border-color: var(--hb-line);
+    --bs-link-color: var(--hb-teal-text);
+    --bs-link-color-rgb: 11, 110, 107;
+    --bs-link-hover-color: var(--hb-teal-button-active);
+    --bs-link-hover-color-rgb: 8, 90, 89;
+    /* エラーの文字（.field-error）と、削除ボタンの赤。Bootstrap の標準の赤 #DC3545 は、背景 #F6F8F8 の上で 4.25 対 1 だったので、濃くした（6.09 対 1） */
+    --bs-danger: var(--hb-danger);
+    --bs-danger-rgb: 176, 42, 55;
+}
+
+/* 主ボタン：地は #0B7F7E（白い文字と 4.83 対 1）。マウスを載せたとき・押したときは、少し濃くする。ボタンは自分の変数を持つので、クラスに上書きする */
+.btn-primary {
+    --bs-btn-bg: var(--hb-teal-button);
+    --bs-btn-border-color: var(--hb-teal-button);
+    --bs-btn-hover-bg: var(--hb-teal-button-hover);
+    --bs-btn-hover-border-color: var(--hb-teal-button-hover);
+    --bs-btn-active-bg: var(--hb-teal-button-active);
+    --bs-btn-active-border-color: var(--hb-teal-button-active);
+    --bs-btn-disabled-bg: var(--hb-teal-button);
+    --bs-btn-disabled-border-color: var(--hb-teal-button);
+    --bs-btn-focus-shadow-rgb: 11, 127, 126;
+}
+
+/* 削除ボタン（赤い枠）：赤は #B02A37（背景 #F6F8F8 の上で 6.09 対 1）。マウスを載せたとき・押したときは、地がこの赤で、白い文字 */
+.btn-outline-danger {
+    --bs-btn-color: var(--hb-danger);
+    --bs-btn-border-color: var(--hb-danger);
+    --bs-btn-hover-bg: var(--hb-danger);
+    --bs-btn-hover-border-color: var(--hb-danger);
+    --bs-btn-active-bg: var(--hb-danger);
+    --bs-btn-active-border-color: var(--hb-danger);
+    --bs-btn-disabled-color: var(--hb-danger);
+    --bs-btn-disabled-border-color: var(--hb-danger);
+    --bs-btn-focus-shadow-rgb: 176, 42, 55;
+}
+
+/* 副ボタン（灰色の枠）：文字と枠は補足の文字と同じ #56625F（背景 #F6F8F8 の上で 5.96 対 1。Bootstrap の標準 #6C757D は 4.40 対 1 だった） */
+.btn-outline-secondary {
+    --bs-btn-color: var(--hb-text-sub);
+    --bs-btn-border-color: var(--hb-text-sub);
+    --bs-btn-hover-bg: var(--hb-text-sub);
+    --bs-btn-hover-border-color: var(--hb-text-sub);
+    --bs-btn-active-bg: var(--hb-text-sub);
+    --bs-btn-active-border-color: var(--hb-text-sub);
+    --bs-btn-disabled-color: var(--hb-text-sub);
+    --bs-btn-disabled-border-color: var(--hb-text-sub);
+    --bs-btn-focus-shadow-rgb: 86, 98, 95;
+}
+
+/* 入力欄：地は白、枠は #849290（白との比 3.23 対 1）。選んだとき（フォーカス）の枠はターコイズ */
+.form-control,
+.form-select {
+    background-color: var(--hb-input-bg);
+    border-color: var(--hb-input-border);
+}
+
+.form-control:focus,
+.form-select:focus {
+    background-color: var(--hb-input-bg);
+    border-color: var(--hb-teal-button);
+    box-shadow: 0 0 0 0.25rem rgba(11, 127, 126, 0.25);
+}
+
 /* 本体の幅。ログイン・登録・入力画面は狭くする（Bootstrap の .container を上書き） */
 main.container {
     max-width: 960px;
@@ -28,6 +124,18 @@ main.narrow {
 .menu a {
     padding: 4px 10px;
     text-decoration: none;
+}
+
+/* 今開いている画面の項目（aria-current="page"。クラスは付けない）：薄いターコイズの背景と #0B6E6B の文字。薄いターコイズを使うのは、ここと小さな印だけ */
+.menu a[aria-current="page"] {
+    background-color: var(--hb-teal-pale);
+    color: var(--hb-teal-text);
+    border-radius: var(--bs-border-radius);
+}
+
+/* ヘッダーの帯は白にして、ページの背景（#F6F8F8）と区切る。下の線の色は --bs-border-color（#E2E8E8） */
+.app-header {
+    --bs-tertiary-bg-rgb: 255, 255, 255;
 }
 
 .logout-form {
@@ -127,7 +235,7 @@ dl.detail dd {
 }
 
 .season-hint {
-    color: #555;
+    color: var(--hb-text-sub);
     font-size: 0.85em;
 }
 
@@ -139,7 +247,7 @@ dl.detail dd {
 
 /* 「（この季節は未設定）」の印（設計書 2.3、Q26） */
 .unset-mark {
-    color: #777;
+    color: var(--hb-text-sub);
     font-size: 0.85em;
     margin-left: 6px;
 }
@@ -157,11 +265,11 @@ dl.detail dd {
     color: #1565c0;
 }
 
-/* 予算内の行（💮。設計書 2.3、F5）：薄い緑の背景 #e3f8e9（ブラウザで見比べて決めた。Q8-36）。赤・青は文字の色なので、重ならない。
-   文字（#212529）との明るさの比は約 13.9 対 1。
+/* 予算内の行（💮。設計書 2.3、F5）：薄いアプリコットの背景 #FFF2E5（--hb-apricot。issue 015 で、前の薄い緑から変えた。薄いターコイズ #E1F3F2 と区別できなかったため）。
+   赤・青は文字の色なので、重ならない。文字との明るさの比は、手順書 issue-015-colors.md に記録した。
    Bootstrap の表の変数 --bs-table-bg だけを上書きするので、行にマウスを載せたときの色や、合計行の上の線は残る */
 .comparison-table tr.row-within {
-    --bs-table-bg: #e3f8e9;
+    --bs-table-bg: var(--hb-apricot);
 }
 
 /* 右端の 💮 を大きくする（絵文字の span の形は変えない。Q8-38） */
@@ -177,6 +285,6 @@ dl.detail dd {
 
 /* 色の意味の注記（Q7-6 の C） */
 .legend {
-    color: #555;
+    color: var(--hb-text-sub);
     font-size: 0.85em;
 }

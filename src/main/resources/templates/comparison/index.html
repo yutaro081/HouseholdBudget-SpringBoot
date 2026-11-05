@@ -2,7 +2,7 @@
 <html lang="ja" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/common :: head('予実比較')}"></head>
 <body>
-<header th:replace="~{fragments/common :: header}"></header>
+<header th:replace="~{fragments/common :: header('comparison')}"></header>
 <main class="container">
     <h1>予実比較</h1>
 
@@ -18,7 +18,7 @@
          金額は 30,000円、差額のマイナスは -5,000円 の形（設計書 2.3、3.7）。予算が未設定なら「未設定」、差額は空欄。
          色は行の文字全体に付ける（F4）：赤は row-over、青は row-low、色なしはクラスなし。合計行も同じ。
          予算内の印（💮。Phase 8 の issue 005、設計書 2.3）は、右端の列に出す。row.withinBudget が true の行（合計行も）だけ。
-         その行には row-within を付け、背景を薄い緑にする（赤・青は文字の色なので重ならない）。右端のセルの within-mark で 💮 を大きくする（style.css）。
+         その行には row-within を付け、背景を薄いアプリコットにする（赤・青は文字の色なので重ならない）。右端のセルの within-mark で 💮 を大きくする（style.css）。
          絵文字は読み上げに使わず（aria-hidden）、「予算内」を画面に出さない文字（visually-hidden）で添える。見出しの「評価」も同じ。
          色の判定も 💮 の判定も BudgetColorJudge で済んでいて、ここでは判定しない。文言はテンプレートに直接書く（Q7-5）。
          科目名は th:text で出す。th:utext は使わない（7.5） */-->

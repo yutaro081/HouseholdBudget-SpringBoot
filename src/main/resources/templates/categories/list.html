@@ -2,7 +2,7 @@
 <html lang="ja" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/common :: head('科目')}"></head>
 <body>
-<header th:replace="~{fragments/common :: header}"></header>
+<header th:replace="~{fragments/common :: header('categories')}"></header>
 <main class="container">
     <!--/* 成功メッセージ、削除できない理由の表示場所（画面の上部、設計書 2.3） */-->
     <div th:replace="~{fragments/common :: messages}"></div>
