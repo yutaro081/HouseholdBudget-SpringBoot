@@ -12,6 +12,9 @@
          プルダウンが空のとき（B2、Q5-7 の A）は、足りない種類の説明とマスタの画面へのリンクを出し、フォームは出さない。
          入力欄には、カンマも「円」も使わない（2.3）。金額は文字として受け付ける（G1）。
          エラーで戻ったときも、入力値と選んでいた値が残る（th:field）。利用者の入力は th:field / th:text で出す。th:utext は使わない（7.5） */-->
+    <!--/* 取引の複写（issue 012、U8）：複写で開いたときだけ出す固定の 1 行。利用者の入力は入れない。エラーで表示し直した画面には出ない */-->
+    <p class="alert alert-info" th:if="${copied}">この取引を写しています。日付は今日にしてあります。「登録」を押すまで、保存されません。</p>
+
     <div class="notice alert alert-warning" th:if="${#lists.isEmpty(categories) or #lists.isEmpty(vendors) or #lists.isEmpty(paymentMethods)}">
         <p th:if="${#lists.isEmpty(categories)}">先に科目を追加してください。<a th:href="@{/categories}">科目の画面へ</a></p>
         <p th:if="${#lists.isEmpty(vendors)}">先に取引先を追加してください。<a th:href="@{/vendors}">取引先の画面へ</a></p>

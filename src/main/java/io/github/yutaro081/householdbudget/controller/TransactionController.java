@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import io.github.yutaro081.householdbudget.entity.Transaction;
@@ -74,10 +75,25 @@ public class TransactionController {
 		return "transactions/list";
 	}
 
-	/** 登録フォーム。日付の最初の値は今日（U7）。 */
+	/**
+	 * 登録フォーム。日付の最初の値は今日（U7）。
+	 * <p>
+	 * {@code copyFrom}（写す元の取引のID）があるときは、その取引の科目・取引先・支払方法・金額・摘要を入れた状態で表示する
+	 * （取引の複写、issue 012、U8）。日付だけは今日。GET なので、データベースには何も書かない。
+	 * 写す元は、ID とログイン中のユーザーの両方で探す（既存の get。他人・存在しない取引は NotFoundException で 404）。
+	 * 数字でない・範囲外の値は型変換のエラーになり、GlobalExceptionHandler が 404 にする。空（{@code ?copyFrom=}）は「指定なし」。
+	 */
 	@GetMapping("/new")
-	public String showNew(@AuthenticationPrincipal LoginUser loginUser, Model model) {
-		TransactionForm form = new TransactionForm();
+	public String showNew(@AuthenticationPrincipal LoginUser loginUser,
+			@RequestParam(name = "copyFrom", required = false) Long copyFrom,
+			Model model) {
+		TransactionForm form;
+		if (copyFrom == null) {
+			form = new TransactionForm();
+		} else {
+			form = new TransactionForm(transactionService.get(loginUser.getUserId(), copyFrom));
+			model.addAttribute("copied", true);
+		}
 		form.setTransactionDate(LocalDate.now(clock));
 		model.addAttribute("transactionForm", form);
 		addFormModel(model, loginUser.getUserId(), null);
