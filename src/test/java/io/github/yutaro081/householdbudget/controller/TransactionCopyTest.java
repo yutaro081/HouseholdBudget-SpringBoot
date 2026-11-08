@@ -267,6 +267,8 @@ class TransactionCopyTest {
 		String plain = body(mockMvc.perform(get("/transactions/new").with(asA)).andReturn());
 
 		assertThat(copied).contains(COPY_NOTICE, "日付は今日にしてあります", "保存されません");
+		assertThat(copied).as("ボタンの文字（登録する）と合わせる（issue 015 の 3 回目）").contains("「登録する」を押すまで")
+				.doesNotContain("「登録」を押すまで");
 		assertThat(plain).doesNotContain(COPY_NOTICE);
 	}
 

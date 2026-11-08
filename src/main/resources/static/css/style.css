@@ -28,7 +28,7 @@
 /*
  * 色の決まり（設計書 2.3「色の決まり」、issue 015 の 1 回目）。
  * 色は、ここの変数（--hb-…）にまとめる。Bootstrap の変数は、このファイルで上書きする（bootstrap.min.css は書き換えない）。
- * --hb-teal（#0E9594）は、文字を乗せない所（棒、ロゴの地など）だけに使う。今の画面では、まだ使っていない。
+ * --hb-teal（#0E9594）は、文字を乗せない所（棒、ロゴの地など）だけに使う。今の画面では、取引の登録・編集画面の金額の欄の枠（border）だけ。
  * --hb-teal-pale は、今開いている画面のメニュー項目と、小さな印（チップなど）だけに使う。大きな面の背景には使わない。
  * 赤（#c62828）・青（#1565c0）・💮 の行の背景（--hb-apricot）は、予実比較の意味の色。飾りに使わない。
  * --hb-input-border（入力欄の枠）は、入力欄の地が白（--hb-input-bg）であることを前提に決めた値。地を変えるときは、枠も測り直す。
@@ -56,6 +56,17 @@
     --hb-font-size-body: 1rem;
     --hb-font-size-small: 0.8125rem;
 
+    /* 余白の目盛り（rem。標準の 16px で 4・8・12・16・24・32・48px）と、角の丸み（設計書 2.3「余白と角の丸み」、issue 015 の 3 回目） */
+    --hb-space-1: 0.25rem;
+    --hb-space-2: 0.5rem;
+    --hb-space-3: 0.75rem;
+    --hb-space-4: 1rem;
+    --hb-space-5: 1.5rem;
+    --hb-space-6: 2rem;
+    --hb-space-7: 3rem;
+    --hb-radius-control: 10px;
+    --hb-radius-card: 16px;
+
     /* Bootstrap の変数の上書き（フォント、本文・強調・補足の文字、背景、線、リンク） */
     --bs-body-font-family: var(--hb-font-family);
     --bs-body-font-size: var(--hb-font-size-body);
@@ -75,6 +86,8 @@
     /* エラーの文字（.field-error）と、削除ボタンの赤。Bootstrap の標準の赤 #DC3545 は、背景 #F6F8F8 の上で 4.25 対 1 だったので、濃くした（6.09 対 1） */
     --bs-danger: var(--hb-danger);
     --bs-danger-rgb: 176, 42, 55;
+    /* 角の丸み：入力欄・ボタン・メッセージの帯は 10px（Bootstrap の標準は 0.375rem）。全画面に効く */
+    --bs-border-radius: var(--hb-radius-control);
 }
 
 /*
@@ -167,6 +180,83 @@ main.container {
 
 main.narrow {
     max-width: 420px;
+}
+
+/*
+ * 取引の登録・編集画面の本体の幅（issue 015 の 3 回目）。992px（Bootstrap の lg）より小さいときは 1 列で、今の narrow と同じ 420px まで。
+ * 992px 以上は 2 列（HTML の row / col-lg-6）で、960px。
+ */
+main.form-wide {
+    max-width: 420px;
+}
+
+@media (min-width: 992px) {
+    main.form-wide {
+        max-width: 960px;
+    }
+}
+
+/* 上の「← 取引一覧に戻る」リンク */
+.back-link {
+    margin-bottom: var(--hb-space-3);
+}
+
+/* フォームの面：白いカード（背景 #F6F8F8 の上に置く）。1 列のときは内側の余白を少なくする */
+.form-card {
+    background-color: var(--hb-input-bg);
+    border: 1px solid var(--hb-line);
+    border-radius: var(--hb-radius-card);
+    padding: var(--hb-space-4);
+}
+
+@media (min-width: 992px) {
+    .form-card {
+        padding: var(--hb-space-5);
+    }
+}
+
+/* 右下の「キャンセル」と送信ボタン */
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--hb-space-2);
+    margin-top: var(--hb-space-5);
+}
+
+/* ラベルの横の小さな印。「必須」は薄いターコイズ（小さな印に使ってよい色）、「任意」は背景なし。赤は意味の色なので使わない */
+.field-chip {
+    display: inline-block;
+    margin-left: var(--hb-space-2);
+    padding: 0 var(--hb-space-2);
+    border-radius: var(--hb-radius-control);
+    font-size: var(--hb-font-size-small);
+    font-weight: 400;
+    line-height: 1.5;
+    vertical-align: 0.05em;
+}
+
+.field-chip-required {
+    background-color: var(--hb-teal-pale);
+    color: var(--hb-teal-text);
+}
+
+.field-chip-optional {
+    border: 1px solid var(--hb-line);
+    color: var(--hb-text-sub);
+}
+
+/* 金額の欄：大きめの文字（見出しの 1.75rem）、ターコイズの枠（#0E9594。白との比 3.66 対 1）、数字は右寄せ。選んだとき（フォーカス）は .form-control:focus の枠が効く */
+.amount-input {
+    border: 2px solid var(--hb-teal);
+    font-size: var(--hb-font-size-h1);
+    text-align: right;
+}
+
+/* 金額の範囲の補足（欄の下） */
+.field-hint {
+    color: var(--hb-text-sub);
+    font-size: var(--hb-font-size-small);
+    margin-top: var(--hb-space-1);
 }
 
 /* ヘッダー（メニュー、ユーザー名、ログアウト）。幅が足りないときは折り返す。メニューの <a> にはクラスを付けない（テストが確かめている） */
