@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import io.github.yutaro081.householdbudget.domain.BudgetColor;
 import io.github.yutaro081.householdbudget.domain.BudgetColorJudge;
+import io.github.yutaro081.householdbudget.domain.GraphComment;
 import io.github.yutaro081.householdbudget.domain.PeriodProgress;
 import io.github.yutaro081.householdbudget.domain.PieSlices;
 import io.github.yutaro081.householdbudget.domain.SeasonPeriod;
@@ -18,6 +19,7 @@ import io.github.yutaro081.householdbudget.domain.WeekPeriod;
 import io.github.yutaro081.householdbudget.domain.WeeklyAmount;
 import io.github.yutaro081.householdbudget.dto.CategoryActual;
 import io.github.yutaro081.householdbudget.dto.ComparisonRow;
+import io.github.yutaro081.householdbudget.dto.HitokotoView;
 import io.github.yutaro081.householdbudget.dto.TopView;
 import io.github.yutaro081.householdbudget.dto.WeekRow;
 import io.github.yutaro081.householdbudget.entity.Budget;
@@ -43,13 +45,16 @@ public class TopService {
 	private final BudgetRepository budgetRepository;
 	private final TransactionRepository transactionRepository;
 	private final ComparisonService comparisonService;
+	private final HitokotoService hitokotoService;
 
 	public TopService(CategoryService categoryService, BudgetRepository budgetRepository,
-			TransactionRepository transactionRepository, ComparisonService comparisonService) {
+			TransactionRepository transactionRepository, ComparisonService comparisonService,
+			HitokotoService hitokotoService) {
 		this.categoryService = categoryService;
 		this.budgetRepository = budgetRepository;
 		this.transactionRepository = transactionRepository;
 		this.comparisonService = comparisonService;
+		this.hitokotoService = hitokotoService;
 	}
 
 	@Transactional(readOnly = true)
@@ -77,6 +82,7 @@ public class TopService {
 
 		List<WeekRow> rows = new ArrayList<>();
 		List<PieSlices.Entry> pieEntries = new ArrayList<>();
+		List<GraphComment.Row> commentRows = new ArrayList<>();
 		long totalActual = 0;
 		long totalBudget = 0;
 		boolean anyBudget = false;
@@ -87,6 +93,7 @@ public class TopService {
 			long actual = WeeklyAmount.roundUpActual(weekActualOf.getOrDefault(category.getId(), 0L));
 			rows.add(row(category.getName(), weeklyBudget, actual));
 			pieEntries.add(new PieSlices.Entry(category.getName(), actual));
+			commentRows.add(new GraphComment.Row(category.getName(), weeklyBudget, actual));
 
 			totalActual += actual;
 			if (weeklyBudget != null) {
@@ -99,11 +106,15 @@ public class TopService {
 		List<PieSlices.Slice> slices = PieSlices.of(pieEntries);
 		long pieTotal = slices.stream().mapToLong(PieSlices.Slice::amount).sum();
 
+		// きょうのひとこと：暦のひとこと + 今週の数字から作る一言（画面に出ている額と同じ数字を使う。設計書 5.12）
+		HitokotoView hitokoto = hitokotoService.hitokoto(today, commentRows, anyBudget ? Long.valueOf(totalBudget) : null,
+				totalActual);
+
 		return new TopView(season, seasonTotal.budget(), seasonTotal.actual(), seasonTotal.difference(),
 				PeriodProgress.barPermille(seasonTotal.budget(), seasonTotal.actual()),
 				PeriodProgress.seasonElapsedPermille(season, today),
 				week.start(), week.endDate(), PeriodProgress.weekElapsedPermille(week.dayNumber(today)),
-				!categories.isEmpty(), slices, pieTotal, PieSlices.cssStops(slices), rows, total);
+				!categories.isEmpty(), slices, pieTotal, PieSlices.cssStops(slices), rows, total, hitokoto);
 	}
 
 	/** 週の予算（未設定なら null）と、切り上げた実績から、1行（科目の行も合計の行も同じ）を作る。 */

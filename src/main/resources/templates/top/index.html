@@ -25,6 +25,11 @@
         <p>先に科目を追加してください。<a th:href="@{/categories}">科目の画面へ</a></p>
     </div>
 
+    <!--/* 科目が0件でも、暦のひとことは出す（グラフへのひとことは出ない。設計書 2.3、Q016-8） */-->
+    <th:block th:unless="${top.hasCategories}">
+        <th:block th:replace="~{top/hitokoto :: frame(${top.hitokoto})}"></th:block>
+    </th:block>
+
     <th:block th:if="${top.hasCategories}">
 
     <!--/* 1. 季節のメーター：今日が属する季節の合計。予実比較の合計行と同じ値（1円単位）。 */-->
@@ -79,6 +84,9 @@
             </table>
         </div>
     </section>
+
+    <!--/* きょうのひとこと：円グラフの下。暦のひとこと + グラフへのひとこと。文はアプリの中のファイルの文。style 属性は使わない（設計書 5.12、7.5） */-->
+    <th:block th:replace="~{top/hitokoto :: frame(${top.hitokoto})}"></th:block>
 
     <!--/* 3. 今週の科目ごとのメーター：いちばん上に合計の行、そのあと科目の登録順に全科目。色は予実比較と同じ決まり（週の予算と切り上げた実績で判定済み）。 */-->
     <section class="top-section top-weeks-section">

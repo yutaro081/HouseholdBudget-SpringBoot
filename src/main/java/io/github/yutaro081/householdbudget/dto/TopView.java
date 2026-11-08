@@ -26,9 +26,10 @@ import io.github.yutaro081.householdbudget.domain.SeasonPeriod;
  * @param pieStops            conic-gradient の中身（数字と固定の文字だけ。{@link PieSlices#cssStops}）。円がなければ空
  * @param rows                科目ごとの行（科目の登録順。使っていない科目も含む）
  * @param total               合計の行。科目が0件のときも値は作るが、画面は出さない
+ * @param hitokoto            きょうのひとこと（暦のひとこと、グラフへのひとこと。設計書 5.12）
  */
 public record TopView(SeasonPeriod season, Long seasonBudget, long seasonActual, Long seasonRemaining,
 		int seasonBarPermille, int seasonTodayPermille, LocalDate weekStart, LocalDate weekEnd,
 		int weekTodayPermille, boolean hasCategories, List<PieSlices.Slice> slices, long pieTotal, String pieStops,
-		List<WeekRow> rows, WeekRow total) {
+		List<WeekRow> rows, WeekRow total, HitokotoView hitokoto) {
 }
