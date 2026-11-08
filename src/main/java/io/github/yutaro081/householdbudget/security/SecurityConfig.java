@@ -14,7 +14,7 @@ import org.springframework.web.servlet.support.SessionFlashMapManager;
  * セキュリティの設定（設計書 4.5、7.2、7.3、7.6、7.10）。
  * <p>
  * ・パスワードを BCrypt でハッシュ化する PasswordEncoder を、アプリで1つだけ用意する。
- * ・ログインなしで開けるのは、/login、/register、/css/**、/js/**、/error だけ。それ以外はログイン必須。
+ * ・ログインなしで開けるのは、/login、/register、/css/**、/js/**、/fonts/**、/error だけ。それ以外はログイン必須。
  * ・CSRF 対策は、無効にしない（標準のまま。POST にはトークンが要る）。
  * ・ログイン後にセッションIDを新しくする標準の動きも、無効にしない（7.10）。
  * ・全 URL を許可する仮の設定は作らない。
@@ -34,7 +34,7 @@ public class SecurityConfig {
 		http
 				.authorizeHttpRequests(auth -> auth
 						// ログインなしで開けるもの（7.3）
-						.requestMatchers("/login", "/register", "/css/**", "/js/**", "/error").permitAll()
+						.requestMatchers("/login", "/register", "/css/**", "/js/**", "/fonts/**", "/error").permitAll()
 						// それ以外は、ログイン必須。未ログインなら /login へ移動する
 						.anyRequest().authenticated())
 				.formLogin(form -> form

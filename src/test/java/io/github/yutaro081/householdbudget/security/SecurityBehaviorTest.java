@@ -70,7 +70,8 @@ class SecurityBehaviorTest {
 
 	@ParameterizedTest(name = "未ログインでも {0} は開ける")
 	@ValueSource(strings = { "/login", "/register", "/css/style.css", "/css/bootstrap.min.css",
-			"/js/back-reload.js" })
+			"/js/back-reload.js", "/fonts/ZenKakuGothicNew-Regular.woff2", "/fonts/ZenKakuGothicNew-Bold.woff2",
+			"/fonts/OFL.txt" })
 	void publicUrlsAreOpen(String path) throws Exception {
 		mockMvc.perform(get(path)).andExpect(status().isOk());
 	}
