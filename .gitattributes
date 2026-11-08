@@ -5,3 +5,7 @@ src/main/resources/static/css/bootstrap.min.css -text
 
 # README の画面の画像（Phase 9）：バイナリとして扱う（改行の変換や差分の表示をしない）
 docs/images/*.png binary
+
+# フォント（issue 015 の 2 回目）：バイナリとして扱う（改行の変換や差分の表示をしない）。OFL.txt は配布元のとおり（1 字も変えない）
+src/main/resources/static/fonts/*.woff2 binary
+src/main/resources/static/fonts/OFL.txt -text
