@@ -154,11 +154,26 @@ class HeaderMarkupTest {
 		}
 	}
 
+	/**
+	 * issue 017 の 2 回目：ログイン前の画面（ログイン、登録）のヘッダーは、ロゴと「家計・予実管理」だけ。
+	 * ロゴは、ログイン後のヘッダーと同じ HTML（共有の部品）。メニュー・「さん」・ログアウトは出ない。
+	 */
 	@Test
-	void screensWithoutTheHeaderHaveNoLogo() throws Exception {
-		// ログイン・登録の画面は、1 回目では変えない（2 回目で、ロゴだけのヘッダーを作る）
-		assertThat(mockMvc.perform(get("/login")).andReturn().getResponse().getContentAsString()).doesNotContain("class=\"brand\"");
-		assertThat(mockMvc.perform(get("/register")).andReturn().getResponse().getContentAsString()).doesNotContain("class=\"brand\"");
+	void screensBeforeLoginHaveTheHeaderWithOnlyTheLogo() throws Exception {
+		for (String path : List.of("/login", "/register")) {
+			String page = mockMvc.perform(get(path)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+			String header = header(page);
+
+			assertThat(header).as(path).contains("class=\"app-header-inner\"", "家計・予実管理");
+			assertThat(header).as(path).containsPattern(Pattern.compile(
+					"<a class=\"brand\" href=\"/\"><span class=\"brand-logo\"><svg[^>]*>.*?</svg></span><span class=\"brand-name\">家計・予実管理</span></a>",
+					Pattern.DOTALL));
+			assertThat(svgs(header)).as(path + "：アイコンはロゴの 1 つだけ").hasSize(1);
+			assertThat(header).as(path).doesNotContain("class=\"menu", "aria-current", "さん", "ログアウト", "/logout", "<nav", "<form", "<button");
+			assertThat(Pattern.compile("<a class=\"brand\".*?</a>", Pattern.DOTALL).matcher(header).results().findFirst().orElseThrow().group())
+					.as(path + "：ログイン後のロゴと同じ HTML")
+					.isEqualTo(Pattern.compile("<a class=\"brand\".*?</a>", Pattern.DOTALL).matcher(header(body("/transactions", "hdrmark1"))).results().findFirst().orElseThrow().group());
+		}
 	}
 
 }

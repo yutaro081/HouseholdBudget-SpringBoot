@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<!--/*
+  ログイン前のヘッダー（ログイン、アカウント登録。設計書 2.3、4.4.2、issue 017 の 2 回目）：ロゴと「家計・予実管理」だけ。
+  ・メニュー・ユーザー名・ログアウトは、この部品の中に書かない（ログイン前に出ようがない）。sec:authentication も使わない。
+  ・common.html に置かない理由：common.html の header(current) を呼ぶと、同じファイルの <header> 要素も一緒に出てしまうため（Thymeleaf の仕様）。
+*/-->
+<header th:fragment="publicHeader" class="app-header bg-body-tertiary border-bottom">
+    <div class="app-header-inner">
+        <th:block th:replace="~{fragments/common :: brand}"></th:block>
+    </div>
+</header>
+</html>

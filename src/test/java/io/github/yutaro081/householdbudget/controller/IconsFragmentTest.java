@@ -22,9 +22,9 @@ import org.thymeleaf.spring6.SpringTemplateEngine;
 @SpringBootTest
 class IconsFragmentTest {
 
-	/** 設計書 2.3「アイコン」の 11 個 */
+	/** 設計書 2.3「アイコン」の 12 個（issue 017 の 2 回目で check を足した） */
 	private static final List<String> NAMES = List.of("logo", "top", "transactions", "categories", "vendors",
-			"payment-methods", "budgets", "comparison", "plus", "sun", "pie");
+			"payment-methods", "budgets", "comparison", "plus", "sun", "pie", "check");
 
 	private static final Pattern SVG = Pattern.compile("<svg.*?</svg>", Pattern.DOTALL);
 
@@ -49,7 +49,7 @@ class IconsFragmentTest {
 	}
 
 	@Test
-	void eachOfTheElevenNamesGivesOneSvg() {
+	void eachOfTheTwelveNamesGivesOneSvg() {
 		for (String name : NAMES) {
 			List<String> svgs = svgs(render(List.of(name), 18, 2));
 			assertThat(svgs).as(name).hasSize(1);
@@ -57,14 +57,14 @@ class IconsFragmentTest {
 	}
 
 	@Test
-	void theElevenIconsAreAllDifferent() {
+	void theTwelveIconsAreAllDifferent() {
 		Set<String> shapes = new HashSet<>();
 		for (String name : NAMES) {
 			String svg = svgs(render(List.of(name), 18, 2)).get(0);
 			// 形（中身）だけを比べる
 			shapes.add(svg.substring(svg.indexOf('>') + 1));
 		}
-		assertThat(shapes).hasSize(11);
+		assertThat(shapes).hasSize(12);
 	}
 
 	@Test
@@ -88,7 +88,7 @@ class IconsFragmentTest {
 	@Test
 	void noIconContainsAnythingUnsafeOrExternal() {
 		String all = String.join(" ", svgs(render(NAMES, 18, 2)));
-		assertThat(svgs(all)).hasSize(11);
+		assertThat(svgs(all)).hasSize(12);
 
 		assertThat(all).doesNotContain("<script", "<use", "<image", "xmlns", "style=", "http", "onclick", "onload", "href", "url(");
 	}
@@ -106,6 +106,14 @@ class IconsFragmentTest {
 		assertThat(svgs(render(List.of("top"), 18, 2)).get(0)).contains("M3 11l9-7 9 7");
 		assertThat(svgs(render(List.of("comparison"), 18, 2)).get(0)).contains("M4 20V10", "M10 20V4", "M16 20v-7", "M22 20H2");
 		assertThat(svgs(render(List.of("pie"), 20, 2)).get(0)).contains("M21 12a9 9 0 1 1-9-9v9z");
+	}
+
+	/** issue 017 の 2 回目：ログイン・登録の紹介のチェックの印（線の太さ 2.6） */
+	@Test
+	void theCheckIconHasTheShapeOfTheDesignAndIsDrawnWithStroke2Point6() {
+		String svg = svgs(render(List.of("check"), 12, 2.6)).get(0);
+
+		assertThat(svg).contains("<path d=\"M5 12l5 5 9-10\"></path>", "stroke-width=\"2.6\"", "width=\"12\"", "aria-hidden=\"true\"");
 	}
 
 }

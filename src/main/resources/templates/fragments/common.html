@@ -22,7 +22,7 @@
 <header th:fragment="header(current)" class="app-header bg-body-tertiary border-bottom">
     <div class="app-header-inner">
         <!--/* ロゴ：角丸の四角に白い線のアイコン（地は主ボタンの地の色）＋アプリの名前。押すとトップへ */-->
-        <a class="brand" th:href="@{/}"><span class="brand-logo"><th:block th:replace="~{fragments/icons :: icon('logo', 18, 2)}"></th:block></span><span class="brand-name">家計・予実管理</span></a>
+        <th:block th:replace="~{:: brand}"></th:block>
         <nav class="menu d-flex flex-wrap">
             <a th:href="@{/}" th:attr="aria-current=${current == 'top'} ? 'page'"><th:block th:replace="~{fragments/icons :: icon('top', 18, 2)}"></th:block>トップ</a>
             <a th:href="@{/transactions}" th:attr="aria-current=${current == 'transactions'} ? 'page'"><th:block th:replace="~{fragments/icons :: icon('transactions', 18, 2)}"></th:block>取引一覧</a>
@@ -40,6 +40,11 @@
         </div>
     </div>
 </header>
+
+<!--/* ロゴの小部品（ログイン後のヘッダーと、ログイン前のヘッダー〔fragments/public-header.html〕が共有する。issue 017 の 2 回目）。
+     注意：このファイルに <header> 要素を、もう 1 つ置かない。Thymeleaf は header(...) の「header」を、部品の名前だけでなく要素の名前としても探すので、
+     ログイン後の全画面に、もう 1 つの <header> も一緒に出てしまう（issue 017 の 2 回目の不具合。HeaderCountTest が確かめる）。HTML の改行・空白を足さない（HeaderMarkupTest が一続きの形を確かめる） */-->
+<th:block th:fragment="brand"><a class="brand" th:href="@{/}"><span class="brand-logo"><th:block th:replace="~{fragments/icons :: icon('logo', 18, 2)}"></th:block></span><span class="brand-name">家計・予実管理</span></a></th:block>
 
 <!--/* 成功メッセージ・エラーメッセージの表示場所（画面の上部、2.3）。
      Controller が、messages.properties のキーを successMessageKey / errorMessageKey で渡す */-->

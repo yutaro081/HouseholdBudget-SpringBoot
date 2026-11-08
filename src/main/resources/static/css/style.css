@@ -65,6 +65,8 @@
     --hb-font-size-h2: 1.25rem;
     --hb-font-size-body: 1rem;
     --hb-font-size-small: 0.8125rem;
+    /* ログイン・登録の紹介の大きな見出しだけ、4 段の外（34px。案に合わせた例外。設計書 2.3） */
+    --hb-font-size-intro-title: 2.125rem;
 
     /* 余白の目盛り（rem。標準の 16px で 4・8・12・16・24・32・48px）と、角の丸み（設計書 2.3「余白と角の丸み」、issue 015 の 3 回目） */
     --hb-space-1: 0.25rem;
@@ -956,4 +958,183 @@ dl.detail dd {
 .hitokoto-graph-text {
     margin: 0;
     padding-top: var(--hb-space-2);
+}
+
+/*
+ * ログイン・アカウント登録（設計書 2.3、issue 017 の 2 回目）：ロゴだけのヘッダーの下に、左に紹介、右に白いカード。
+ * せまいとき（768px 未満）は縦 1 列で、カードを上にする（HTML の順は紹介 → カード。CSS の order で入れ替える。Q017-10）。
+ * 本体の幅は main.container の 960px のまま（narrow の 420px はやめた。幅の規則は新しく作らない）。
+ * 色：薄いターコイズは小さな印（チップ、チェックの四角）だけ。紹介の背景・カードには使わない。--hb-teal は枠の線だけ。影は付けない（Q017-15）。
+ */
+main.auth-main {
+    padding-top: var(--hb-space-7);
+    padding-bottom: var(--hb-space-7);
+}
+
+.auth-layout {
+    display: flex;
+    flex-direction: column;
+    gap: var(--hb-space-6);
+}
+
+.auth-card-col {
+    order: -1;
+}
+
+@media (min-width: 768px) {
+    .auth-layout {
+        display: grid;
+        grid-template-columns: 1fr minmax(0, 420px);
+        gap: 4.5rem;
+        align-items: center;
+    }
+
+    .auth-card-col {
+        order: 0;
+    }
+}
+
+.auth-chip {
+    display: inline-block;
+    margin-bottom: 0.875rem;
+    padding: var(--hb-space-1) var(--hb-space-3);
+    border-radius: var(--hb-radius-control);
+    background: var(--hb-teal-pale);
+    color: var(--hb-teal-text);
+    font-size: var(--hb-font-size-small);
+}
+
+.auth-title {
+    margin-bottom: 1.25rem;
+    font-size: var(--hb-font-size-intro-title);
+    font-weight: 700;
+    line-height: 1.45;
+}
+
+.auth-lead {
+    margin: 0;
+    line-height: 1.85;
+}
+
+.auth-points {
+    display: grid;
+    gap: var(--hb-space-3);
+    margin: 1.5rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.auth-points li {
+    display: flex;
+    align-items: center;
+    gap: var(--hb-space-2);
+}
+
+.auth-check {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: var(--hb-space-1);
+    background: var(--hb-teal-pale);
+    color: var(--hb-teal-text);
+}
+
+.auth-card {
+    background: #fff;
+    border: 1px solid var(--hb-line);
+    border-radius: var(--hb-radius-card);
+    padding: var(--hb-space-6) var(--hb-space-5);
+}
+
+.auth-card h2 {
+    margin-bottom: var(--hb-space-4);
+    font-size: var(--hb-font-size-h2);
+    font-weight: 700;
+}
+
+/* 入力欄とボタンの高さは 46px（このカードの中だけ。ほかの画面は変えない）。ボタンの文字は 400 のまま */
+.auth-card .form-control {
+    min-height: 46px;
+}
+
+.auth-card .btn {
+    min-height: 46px;
+}
+
+.auth-switch {
+    margin: var(--hb-space-5) 0 0;
+    padding-top: var(--hb-space-4);
+    border-top: 1px solid var(--hb-line);
+    color: var(--hb-text-sub);
+    text-align: center;
+}
+
+/* 取引一覧の本体の幅（issue 017 の 2 回目の見直し）：トップと同じ 1120px。ほかの画面は 960px のまま */
+main.list-wide {
+    max-width: 1120px;
+}
+
+/*
+ * 取引一覧（設計書 2.3、issue 017 の 2 回目）：見出しの行と、白いカードの中の表。
+ * table.list は科目・取引先・予実比較なども使うので、カードの見た目は取引一覧だけの目印 .list-card の下に書く（table.list は変えない）。
+ */
+.page-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--hb-space-2);
+    margin-bottom: var(--hb-space-4);
+}
+
+.page-head h1 {
+    margin: 0;
+}
+
+.page-sub {
+    margin: var(--hb-space-1) 0 0;
+    color: var(--hb-text-sub);
+    font-size: var(--hb-font-size-small);
+}
+
+.page-head-actions .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--hb-space-2);
+}
+
+.list-card {
+    background: #fff;
+    border: 1px solid var(--hb-line);
+    border-radius: var(--hb-radius-card);
+}
+
+.list-card table.list {
+    margin-bottom: 0;
+}
+
+/* マスの左右の余白は 20px（案に合わせた例外。余白の目盛りの外。設計書 2.3）。見出しの行のマスも同じ */
+.list-card td {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+}
+
+.list-card th {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+    color: var(--hb-text-sub);
+    font-size: var(--hb-font-size-small);
+    white-space: nowrap;
+}
+
+.list-card td.num {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.list-card td.list-muted {
+    color: var(--hb-text-sub);
 }
