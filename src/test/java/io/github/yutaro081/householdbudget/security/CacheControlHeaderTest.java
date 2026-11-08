@@ -67,6 +67,8 @@ class CacheControlHeaderTest {
 	@Test
 	void redirectsAreNotStoredEither() throws Exception {
 		assertNoStore(mockMvc.perform(get("/transactions")).andReturn().getResponse(), "未ログインの移動");
+		// トップ（GET /）。ログイン後の最初の画面なので、未ログインで開いたときの移動の応答にも付くことを直接確かめる（issue 010 の Codex のレビュー）
+		assertNoStore(mockMvc.perform(get("/")).andReturn().getResponse(), "未ログインでトップ（/）を開いたときの移動");
 		assertNoStore(mockMvc.perform(post("/logout").with(csrf()).with(loggedIn())).andReturn().getResponse(), "ログアウト");
 	}
 
