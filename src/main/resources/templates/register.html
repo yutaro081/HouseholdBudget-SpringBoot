@@ -15,14 +15,14 @@
                 <form th:action="@{/register}" th:object="${registerForm}" method="post" novalidate>
                     <div class="field">
                         <label class="form-label" for="username">ユーザー名（半角英数字、10文字以内）</label>
-                        <input class="form-control" type="text" th:field="*{username}" autofocus>
+                        <input class="form-control" type="text" th:field="*{username}" autocomplete="username" autofocus>
                         <!--/* 項目のエラーは、すべて項目の横（真下）に表示する（6.9） */-->
                         <div class="field-error" th:each="message : ${#fields.errors('username')}" th:text="${message}">エラー</div>
                     </div>
                     <div class="field">
                         <label class="form-label" for="password">パスワード（半角の英数字と記号、8〜30文字）</label>
                         <!--/* 入力エラーで戻ったとき、パスワードは残さない */-->
-                        <input class="form-control" type="password" th:field="*{password}">
+                        <input class="form-control" type="password" th:field="*{password}" autocomplete="new-password">
                         <div class="field-error" th:each="message : ${#fields.errors('password')}" th:text="${message}">エラー</div>
                     </div>
                     <button type="submit" class="btn btn-primary w-100">登録</button>

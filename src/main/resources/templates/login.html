@@ -20,11 +20,11 @@
                     <div class="field">
                         <label class="form-label" for="username">ユーザー名</label>
                         <!--/* 失敗したときは、入力したユーザー名を残す。パスワードは残さない */-->
-                        <input class="form-control" type="text" id="username" name="username" th:value="${loginUsername}" autofocus>
+                        <input class="form-control" type="text" id="username" name="username" th:value="${loginUsername}" autocomplete="username" autofocus>
                     </div>
                     <div class="field">
                         <label class="form-label" for="password">パスワード</label>
-                        <input class="form-control" type="password" id="password" name="password">
+                        <input class="form-control" type="password" id="password" name="password" autocomplete="current-password">
                     </div>
                     <button type="submit" class="btn btn-primary w-100">ログイン</button>
                 </form>

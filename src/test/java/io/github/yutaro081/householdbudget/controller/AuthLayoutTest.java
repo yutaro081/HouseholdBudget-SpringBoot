@@ -163,4 +163,40 @@ class AuthLayoutTest {
 		assertThat(body).doesNotContain("value=\"short\"");
 	}
 
+	// ---- autocomplete（Codex のレビューの指摘。issue 017 の 2 回目） ----
+
+	/** name が name の &lt;input&gt; の開きタグを取り出す（属性の順番に依存しない） */
+	private static String input(String body, String name) {
+		Matcher m = Pattern.compile("<input[^>]*name=\"" + name + "\"[^>]*>").matcher(body);
+		assertThat(m.find()).as(name + " の入力欄がある").isTrue();
+		return m.group();
+	}
+
+	@Test
+	void theLoginFieldsTellTheBrowserWhichIsTheUsernameAndTheCurrentPassword() throws Exception {
+		String body = page("/login");
+
+		assertThat(input(body, "username")).contains("autocomplete=\"username\"");
+		assertThat(input(body, "password")).contains("autocomplete=\"current-password\"");
+	}
+
+	@Test
+	void theRegisterFieldsTellTheBrowserWhichIsTheUsernameAndANewPassword() throws Exception {
+		String body = page("/register");
+
+		assertThat(input(body, "username")).contains("autocomplete=\"username\"");
+		assertThat(input(body, "password")).contains("autocomplete=\"new-password\"");
+		assertThat(body.split("type=\"password\"", -1).length - 1).as("パスワードの欄は 1 つ（確認用の欄はない）").isEqualTo(1);
+	}
+
+	/** 入力エラーで表示し直したときも、付いたまま */
+	@Test
+	void theRegisterFieldsKeepAutocompleteWhenShownAgainWithErrors() throws Exception {
+		String body = mockMvc.perform(post("/register").with(csrf()).param("username", "あいう").param("password", "short"))
+				.andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+
+		assertThat(input(body, "username")).contains("autocomplete=\"username\"");
+		assertThat(input(body, "password")).contains("autocomplete=\"new-password\"");
+	}
+
 }
