@@ -8,7 +8,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -67,6 +69,31 @@ class FontAssetsTest {
 		assertThat(ofl).contains("Copyright 2022 The Zen Kaku Gothic Project Authors");
 		assertThat(ofl).contains("SIL OPEN FONT LICENSE Version 1.1");
 		assertThat(ofl).contains("PERMISSION & CONDITIONS");
+	}
+
+	// ---- ファイルの中身（SHA-256）----
+
+	/**
+	 * 配っているフォントと OFL.txt が、THIRD-PARTY-NOTICES.md に記録した SHA-256 と大きさのとおりであること。
+	 * 先頭の4バイトと大きさだけでは、壊れた woff2 や、別のフォントへの差し替えに気づけないため（Codex の指摘）。
+	 * 期待する値は、テストの中に書き写さず、THIRD-PARTY-NOTICES.md の表から読む（記録と実物を照らし合わせる）。
+	 */
+	@ParameterizedTest(name = "{0} の SHA-256 と大きさが、THIRD-PARTY-NOTICES.md の記録と同じ")
+	@ValueSource(strings = { "ZenKakuGothicNew-Regular.woff2", "ZenKakuGothicNew-Bold.woff2", "OFL.txt" })
+	void servedFileMatchesTheShaRecordedInThirdPartyNotices(String name) throws Exception {
+		String notices = Files.readString(Path.of("THIRD-PARTY-NOTICES.md"), StandardCharsets.UTF_8);
+		// 表の行：| `ファイル名`（説明） | 1,052,404 | `64文字の16進数` |
+		Matcher row = Pattern.compile("\\|\\s*`" + Pattern.quote(name) + "`[^|]*\\|\\s*([0-9,]+)\\s*\\|\\s*`([0-9a-f]{64})`")
+				.matcher(notices);
+		assertThat(row.find()).as("THIRD-PARTY-NOTICES.md の表に %s の行がある", name).isTrue();
+		long recordedSize = Long.parseLong(row.group(1).replace(",", ""));
+		String recordedSha = row.group(2);
+
+		byte[] served = bytes("/fonts/" + name);
+
+		assertThat(served.length).as("%s の大きさ", name).isEqualTo((int) recordedSize);
+		assertThat(HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(served)))
+				.as("%s の SHA-256", name).isEqualTo(recordedSha);
 	}
 
 	@Test
