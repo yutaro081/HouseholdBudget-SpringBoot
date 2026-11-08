@@ -638,3 +638,54 @@ dl.detail dd {
         margin: 0 auto;
     }
 }
+
+/*
+ * トップの「きょうのひとこと」の枠（設計書 2.3、5.12、issue 016）。白地に、左だけターコイズの線。
+ * 薄いターコイズの大きな面は使わない。赤・青・💮 の色も使わない。--hb-teal は枠の線（border-left）だけ。
+ */
+.hitokoto-frame {
+    background: #fff;
+    border: 1px solid var(--hb-line);
+    border-left: 4px solid var(--hb-teal);
+    border-radius: var(--hb-radius-card);
+    padding: var(--hb-space-4) var(--hb-space-5);
+    margin-bottom: var(--hb-space-4);
+}
+
+.hitokoto-frame h2 {
+    font-size: var(--hb-font-size-h2);
+    margin-bottom: var(--hb-space-3);
+}
+
+.hitokoto-item + .hitokoto-item {
+    margin-top: var(--hb-space-3);
+    padding-top: var(--hb-space-3);
+    border-top: 1px solid var(--hb-line);
+}
+
+.hitokoto-label {
+    margin-bottom: var(--hb-space-1);
+    color: var(--hb-text-sub);
+    font-size: var(--hb-font-size-small);
+}
+
+.hitokoto-label strong {
+    color: var(--hb-text);
+    font-size: var(--hb-font-size-body);
+}
+
+.hitokoto-text {
+    margin-bottom: 0;
+}
+
+.hitokoto-next {
+    margin: var(--hb-space-3) 0 0;
+    color: var(--hb-text-sub);
+    font-size: var(--hb-font-size-small);
+}
+
+.hitokoto-graph {
+    margin: var(--hb-space-3) 0 0;
+    padding-top: var(--hb-space-3);
+    border-top: 1px solid var(--hb-line);
+}
