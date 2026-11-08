@@ -2,27 +2,37 @@
 <html lang="ja" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/common :: head('ログイン')}"></head>
 <body>
-<main class="container narrow">
-    <h1>ログイン</h1>
+<header th:replace="~{fragments/public-header :: publicHeader}"></header>
+<main class="container auth-main">
+    <!--/* 2 列（768px 以上）。HTML の順は「紹介 → カード」。せまいときは CSS でカードを上にする（設計書 2.3、Q017-10） */-->
+    <div class="auth-layout">
+        <section th:replace="~{fragments/auth-intro :: intro}"></section>
 
-    <!--/* ?error・?logout のメッセージと、登録成功のあとの「登録しました。ログインしてください」 */-->
-    <div th:replace="~{fragments/common :: messages}"></div>
+        <div class="auth-card-col">
+            <section class="auth-card">
+                <h2>ログイン</h2>
 
-    <!--/* POST /login は Spring Security が処理する。項目名は username と password */-->
-    <form th:action="@{/login}" method="post">
-        <div class="field">
-            <label class="form-label" for="username">ユーザー名</label>
-            <!--/* 失敗したときは、入力したユーザー名を残す。パスワードは残さない */-->
-            <input class="form-control" type="text" id="username" name="username" th:value="${loginUsername}" autofocus>
+                <!--/* ?error・?logout のメッセージと、登録成功のあとの「登録しました。ログインしてください」 */-->
+                <div th:replace="~{fragments/common :: messages}"></div>
+
+                <!--/* POST /login は Spring Security が処理する。項目名は username と password */-->
+                <form th:action="@{/login}" method="post">
+                    <div class="field">
+                        <label class="form-label" for="username">ユーザー名</label>
+                        <!--/* 失敗したときは、入力したユーザー名を残す。パスワードは残さない */-->
+                        <input class="form-control" type="text" id="username" name="username" th:value="${loginUsername}" autocomplete="username" autofocus>
+                    </div>
+                    <div class="field">
+                        <label class="form-label" for="password">パスワード</label>
+                        <input class="form-control" type="password" id="password" name="password" autocomplete="current-password">
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">ログイン</button>
+                </form>
+
+                <p class="auth-switch">はじめての方は <a th:href="@{/register}">アカウント登録</a></p>
+            </section>
         </div>
-        <div class="field">
-            <label class="form-label" for="password">パスワード</label>
-            <input class="form-control" type="password" id="password" name="password">
-        </div>
-        <button type="submit" class="btn btn-primary">ログイン</button>
-    </form>
-
-    <p><a th:href="@{/register}">アカウント登録</a></p>
+    </div>
 </main>
 </body>
 </html>
