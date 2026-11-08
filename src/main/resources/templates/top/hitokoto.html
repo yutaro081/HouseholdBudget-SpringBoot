@@ -2,9 +2,10 @@
 <html lang="ja" xmlns:th="http://www.thymeleaf.org">
 <body>
 <!--/*
-  トップの「きょうのひとこと」の枠（設計書 2.3、5.12、issue 016）。top/index.html から差し込む。
+  トップの「きょうのひとこと」の枠（設計書 2.3、5.12、issue 016、017）。top/index.html から差し込む。
   ・値はすべて HitokotoView（Controller が Service から受け取る）。ここでは計算しない。
   ・文面（名前・読み・文）はアプリの中のファイルの文。科目名はグラフへのひとことの引数として th:text で出す。th:utext は使わない。
+  ・各行は「左にアイコンの四角（薄いターコイズの地）＋右に文」。暦のひとこと＝太陽、グラフへのひとこと＝円グラフ。
   ・style 属性・JavaScript・外部の URL は使わない。
   ・何も出すものがなければ、枠ごと出さない。
 */-->
@@ -13,19 +14,24 @@
              th:if="${h != null and h.hasContent()}">
         <h2 id="hitokoto-heading">きょうのひとこと</h2>
 
-        <div class="hitokoto-item" th:each="item : ${h.items}">
-            <p class="hitokoto-label">
-                <span th:text="#{${'hitokoto.kind.' + item.kind.name()}}">七十二候</span>
-                <strong th:text="${item.name}">山茶始開</strong><span th:if="${item.reading != null}" th:text="|（${item.reading}）|">（つばきはじめてひらく）</span>
-            </p>
-            <p class="hitokoto-text" th:text="${item.text}">文</p>
+        <!--/* 暦のひとこと：項目ごとに 1 行。次の節気の補足は、最後の暦の項目の中に入れる */-->
+        <div class="hitokoto-row hitokoto-item" th:each="item, stat : ${h.items}">
+            <span class="hitokoto-icon"><th:block th:replace="~{fragments/icons :: icon('sun', 20, 2)}"></th:block></span>
+            <div class="hitokoto-body">
+                <p class="hitokoto-label" th:text="${item.detail != null} ? |#{${'hitokoto.kind.' + item.kind.name()}}（${item.detail}）| : #{${'hitokoto.kind.' + item.kind.name()}}">七十二候（立冬の初候）</p>
+                <p class="hitokoto-name"><strong th:text="${item.name}">山茶始開</strong><span th:if="${item.reading != null}" th:text="|（${item.reading}）|">（つばきはじめてひらく）</span></p>
+                <p class="hitokoto-text" th:text="${item.text}">文</p>
+                <p class="hitokoto-next" th:if="${stat.last and h.nextSekki != null}"
+                   th:text="|次の節気：${h.nextSekki.name}まであと${h.nextSekki.days}日|">次の節気：小雪まであと14日</p>
+            </div>
         </div>
 
-        <p class="hitokoto-next" th:if="${h.nextSekki != null}"
-           th:text="|次の節気：${h.nextSekki.name}まであと${h.nextSekki.days}日|">次の節気：小雪まであと14日</p>
-
-        <p class="hitokoto-graph" th:if="${h.graph != null}"
-           th:text="#{${h.graph.key}(${h.graph.arg0}, ${h.graph.arg1})}">今週いちばん多いのは食費（4,500円）です。</p>
+        <div class="hitokoto-row hitokoto-graph" th:if="${h.graph != null}">
+            <span class="hitokoto-icon"><th:block th:replace="~{fragments/icons :: icon('pie', 20, 2)}"></th:block></span>
+            <div class="hitokoto-body">
+                <p class="hitokoto-graph-text" th:text="#{${h.graph.key}(${h.graph.arg0}, ${h.graph.arg1})}">今週いちばん多いのは食費（4,500円）です。</p>
+            </div>
+        </div>
     </section>
 </th:block>
 </body>

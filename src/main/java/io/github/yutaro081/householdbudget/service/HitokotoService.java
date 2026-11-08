@@ -56,15 +56,16 @@ public class HitokotoService {
 		List<CalendarItem> items = new ArrayList<>();
 		for (HitokotoTexts.EventText event : texts.events()) {
 			if (EventDays.isEventDay(event.rule(), today, calendar)) {
-				items.add(new CalendarItem(Kind.EVENT, event.rule().name(), null, event.text()));
+				items.add(new CalendarItem(Kind.EVENT, event.rule().name(), null, event.text(), null));
 			}
 		}
 		if (position.isSekkiDay()) {
 			HitokotoTexts.SekkiText sekki = texts.sekki(position.sekkiIndex());
-			items.add(new CalendarItem(Kind.SEKKI, sekki.name(), sekki.reading(), sekki.text()));
+			items.add(new CalendarItem(Kind.SEKKI, sekki.name(), sekki.reading(), sekki.text(), sekki.name()));
 		} else if (items.isEmpty()) {
 			HitokotoTexts.KoText ko = texts.ko(position.koNumber());
-			items.add(new CalendarItem(Kind.KO, ko.name(), ko.reading(), ko.text()));
+			items.add(new CalendarItem(Kind.KO, ko.name(), ko.reading(), ko.text(),
+					ko.sekki() + "の" + positionName(ko.position())));
 		}
 
 		NextSekki nextSekki = null;
@@ -77,6 +78,16 @@ public class HitokotoService {
 		GraphLine graph = GraphComment.choose(rows, totalBudget, totalActual, today)
 				.map(HitokotoService::graphLine).orElse(null);
 		return new HitokotoView(List.copyOf(items), nextSekki, graph);
+	}
+
+	/** 初候・次候・末候（ファイルの first・second・third から） */
+	private static String positionName(String position) {
+		return switch (position) {
+			case "first" -> "初候";
+			case "second" -> "次候";
+			case "third" -> "末候";
+			default -> throw new IllegalStateException("七十二候の位置が正しくない：" + position);
+		};
 	}
 
 	/** 型と部品から、messages.properties のキーと引数にする（文そのものは作らない）。 */

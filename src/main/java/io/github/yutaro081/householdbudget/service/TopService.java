@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import io.github.yutaro081.householdbudget.domain.BudgetColor;
 import io.github.yutaro081.householdbudget.domain.BudgetColorJudge;
 import io.github.yutaro081.householdbudget.domain.GraphComment;
+import io.github.yutaro081.householdbudget.domain.PaceComment;
 import io.github.yutaro081.householdbudget.domain.PeriodProgress;
 import io.github.yutaro081.householdbudget.domain.PieSlices;
 import io.github.yutaro081.householdbudget.domain.SeasonPeriod;
@@ -110,11 +111,27 @@ public class TopService {
 		HitokotoView hitokoto = hitokotoService.hitokoto(today, commentRows, anyBudget ? Long.valueOf(totalBudget) : null,
 				totalActual);
 
+		// ペースの一言（issue 017 での見直し）：使った割合と日の進み方（どちらも四捨五入した整数の％）を比べる。使った割合がなければ出さない
+		Integer usedPercent = PeriodProgress.usedPercent(seasonTotal.budget(), seasonTotal.actual());
+		int elapsedPercent = PeriodProgress.seasonElapsedPercent(season, today);
+		String paceKey = PaceComment.judge(usedPercent, elapsedPercent).map(TopService::paceKey).orElse(null);
+
 		return new TopView(season, seasonTotal.budget(), seasonTotal.actual(), seasonTotal.difference(),
 				PeriodProgress.barPermille(seasonTotal.budget(), seasonTotal.actual()),
 				PeriodProgress.seasonElapsedPermille(season, today),
 				week.start(), week.endDate(), PeriodProgress.weekElapsedPermille(week.dayNumber(today)),
-				!categories.isEmpty(), slices, pieTotal, PieSlices.cssStops(slices), rows, total, hitokoto);
+				!categories.isEmpty(), slices, pieTotal, PieSlices.cssStops(slices), rows, total, hitokoto,
+				today, season.startDate().getMonthValue(), season.endDateExclusive().minusDays(1).getMonthValue(),
+				PeriodProgress.seasonDaysLeft(season, today), usedPercent, elapsedPercent, week.dayNumber(today), paceKey);
+	}
+
+	/** ペースの一言のメッセージのキー（文は messages.properties） */
+	private static String paceKey(PaceComment.Pace pace) {
+		return switch (pace) {
+			case SLOW -> "top.pace.slow";
+			case SAME -> "top.pace.same";
+			case FAST -> "top.pace.fast";
+		};
 	}
 
 	/** 週の予算（未設定なら null）と、切り上げた実績から、1行（科目の行も合計の行も同じ）を作る。 */
@@ -122,8 +139,21 @@ public class TopService {
 		Long difference = weeklyBudget == null ? null : weeklyBudget - actual;
 		BudgetColor color = BudgetColorJudge.judge(weeklyBudget, actual);
 		boolean within = BudgetColorJudge.isWithinBudget(weeklyBudget, actual);
+		// 状態の短い文（issue 017）：赤＝○円オーバー、青＝1/3以下、💮＝予算内、予算なし。予算0円で実績0円（色なし）は文なし
+		String statusKey = null;
+		Long statusAmount = null;
+		if (weeklyBudget == null) {
+			statusKey = "top.status.none";
+		} else if (color == BudgetColor.RED) {
+			statusKey = "top.status.over";
+			statusAmount = actual - weeklyBudget;
+		} else if (color == BudgetColor.BLUE) {
+			statusKey = "top.status.low";
+		} else if (within) {
+			statusKey = "top.status.within";
+		}
 		return new WeekRow(name, weeklyBudget, actual, difference, color, within,
-				PeriodProgress.barPermille(weeklyBudget, actual));
+				PeriodProgress.barPermille(weeklyBudget, actual), statusKey, statusAmount);
 	}
 
 }

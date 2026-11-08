@@ -375,4 +375,151 @@ class TopServiceTest {
 		assertThat(view.slices()).extracting(s -> s.name()).containsExactly("食費");
 	}
 
+	// ---- issue 017：見出しの行、季節のメーターの %、状態の短い文 ----
+
+	@Test
+	void headingRowValuesForAutumn() {
+		Owner a = createOwner("toptest90");
+		category(a, "食費");
+
+		TopView view = top(a, SUNDAY);
+
+		assertThat(view.today()).isEqualTo(SUNDAY);
+		assertThat(view.seasonFirstMonth()).isEqualTo(9);
+		assertThat(view.seasonLastMonth()).isEqualTo(11);
+		assertThat(view.seasonDaysLeft()).isEqualTo(23);
+		assertThat(view.seasonElapsedPercent()).isEqualTo(76);
+	}
+
+	@Test
+	void headingRowValuesForWinterCrossTheNewYear() {
+		Owner a = createOwner("toptest91");
+		category(a, "食費");
+
+		TopView december = top(a, LocalDate.of(2026, 12, 15));
+		TopView february = top(a, LocalDate.of(2027, 2, 28));
+
+		assertThat(december.seasonFirstMonth()).isEqualTo(12);
+		assertThat(december.seasonLastMonth()).isEqualTo(2);
+		assertThat(february.season()).isEqualTo(WINTER_2026);
+		assertThat(february.seasonDaysLeft()).isEqualTo(1);
+		assertThat(february.seasonElapsedPercent()).isEqualTo(100);
+	}
+
+	@Test
+	void seasonUsedPercentIsRoundedAndKeepsGoingPastOneHundred() {
+		Owner a = createOwner("toptest92");
+		Category food = category(a, "食費");
+		budget(a, food, AUTUMN_2026, 30_000);
+
+		spend(a, food, LocalDate.of(2026, 9, 3), 10_000);
+		assertThat(top(a, SUNDAY).seasonUsedPercent()).isEqualTo(33);         // 33.3%
+
+		spend(a, food, LocalDate.of(2026, 9, 4), 26_000);
+		assertThat(top(a, SUNDAY).seasonUsedPercent()).isEqualTo(120);        // 36,000 / 30,000
+		assertThat(top(a, SUNDAY).seasonBarPermille()).isEqualTo(1000);       // 棒は 100% で止まる
+	}
+
+	@Test
+	void seasonUsedPercentIsNullWithoutABudgetOrWithAZeroBudget() {
+		Owner a = createOwner("toptest93");
+		Category food = category(a, "食費");
+		spend(a, food, SUNDAY, 500);
+		assertThat(top(a, SUNDAY).seasonUsedPercent()).isNull();               // 予算が未設定
+
+		budget(a, food, AUTUMN_2026, 0);
+		assertThat(top(a, SUNDAY).seasonUsedPercent()).isNull();               // 予算が 0 円
+	}
+
+	@Test
+	void statusOfEachRow() {
+		Owner a = createOwner("toptest94");
+		Category over = category(a, "超過");
+		Category low = category(a, "少なめ");
+		Category within = category(a, "予算内");
+		Category unset = category(a, "未設定");
+		Category zero = category(a, "ゼロ");
+		budget(a, over, AUTUMN_2026, 30_000);
+		budget(a, low, AUTUMN_2026, 30_000);
+		budget(a, within, AUTUMN_2026, 30_000);
+		budget(a, zero, AUTUMN_2026, 0);
+		spend(a, over, SUNDAY, 2_401);       // 2,500 > 2,400 → 100 円オーバー
+		spend(a, within, SUNDAY, 2_000);
+
+		TopView view = top(a, SUNDAY);
+
+		assertThat(view.rows().get(0).statusKey()).isEqualTo("top.status.over");
+		assertThat(view.rows().get(0).statusAmount()).isEqualTo(100L);
+		assertThat(view.rows().get(1).statusKey()).isEqualTo("top.status.low");
+		assertThat(view.rows().get(2).statusKey()).isEqualTo("top.status.within");
+		assertThat(view.rows().get(3).statusKey()).isEqualTo("top.status.none");    // 予算なし
+		assertThat(view.rows().get(4).statusKey()).isNull();                         // 予算 0 円で実績 0 円（色なし）
+	}
+
+	@Test
+	void statusOfTheTotalRow() {
+		Owner a = createOwner("toptest95");
+		Category food = category(a, "食費");
+		budget(a, food, AUTUMN_2026, 30_000);
+		spend(a, food, SUNDAY, 3_000);        // 3,000 > 2,400 → 600 円オーバー
+
+		WeekRow total = top(a, SUNDAY).total();
+
+		assertThat(total.statusKey()).isEqualTo("top.status.over");
+		assertThat(total.statusAmount()).isEqualTo(600L);
+	}
+
+	// ---- issue 017（見直し）：ペースの一言 ----
+
+	/** 2026-11-08 は秋の 69 日目（69/91 ＝ 75.8％ → 76％）。予算 100,000 円で、使った割合を 71・72・80・81％ に動かす */
+	@ParameterizedTest(name = "使った額 {0} 円（{1}％）・日の進み方 76％ → {2}")
+	@CsvSource({
+			"0,      0,  top.pace.slow",
+			"71000,  71, top.pace.slow",     // 差 −5（ちょうど）→ ゆっくり
+			"72000,  72, top.pace.same",     // 差 −4
+			"76000,  76, top.pace.same",
+			"80000,  80, top.pace.same",     // 差 +4
+			"81000,  81, top.pace.fast",     // 差 +5（ちょうど）→ 速め
+			"120000, 120, top.pace.fast"     // 予算を超えている
+	})
+	void paceKeyFollowsTheDifferenceOfPercentages(int spent, int usedPercent, String key) {
+		Owner a = createOwner("toptest" + (200 + spent / 1000));
+		Category food = category(a, "食費");
+		budget(a, food, AUTUMN_2026, 100_000);
+		if (spent > 0) {
+			spend(a, food, LocalDate.of(2026, 9, 3), spent);
+		}
+
+		TopView view = top(a, SUNDAY);
+
+		assertThat(view.seasonUsedPercent()).isEqualTo(usedPercent);
+		assertThat(view.seasonElapsedPercent()).isEqualTo(76);
+		assertThat(view.paceKey()).isEqualTo(key);
+	}
+
+	@Test
+	void noPaceKeyWhenTheBudgetIsUnsetOrZero() {
+		Owner a = createOwner("toptest96");
+		Category food = category(a, "食費");
+		spend(a, food, SUNDAY, 500);
+		assertThat(top(a, SUNDAY).paceKey()).isNull();                  // 予算が未設定
+
+		budget(a, food, AUTUMN_2026, 0);
+		assertThat(top(a, SUNDAY).paceKey()).isNull();                  // 予算が 0 円
+	}
+
+	@Test
+	void paceUsesThePercentagesOfTheSeasonTheDateBelongsTo() {
+		Owner a = createOwner("toptest97");
+		Category food = category(a, "食費");
+		budget(a, food, WINTER_2026, 90_000);
+		spend(a, food, LocalDate.of(2026, 12, 2), 1_000);
+
+		// 冬の最後の日（2027-02-28）：日の進み方は 100％、使った割合は 1％ → ゆっくり
+		TopView view = top(a, LocalDate.of(2027, 2, 28));
+
+		assertThat(view.seasonElapsedPercent()).isEqualTo(100);
+		assertThat(view.paceKey()).isEqualTo("top.pace.slow");
+	}
+
 }

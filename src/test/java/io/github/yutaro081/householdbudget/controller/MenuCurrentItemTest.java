@@ -127,7 +127,9 @@ class MenuCurrentItemTest {
 	void menuHasAllSevenItemsInOrderAndTopIsFirst() throws Exception {
 		String nav = nav(body("/transactions", true));
 
-		Matcher links = Pattern.compile("<a [^>]*href=\"([^\"]*)\"[^>]*>([^<]*)</a>").matcher(nav);
+		// 各項目は「アイコン（<svg>…</svg>）＋文字」。文字だけを取るため、<svg> を除いてから探す（issue 017）
+		String withoutIcons = nav.replaceAll("(?s)<svg.*?</svg>", "");
+		Matcher links = Pattern.compile("<a [^>]*href=\"([^\"]*)\"[^>]*>([^<]*)</a>").matcher(withoutIcons);
 		List<String> hrefs = new ArrayList<>();
 		List<String> labels = new ArrayList<>();
 		while (links.find()) {
@@ -137,6 +139,7 @@ class MenuCurrentItemTest {
 
 		assertThat(labels).as("メニューの項目（<a>）は、ちょうど 7 個")
 				.containsExactly("トップ", "取引一覧", "科目", "取引先", "支払方法", "予算", "予実比較");
+		assertThat(nav.split("<svg", -1)).as("各項目にアイコンが 1 つずつ").hasSize(8);
 		assertThat(hrefs).containsExactly("/", "/transactions", "/categories", "/vendors", "/payment-methods",
 				"/budgets", "/comparison");
 	}

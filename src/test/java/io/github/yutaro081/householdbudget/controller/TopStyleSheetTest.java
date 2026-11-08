@@ -69,9 +69,9 @@ class TopStyleSheetTest {
 	void weekRowColorsAreTheSameAsTheComparisonRules() throws Exception {
 		String css = css();
 
-		assertThat(rule(css, ".top-weeks tr.week-over td")).containsIgnoringCase("#c62828");
-		assertThat(rule(css, ".top-weeks tr.week-low td")).containsIgnoringCase("#1565c0");
-		assertThat(rule(css, ".top-weeks tr.week-within")).contains("var(--hb-apricot)");
+		assertThat(rule(css, ".top-weeks li.week-over")).containsIgnoringCase("#c62828");
+		assertThat(rule(css, ".top-weeks li.week-low")).containsIgnoringCase("#1565c0");
+		assertThat(rule(css, ".top-weeks li.week-within")).contains("var(--hb-apricot)");
 	}
 
 	@Test
