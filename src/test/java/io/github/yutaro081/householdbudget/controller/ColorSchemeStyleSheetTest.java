@@ -105,12 +105,20 @@ class ColorSchemeStyleSheetTest {
 	}
 
 	@Test
-	void baseColorTealIsNotUsedYetBecauseNothingPutsTextOnIt() throws Exception {
+	void baseColorTealIsUsedOnlyForBordersNeverForTextOrBackgrounds() throws Exception {
 		String css = css("/css/style.css");
 		// コメント（説明に色の値を書いている）と、変数の定義そのものを除いて調べる
 		String withoutDefinition = css.replaceAll("(?s)/\\*.*?\\*/", "").replaceAll("--hb-teal:\\s*#0E9594;", "");
-		assertThat(withoutDefinition).as("#0E9594（文字を乗せない所だけに使う色）を、今は使っていない")
-				.doesNotContainIgnoringCase("#0E9594").doesNotContain("var(--hb-teal)");
+		assertThat(withoutDefinition).as("#0E9594 の値そのものは、変数の定義のほかに書かない")
+				.doesNotContainIgnoringCase("#0E9594");
+		// 文字を乗せない所だけ。今は、取引の登録・編集画面の金額の欄の枠（issue 015 の 3 回目）。使い道は border だけ
+		Matcher m = Pattern.compile("([a-z-]+)\\s*:[^;{}]*var\\(--hb-teal\\)").matcher(withoutDefinition);
+		int uses = 0;
+		while (m.find()) {
+			uses++;
+			assertThat(m.group(1)).as("var(--hb-teal) を使う宣言（文字・背景には使わない）").startsWith("border");
+		}
+		assertThat(uses).as("金額の欄の枠で使っている").isGreaterThanOrEqualTo(1);
 	}
 
 	@Test
