@@ -48,7 +48,7 @@ class CacheControlHeaderTest {
 
 	/** ログイン中の画面（一覧、入力、設定、比較）と、404 の画面 */
 	@ParameterizedTest(name = "ログイン中の {0} に no-store が付く")
-	@ValueSource(strings = { "/transactions", "/transactions/new", "/categories", "/vendors", "/payment-methods", "/budgets",
+	@ValueSource(strings = { "/", "/transactions", "/transactions/new", "/categories", "/vendors", "/payment-methods", "/budgets",
 			"/budgets?year=2026&season=winter", "/comparison", "/comparison?year=2026&season=autumn", "/transactions/999999999" })
 	void loggedInScreensAreNotStored(String path) throws Exception {
 		MockHttpServletResponse response = mockMvc.perform(get(path).with(loggedIn())).andReturn().getResponse();

@@ -40,8 +40,8 @@ public class SecurityConfig {
 				.formLogin(form -> form
 						// 自作のログイン画面（POST /login は Spring Security が処理する）
 						.loginPage("/login")
-						// 成功後は、開こうとしていた URL に関係なく、取引一覧へ（U5）
-						.defaultSuccessUrl("/transactions", true)
+						// 成功後は、開こうとしていた URL に関係なく、トップへ（U5、issue 010）
+						.defaultSuccessUrl("/", true)
 						// 失敗後は、ログイン画面へ。ユーザー名の有無に関わらず同じ（B8）。
 						// 入力したユーザー名は残し、パスワードは残さない（2.3）
 						.failureHandler(loginFailureHandler())

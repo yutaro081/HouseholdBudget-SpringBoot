@@ -6,7 +6,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -77,6 +79,7 @@ class MenuCurrentItemTest {
 		asUser = user(new LoginUser(userId, "menucur1", "x"));
 
 		pageToMenuHref = new LinkedHashMap<>();
+		pageToMenuHref.put("/", "/");   // トップ（issue 010）。メニューの先頭の「トップ」が今の項目
 		pageToMenuHref.put("/transactions", "/transactions");
 		pageToMenuHref.put("/transactions/new", "/transactions");
 		pageToMenuHref.put("/transactions/" + transaction.getId(), "/transactions");
@@ -119,16 +122,23 @@ class MenuCurrentItemTest {
 		}
 	}
 
+	/** メニューは 7 項目で、先頭が「トップ」（issue 010）。そのあと、取引一覧から予実比較まで、今までの順 */
 	@Test
-	void menuHasAllSixItemsInOrder() throws Exception {
+	void menuHasAllSevenItemsInOrderAndTopIsFirst() throws Exception {
 		String nav = nav(body("/transactions", true));
-		String[] labels = { ">取引一覧<", ">科目<", ">取引先<", ">支払方法<", ">予算<", ">予実比較<" };
-		int last = -1;
-		for (String label : labels) {
-			int at = nav.indexOf(label);
-			assertThat(at).as(label).isGreaterThan(last);
-			last = at;
+
+		Matcher links = Pattern.compile("<a [^>]*href=\"([^\"]*)\"[^>]*>([^<]*)</a>").matcher(nav);
+		List<String> hrefs = new ArrayList<>();
+		List<String> labels = new ArrayList<>();
+		while (links.find()) {
+			hrefs.add(links.group(1));
+			labels.add(links.group(2));
 		}
+
+		assertThat(labels).as("メニューの項目（<a>）は、ちょうど 7 個")
+				.containsExactly("トップ", "取引一覧", "科目", "取引先", "支払方法", "予算", "予実比較");
+		assertThat(hrefs).containsExactly("/", "/transactions", "/categories", "/vendors", "/payment-methods",
+				"/budgets", "/comparison");
 	}
 
 	@Test
