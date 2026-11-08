@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head('トップ')}"></head>
+<body>
+<header th:replace="~{fragments/common :: header('top')}"></header>
+<!--/*
+  トップ（設計書 2.3、5.11、issue 010）。ログイン後の最初の画面。HTML と CSS だけで描く（JavaScript・ライブラリは使わない）。
+  ・値はすべて TopView（Controller が Service から受け取る）。ここでは計算しない。色・💮 の判定も BudgetColorJudge で済んでいる。
+  ・style 属性には、数字（1000分率を「整数部.小数1桁%」にしたもの）と、固定の文字（変数名・conic-gradient）だけを入れる（設計書 7.5）。
+    科目名など利用者の入力は、style にも class にも入れない。科目名は th:text だけで出す。th:utext は使わない。
+  ・円や棒は飾り（読み上げに使わない）。数字と科目名は文字として出す。色だけに頼らない。
+  ・言葉は「今週の」「週の予算」（予実比較と混ざらないように。要件定義書 4.5）。一言（ペースの説明）は出さない（Q010-3）。
+*/-->
+<main class="container top-page">
+    <div class="top-head">
+        <h1>トップ</h1>
+        <div class="top-actions">
+            <a class="btn btn-outline-secondary" th:href="@{/comparison}">予実比較を見る</a>
+            <a class="btn btn-primary" th:href="@{/transactions/new}">取引を登録</a>
+        </div>
+    </div>
+
+    <!--/* 科目が0件のときは、案内だけを出す（予実比較・予算設定と同じ。Q010-4） */-->
+    <div class="notice alert alert-warning" th:unless="${top.hasCategories}">
+        <p>先に科目を追加してください。<a th:href="@{/categories}">科目の画面へ</a></p>
+    </div>
+
+    <th:block th:if="${top.hasCategories}">
+
+    <!--/* 1. 季節のメーター：今日が属する季節の合計。予実比較の合計行と同じ値（1円単位）。 */-->
+    <section class="top-section top-season">
+        <h2>今の季節のメーター
+            <small th:text="|${top.season.year}年 #{season.__${top.season.season.urlName}__}|">2026年 秋</small>
+        </h2>
+        <p class="top-numbers">
+            使った額 <strong th:text="|${#numbers.formatInteger(top.seasonActual, 1, 'COMMA')}円|">19,134円</strong>
+            <th:block th:if="${top.seasonBudget != null}">
+                / 予算 <strong th:text="|${#numbers.formatInteger(top.seasonBudget, 1, 'COMMA')}円|">90,000円</strong>
+                　残り <strong th:text="|${#numbers.formatInteger(top.seasonRemaining, 1, 'COMMA')}円|">70,866円</strong>
+            </th:block>
+        </p>
+        <div class="top-meter" aria-hidden="true" th:if="${top.seasonBudget != null}">
+            <div class="top-meter-bar" th:style="|width: ${top.seasonBarPermille / 10}.${top.seasonBarPermille % 10}%|"></div>
+            <div class="top-meter-today" th:style="|left: ${top.seasonTodayPermille / 10}.${top.seasonTodayPermille % 10}%|"></div>
+        </div>
+        <p th:if="${top.seasonBudget == null}">今の季節の予算がまだありません。<a th:href="@{/budgets}">予算の画面で設定してください</a></p>
+        <p class="top-note" th:if="${top.seasonBudget != null}">棒：予算に対して使った割合／縦の線：今日（季節の何％まで日が進んだか）</p>
+    </section>
+
+    <!--/* 2. 今週の円グラフ：使った科目だけ（100円単位で切り上げた額）。7科目以上は上位5科目＋その他。色はターコイズの濃淡と灰色だけ。 */-->
+    <section class="top-section top-pie-section">
+        <h2>今週の使い道
+            <small th:text="|${top.weekStart.monthValue}/${top.weekStart.dayOfMonth}〜${top.weekEnd.monthValue}/${top.weekEnd.dayOfMonth}|">11/8〜11/14</small>
+        </h2>
+        <p th:if="${#lists.isEmpty(top.slices)}">今週はまだ使っていません</p>
+        <div class="top-pie-box" th:unless="${#lists.isEmpty(top.slices)}">
+            <div class="top-pie" role="img" aria-label="今週の使い道の円グラフ。科目ごとの金額と割合は、右の一覧にあります"
+                 th:style="|background: conic-gradient(${top.pieStops})|">
+                <div class="top-pie-center">
+                    <span class="top-pie-label">今週の合計</span>
+                    <strong th:text="|${#numbers.formatInteger(top.pieTotal, 1, 'COMMA')}円|">2,800円</strong>
+                </div>
+            </div>
+            <table class="list top-pie-list table align-middle">
+                <thead>
+                <tr><th><span class="visually-hidden">色</span></th><th>科目</th><th class="num">金額</th><th class="num">割合</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="slice : ${top.slices}">
+                    <td><span class="top-chip" th:classappend="|chart-${slice.colorNumber}|" aria-hidden="true"></span></td>
+                    <td>
+                        <span th:text="${slice.name}">食費</span>
+                        <span class="top-note" th:if="${slice.mergedCount > 1}" th:text="|（${slice.mergedCount}科目）|">（2科目）</span>
+                    </td>
+                    <td class="num" th:text="|${#numbers.formatInteger(slice.amount, 1, 'COMMA')}円|">1,200円</td>
+                    <td class="num" th:text="|${slice.percent}%|">24%</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!--/* 3. 今週の科目ごとのメーター：いちばん上に合計の行、そのあと科目の登録順に全科目。色は予実比較と同じ決まり（週の予算と切り上げた実績で判定済み）。 */-->
+    <section class="top-section top-weeks-section">
+        <h2>今週の科目ごとのメーター</h2>
+        <p class="top-note">週の予算＝今日が入っている季節の予算 ÷ 13（100円単位で切り上げ）／縦の線：今日（週の何日目か。日曜が1日目）</p>
+        <div class="table-responsive">
+            <table class="list top-weeks table align-middle">
+                <thead>
+                <tr>
+                    <th>科目</th>
+                    <th class="num">今週の実績 / 週の予算</th>
+                    <th class="top-weeks-meter-head"><span class="visually-hidden">メーター</span></th>
+                    <th><span class="visually-hidden">評価</span></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr class="total-row"
+                    th:classappend="${top.total.color.name() == 'RED'} ? 'week-over' : (${top.total.color.name() == 'BLUE'} ? 'week-low' : (${top.total.withinBudget} ? 'week-within'))">
+                    <td>合計</td>
+                    <td class="num">
+                        <span th:text="|${#numbers.formatInteger(top.total.actual, 1, 'COMMA')}円|">200円</span>
+                        /
+                        <span th:text="${top.total.budget != null} ? |${#numbers.formatInteger(top.total.budget, 1, 'COMMA')}円| : '未設定'">7,200円</span>
+                    </td>
+                    <td class="top-weeks-meter">
+                        <div class="top-meter" aria-hidden="true" th:if="${top.total.budget != null}">
+                            <div class="top-meter-bar" th:style="|width: ${top.total.barPermille / 10}.${top.total.barPermille % 10}%|"></div>
+                            <div class="top-meter-today" th:style="|left: ${top.weekTodayPermille / 10}.${top.weekTodayPermille % 10}%|"></div>
+                        </div>
+                    </td>
+                    <td class="text-center within-mark"><th:block th:if="${top.total.withinBudget}"><span aria-hidden="true">💮</span><span class="visually-hidden">予算内</span></th:block></td>
+                </tr>
+                <tr th:each="row : ${top.rows}"
+                    th:classappend="${row.color.name() == 'RED'} ? 'week-over' : (${row.color.name() == 'BLUE'} ? 'week-low' : (${row.withinBudget} ? 'week-within'))">
+                    <td th:text="${row.categoryName}">食費</td>
+                    <td class="num">
+                        <span th:text="|${#numbers.formatInteger(row.actual, 1, 'COMMA')}円|">1,300円</span>
+                        /
+                        <span th:text="${row.budget != null} ? |${#numbers.formatInteger(row.budget, 1, 'COMMA')}円| : '未設定'">2,400円</span>
+                    </td>
+                    <td class="top-weeks-meter">
+                        <div class="top-meter" aria-hidden="true" th:if="${row.budget != null}">
+                            <div class="top-meter-bar" th:style="|width: ${row.barPermille / 10}.${row.barPermille % 10}%|"></div>
+                            <div class="top-meter-today" th:style="|left: ${top.weekTodayPermille / 10}.${top.weekTodayPermille % 10}%|"></div>
+                        </div>
+                    </td>
+                    <td class="text-center within-mark"><th:block th:if="${row.withinBudget}"><span aria-hidden="true">💮</span><span class="visually-hidden">予算内</span></th:block></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="legend">赤：週の予算を超過／青：週の予算の1/3以下／💮：週の予算内（1/3を超え、予算以下）</p>
+    </section>
+
+    </th:block>
+</main>
+</body>
+</html>

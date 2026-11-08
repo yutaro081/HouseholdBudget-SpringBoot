@@ -228,13 +228,13 @@ class SecurityBehaviorTest {
 	 * （Phase 3 の手順書 4.13 の(7)）。ここでは、ログイン成功後の移動先だけを確かめる。
 	 */
 	@Test
-	void loginSuccessGoesToTransactions() throws Exception {
+	void loginSuccessGoesToTop() throws Exception {
 		registerUser("sectest3");
 
 		mockMvc.perform(post("/login").with(csrf())
 				.param("username", "sectest3").param("password", DUMMY_PASSWORD))
 				.andExpect(status().is3xxRedirection())
-				.andExpect(redirectedUrl("/transactions"));
+				.andExpect(redirectedUrl("/"));
 	}
 
 	@Test
@@ -248,7 +248,7 @@ class SecurityBehaviorTest {
 
 		mockMvc.perform(post("/login").with(csrf()).session(session)
 				.param("username", "sectest4").param("password", DUMMY_PASSWORD))
-				.andExpect(redirectedUrl("/transactions"));
+				.andExpect(redirectedUrl("/"));
 	}
 
 	@Test
@@ -299,7 +299,7 @@ class SecurityBehaviorTest {
 
 		mockMvc.perform(post("/login").with(csrf())
 				.param("username", "SECTEST6").param("password", DUMMY_PASSWORD))
-				.andExpect(redirectedUrl("/transactions"));
+				.andExpect(redirectedUrl("/"));
 	}
 
 	@Test

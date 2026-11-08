@@ -21,6 +21,7 @@
      どの項目かは、各画面が header('transactions') のように、決まった文字で渡す（利用者の入力は使わない）。ログアウトは POST のフォーム。th:action で CSRF のトークンが自動で入る（7.6） */-->
 <header th:fragment="header(current)" class="app-header bg-body-tertiary border-bottom">
     <nav class="menu d-flex flex-wrap">
+        <a th:href="@{/}" th:attr="aria-current=${current == 'top'} ? 'page'">トップ</a>
         <a th:href="@{/transactions}" th:attr="aria-current=${current == 'transactions'} ? 'page'">取引一覧</a>
         <a th:href="@{/categories}" th:attr="aria-current=${current == 'categories'} ? 'page'">科目</a>
         <a th:href="@{/vendors}" th:attr="aria-current=${current == 'vendors'} ? 'page'">取引先</a>

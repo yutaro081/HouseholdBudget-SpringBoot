@@ -28,7 +28,7 @@
 /*
  * 色の決まり（設計書 2.3「色の決まり」、issue 015 の 1 回目）。
  * 色は、ここの変数（--hb-…）にまとめる。Bootstrap の変数は、このファイルで上書きする（bootstrap.min.css は書き換えない）。
- * --hb-teal（#0E9594）は、文字を乗せない所（棒、ロゴの地など）だけに使う。今の画面では、取引の登録・編集画面の金額の欄の枠（border）だけ。
+ * --hb-teal（#0E9594）は、枠の線（border）だけに使う。今の画面では、取引の登録・編集画面の金額の欄の枠だけ。トップの棒・円は別の変数（--hb-chart-…）。
  * --hb-teal-pale は、今開いている画面のメニュー項目と、小さな印（チップなど）だけに使う。大きな面の背景には使わない。
  * 赤（#c62828）・青（#1565c0）・💮 の行の背景（--hb-apricot）は、予実比較の意味の色。飾りに使わない。
  * --hb-input-border（入力欄の枠）は、入力欄の地が白（--hb-input-bg）であることを前提に決めた値。地を変えるときは、枠も測り直す。
@@ -48,6 +48,16 @@
     --hb-input-bg: #FFFFFF;
     --hb-apricot: #FFF2E5;
     --hb-danger: #B02A37;
+
+    /* トップの円グラフ・棒の色（設計書 2.3「色の決まり」、issue 010 の Q010-9）。ターコイズの濃淡 5 段と灰色。
+       基本のターコイズ（--hb-teal）は枠だけに使う決まりなので、ここは別の変数にした。値は案で、実装のあとに測り直す（手順書 issue-010-top.md）。
+       赤・青・💮 の色は円グラフに使わない。棒は --hb-chart-2 */
+    --hb-chart-1: #0B6E6B;
+    --hb-chart-2: #0F8F8E;
+    --hb-chart-3: #3FAAA9;
+    --hb-chart-4: #78C2C1;
+    --hb-chart-5: #A5D8D7;
+    --hb-chart-6: #8A9694;
 
     /* 文字：フォントと、大きさ 4 段（rem。ブラウザの文字の大きさの設定に合わせて変わる。標準の 16px で 28px・20px・16px・13px と同じ） */
     --hb-font-family: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", Meiryo, sans-serif;
@@ -435,4 +445,196 @@ dl.detail dd {
 .legend {
     color: var(--hb-text-sub);
     font-size: var(--hb-font-size-small);
+}
+
+/*
+ * トップ（設計書 2.3、5.11、issue 010）：季節のメーター、今週の円グラフ、今週の科目ごとのメーター。HTML と CSS だけで描く。
+ * 円の角度・棒の長さ・「今日」の線の位置は、テンプレートが style 属性に入れる（数字だけ。設計書 7.5）。
+ * 色：棒と円は --hb-chart-…（ターコイズの濃淡と灰色）。今週の科目ごとの行の赤・青・💮 の背景は、予実比較と同じ値（意味の色）。
+ * 予実比較の規則（.comparison-table …）は流用せず、別のクラス（.top-weeks、week-…）で作る。
+ */
+.top-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--hb-space-2);
+    margin-bottom: var(--hb-space-4);
+}
+
+.top-head h1 {
+    margin: 0;
+}
+
+.top-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--hb-space-2);
+}
+
+.top-section {
+    background: #fff;
+    border: 1px solid var(--hb-line);
+    border-radius: var(--hb-radius-card);
+    padding: var(--hb-space-4) var(--hb-space-5);
+    margin-bottom: var(--hb-space-4);
+}
+
+.top-section h2 {
+    font-size: var(--hb-font-size-h2);
+    margin-bottom: var(--hb-space-3);
+}
+
+.top-section h2 small {
+    margin-left: var(--hb-space-2);
+    font-size: var(--hb-font-size-small);
+    font-weight: 400;
+    color: var(--hb-text-sub);
+}
+
+.top-numbers strong {
+    font-size: var(--hb-font-size-h2);
+}
+
+.top-note {
+    color: var(--hb-text-sub);
+    font-size: var(--hb-font-size-small);
+}
+
+/* 棒：地は区切り線の色、塗りは --hb-chart-2。「今日」の縦の線は本文の色（棒より少し長く出す） */
+.top-meter {
+    position: relative;
+    height: 0.75rem;
+    min-width: 8rem;
+    margin: var(--hb-space-3) 0;
+    background: var(--hb-line);
+    border-radius: 0.375rem;
+}
+
+.top-meter-bar {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    background: var(--hb-chart-2);
+    border-radius: 0.375rem;
+}
+
+.top-meter-today {
+    position: absolute;
+    top: -0.25rem;
+    bottom: -0.25rem;
+    width: 2px;
+    margin-left: -1px;
+    background: var(--hb-text);
+}
+
+/* 円グラフ：背景は style 属性の conic-gradient。真ん中を白く抜いて、今週の合計を出す */
+.top-pie-box {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--hb-space-5);
+}
+
+.top-pie {
+    position: relative;
+    flex: none;
+    width: 11rem;
+    height: 11rem;
+    border-radius: 50%;
+}
+
+.top-pie-center {
+    position: absolute;
+    top: 22%;
+    right: 22%;
+    bottom: 22%;
+    left: 22%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background: #fff;
+    border-radius: 50%;
+}
+
+.top-pie-label {
+    color: var(--hb-text-sub);
+    font-size: var(--hb-font-size-small);
+}
+
+.top-pie-list {
+    flex: 1;
+    min-width: 16rem;
+    margin-bottom: 0;
+}
+
+.top-chip {
+    display: inline-block;
+    width: 0.875rem;
+    height: 0.875rem;
+    border-radius: 3px;
+}
+
+.top-chip.chart-1 {
+    background: var(--hb-chart-1);
+}
+
+.top-chip.chart-2 {
+    background: var(--hb-chart-2);
+}
+
+.top-chip.chart-3 {
+    background: var(--hb-chart-3);
+}
+
+.top-chip.chart-4 {
+    background: var(--hb-chart-4);
+}
+
+.top-chip.chart-5 {
+    background: var(--hb-chart-5);
+}
+
+.top-chip.chart-6 {
+    background: var(--hb-chart-6);
+}
+
+/* 今週の科目ごとのメーター：行の色は予実比較と同じ決まり（週の予算と切り上げた実績で判定済み） */
+.top-weeks tr.week-over td {
+    color: #c62828;
+}
+
+.top-weeks tr.week-low td {
+    color: #1565c0;
+}
+
+.top-weeks tr.week-within {
+    --bs-table-bg: var(--hb-apricot);
+}
+
+.top-weeks td.within-mark {
+    font-size: 1.5em;
+    line-height: 1;
+}
+
+.top-weeks tr.total-row td {
+    border-top: 2px solid #999;
+}
+
+.top-weeks-meter {
+    width: 40%;
+    min-width: 9rem;
+}
+
+@media (max-width: 575.98px) {
+    .top-section {
+        padding: var(--hb-space-3);
+    }
+
+    .top-pie {
+        margin: 0 auto;
+    }
 }
