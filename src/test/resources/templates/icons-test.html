@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--/* アイコンの部品（fragments/icons.html）の確認用のテスト専用の画面。アプリには入らない（src/test/resources） */-->
+<th:block th:each="name : ${names}">
+<th:block th:replace="~{fragments/icons :: icon(${name}, ${size}, ${stroke})}"></th:block>
+</th:block>
+</body>
+</html>

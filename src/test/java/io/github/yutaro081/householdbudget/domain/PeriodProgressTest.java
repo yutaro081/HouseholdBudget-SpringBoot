@@ -74,4 +74,61 @@ class PeriodProgressTest {
 		assertThat(PeriodProgress.barPermille(null, 5000)).isZero();
 	}
 
+	// ---- issue 017：見出しの行と、季節のメーターの % ----
+
+	/** 季節の終わりまであと何日（今日を含める）。季節の最後の日は 1 */
+	@Test
+	void seasonDaysLeftCountsTodayAsIncluded() {
+		assertThat(PeriodProgress.seasonDaysLeft(AUTUMN_2026, LocalDate.of(2026, 9, 1))).isEqualTo(91);
+		assertThat(PeriodProgress.seasonDaysLeft(AUTUMN_2026, LocalDate.of(2026, 11, 8))).isEqualTo(23);   // 8日〜30日
+		assertThat(PeriodProgress.seasonDaysLeft(AUTUMN_2026, LocalDate.of(2026, 11, 30))).isEqualTo(1);
+		assertThat(PeriodProgress.seasonDaysLeft(WINTER_2026, LocalDate.of(2026, 12, 1))).isEqualTo(90);
+		assertThat(PeriodProgress.seasonDaysLeft(WINTER_2026, LocalDate.of(2027, 2, 28))).isEqualTo(1);
+		assertThat(PeriodProgress.seasonDaysLeft(WINTER_2027, LocalDate.of(2028, 2, 29))).isEqualTo(1);    // うるう日
+	}
+
+	/** 四捨五入した整数の％（半分は切り上げ）。整数だけで計算する */
+	@ParameterizedTest(name = "{0} / {1} → {2}%")
+	@CsvSource({
+			"0, 5, 0",
+			"1, 3, 33",
+			"2, 3, 67",
+			"1, 8, 13",       // 12.5 → 13（半分は切り上げ）
+			"1, 200, 1",      // 0.5 → 1
+			"1, 201, 0",      // 0.497… → 0
+			"5, 5, 100",
+			"6, 5, 120"
+	})
+	void roundedPercent(long numerator, long denominator, int expected) {
+		assertThat(PeriodProgress.roundedPercent(numerator, denominator)).isEqualTo(expected);
+	}
+
+	@ParameterizedTest(name = "予算 {0}・使った額 {1} → {2}%")
+	@CsvSource({
+			"130000, 84326, 65",     // 64.866 → 65
+			"90000, 19134, 21",
+			"30000, 0, 0",
+			"30000, 30000, 100",
+			"30000, 36000, 120",     // 予算を超えたら 100% をこえた値のまま
+			"3000, 1, 0"
+	})
+	void usedPercent(long budget, long actual, int expected) {
+		assertThat(PeriodProgress.usedPercent(budget, actual)).isEqualTo(expected);
+	}
+
+	@Test
+	void usedPercentIsNullWhenTheBudgetIsUnsetOrZero() {
+		assertThat(PeriodProgress.usedPercent(null, 500)).isNull();
+		assertThat(PeriodProgress.usedPercent(0L, 500)).isNull();
+		assertThat(PeriodProgress.usedPercent(0L, 0)).isNull();
+	}
+
+	@Test
+	void seasonElapsedPercent() {
+		assertThat(PeriodProgress.seasonElapsedPercent(AUTUMN_2026, LocalDate.of(2026, 9, 1))).isEqualTo(1);      // 1/91 = 1.1%
+		assertThat(PeriodProgress.seasonElapsedPercent(AUTUMN_2026, LocalDate.of(2026, 11, 8))).isEqualTo(76);    // 69/91 = 75.8%
+		assertThat(PeriodProgress.seasonElapsedPercent(AUTUMN_2026, LocalDate.of(2026, 11, 30))).isEqualTo(100);
+		assertThat(PeriodProgress.seasonElapsedPercent(WINTER_2027, LocalDate.of(2028, 2, 29))).isEqualTo(100);
+	}
+
 }

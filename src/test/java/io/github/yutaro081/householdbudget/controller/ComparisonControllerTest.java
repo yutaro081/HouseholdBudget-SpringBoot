@@ -647,7 +647,7 @@ class ComparisonControllerTest {
 
 		assertThat(body).doesNotContain("<b>x</b>");
 		assertThat(body).contains("&lt;b&gt;x&lt;/b&gt;");
-		assertThat(body).as("予実比較の画面では、メニューの「予実比較」が、今開いている項目として示される（issue 015）").contains("<a href=\"/comparison\" aria-current=\"page\">予実比較</a>");
+		assertThat(body).as("予実比較の画面では、メニューの「予実比較」が、今開いている項目として示される（issue 015）").containsPattern(java.util.regex.Pattern.compile("<a href=\"/comparison\" aria-current=\"page\"><svg[^>]*>.*?</svg>予実比較</a>", java.util.regex.Pattern.DOTALL));
 	}
 
 	/** 他のユーザーの科目・予算・取引は、出ない（持ち主は、ログイン中のユーザー） */

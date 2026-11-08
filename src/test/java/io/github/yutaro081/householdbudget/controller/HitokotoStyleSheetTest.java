@@ -37,17 +37,36 @@ class HitokotoStyleSheetTest {
 		assertThat(frame).contains("border: 1px solid var(--hb-line)");
 	}
 
+	/**
+	 * 決まり：枠そのものと、ほかの規則は、薄いターコイズを使わない（大きな面にしない）。
+	 * 例外（issue 017）：アイコンの小さな四角（.hitokoto-icon）だけは、薄いターコイズの地にしてよい（小さな印。issue 015）。
+	 */
 	@Test
-	void theFrameDoesNotUseAPaleTealBackground() throws Exception {
-		String css = css();
-		Matcher m = Pattern.compile("(?m)^\\.[^{}]*hitokoto[^{}]*\\{([^}]*)\\}").matcher(css);
+	void thePaleTealIsUsedOnlyByTheSmallIconSquare() throws Exception {
+		Matcher m = Pattern.compile("(?m)^(\\.[^{}]*hitokoto[^{}]*)\\{([^}]*)\\}").matcher(css());
 		int rules = 0;
+		boolean iconRule = false;
 		while (m.find()) {
 			rules++;
-			assertThat(m.group(1)).doesNotContain("--hb-teal-pale").doesNotContain("#E1F3F2");
-			assertThat(m.group(1)).doesNotContain("#c62828").doesNotContain("#1565c0").doesNotContain("--hb-apricot");
+			String selector = m.group(1).trim();
+			String body = m.group(2);
+			if (selector.equals(".hitokoto-icon")) {
+				iconRule = true;
+				continue;
+			}
+			assertThat(body).as(selector + " は薄いターコイズを使わない").doesNotContain("--hb-teal-pale").doesNotContain("#E1F3F2");
+			assertThat(body).as(selector).doesNotContain("#c62828").doesNotContain("#1565c0").doesNotContain("--hb-apricot");
 		}
 		assertThat(rules).isGreaterThan(0);
+		assertThat(iconRule).as(".hitokoto-icon の規則がある").isTrue();
+	}
+
+	@Test
+	void theIconSquareIsSmallWithPaleTealGroundAndDarkTealLine() throws Exception {
+		String icon = rule(css(), ".hitokoto-icon");
+
+		assertThat(icon).contains("width: 36px", "height: 36px", "border-radius: 10px");
+		assertThat(icon).contains("background: var(--hb-teal-pale)", "color: var(--hb-teal-text)");
 	}
 
 	@Test

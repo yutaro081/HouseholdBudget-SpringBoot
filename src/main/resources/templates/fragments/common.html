@@ -16,24 +16,28 @@
 </head>
 <body>
 
-<!--/* ヘッダー（ログイン後の全画面）：メニュー、ログイン中のユーザー名、ログアウトボタン（2.3）。
+<!--/* ヘッダー（ログイン後の全画面）：ロゴ、アイコンつきのメニュー、ログイン中のユーザー名（＋「さん」）、ログアウトボタン（2.3、issue 017）。
      メニューは、作った画面の分だけ出す（Q3-4）。今開いている画面の項目には、aria-current="page" を付ける（クラスは付けない。issue 015）。
      どの項目かは、各画面が header('transactions') のように、決まった文字で渡す（利用者の入力は使わない）。ログアウトは POST のフォーム。th:action で CSRF のトークンが自動で入る（7.6） */-->
 <header th:fragment="header(current)" class="app-header bg-body-tertiary border-bottom">
-    <nav class="menu d-flex flex-wrap">
-        <a th:href="@{/}" th:attr="aria-current=${current == 'top'} ? 'page'">トップ</a>
-        <a th:href="@{/transactions}" th:attr="aria-current=${current == 'transactions'} ? 'page'">取引一覧</a>
-        <a th:href="@{/categories}" th:attr="aria-current=${current == 'categories'} ? 'page'">科目</a>
-        <a th:href="@{/vendors}" th:attr="aria-current=${current == 'vendors'} ? 'page'">取引先</a>
-        <a th:href="@{/payment-methods}" th:attr="aria-current=${current == 'payment-methods'} ? 'page'">支払方法</a>
-        <a th:href="@{/budgets}" th:attr="aria-current=${current == 'budgets'} ? 'page'">予算</a>
-        <a th:href="@{/comparison}" th:attr="aria-current=${current == 'comparison'} ? 'page'">予実比較</a>
-    </nav>
-    <div class="user-area d-flex align-items-center gap-2">
-        <span class="user-name" sec:authentication="name">ユーザー名</span>
-        <form th:action="@{/logout}" method="post" class="logout-form">
-            <button type="submit" class="btn btn-outline-secondary btn-sm">ログアウト</button>
-        </form>
+    <div class="app-header-inner">
+        <!--/* ロゴ：角丸の四角に白い線のアイコン（地は主ボタンの地の色）＋アプリの名前。押すとトップへ */-->
+        <a class="brand" th:href="@{/}"><span class="brand-logo"><th:block th:replace="~{fragments/icons :: icon('logo', 18, 2)}"></th:block></span><span class="brand-name">家計・予実管理</span></a>
+        <nav class="menu d-flex flex-wrap">
+            <a th:href="@{/}" th:attr="aria-current=${current == 'top'} ? 'page'"><th:block th:replace="~{fragments/icons :: icon('top', 18, 2)}"></th:block>トップ</a>
+            <a th:href="@{/transactions}" th:attr="aria-current=${current == 'transactions'} ? 'page'"><th:block th:replace="~{fragments/icons :: icon('transactions', 18, 2)}"></th:block>取引一覧</a>
+            <a th:href="@{/categories}" th:attr="aria-current=${current == 'categories'} ? 'page'"><th:block th:replace="~{fragments/icons :: icon('categories', 18, 2)}"></th:block>科目</a>
+            <a th:href="@{/vendors}" th:attr="aria-current=${current == 'vendors'} ? 'page'"><th:block th:replace="~{fragments/icons :: icon('vendors', 18, 2)}"></th:block>取引先</a>
+            <a th:href="@{/payment-methods}" th:attr="aria-current=${current == 'payment-methods'} ? 'page'"><th:block th:replace="~{fragments/icons :: icon('payment-methods', 18, 2)}"></th:block>支払方法</a>
+            <a th:href="@{/budgets}" th:attr="aria-current=${current == 'budgets'} ? 'page'"><th:block th:replace="~{fragments/icons :: icon('budgets', 18, 2)}"></th:block>予算</a>
+            <a th:href="@{/comparison}" th:attr="aria-current=${current == 'comparison'} ? 'page'"><th:block th:replace="~{fragments/icons :: icon('comparison', 18, 2)}"></th:block>予実比較</a>
+        </nav>
+        <div class="user-area d-flex align-items-center gap-2">
+            <span class="user-name"><span sec:authentication="name">ユーザー名</span><span class="user-honorific">さん</span></span>
+            <form th:action="@{/logout}" method="post" class="logout-form">
+                <button type="submit" class="btn btn-outline-secondary btn-sm">ログアウト</button>
+            </form>
+        </div>
     </div>
 </header>
 

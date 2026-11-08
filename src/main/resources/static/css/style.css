@@ -192,6 +192,11 @@ main.narrow {
     max-width: 420px;
 }
 
+/* トップの本体の幅（issue 017）。2 列（左 360px + 右）が入る 1120px まで。ほかの画面は 960px のまま */
+main.top-wide {
+    max-width: 1120px;
+}
+
 /*
  * 取引の登録・編集画面の本体の幅（issue 015 の 3 回目）。992px（Bootstrap の lg）より小さいときは 1 列で、今の narrow と同じ 420px まで。
  * 992px 以上は 2 列（HTML の row / col-lg-6）で、960px。
@@ -233,26 +238,40 @@ main.form-wide {
     margin-top: var(--hb-space-5);
 }
 
-/* ラベルの横の小さな印。「必須」は薄いターコイズ（小さな印に使ってよい色）、「任意」は背景なし。赤は意味の色なので使わない */
+/*
+ * ラベルの横の小さな印（「必須」「任意・30 文字以内」）：灰色の小さな文字（補足の文字の色）だけ。背景も枠もなし（issue 017。issue 015 では薄いターコイズのチップだった）。
+ * 「必須」も「任意」も同じ形。赤は意味の色なので使わない。ラベルが太字（700）でも、印は 400 のまま。
+ */
 .field-chip {
-    display: inline-block;
     margin-left: var(--hb-space-2);
-    padding: 0 var(--hb-space-2);
-    border-radius: var(--hb-radius-control);
+    color: var(--hb-text-sub);
     font-size: var(--hb-font-size-small);
     font-weight: 400;
-    line-height: 1.5;
-    vertical-align: 0.05em;
 }
 
-.field-chip-required {
-    background-color: var(--hb-teal-pale);
-    color: var(--hb-teal-text);
+/* この画面のフォームの項目のラベルは太字（700。issue 017）。ほかの画面のラベルは今のまま。ブラウザでにじむようなら 400 に戻す */
+.form-card .form-label {
+    font-weight: 700;
 }
 
-.field-chip-optional {
-    border: 1px solid var(--hb-line);
-    color: var(--hb-text-sub);
+/*
+ * 992px 以上のときだけ（issue 017）：①日付の欄は列の半分（最大 220px）。②左の列（日付・科目・取引先・支払方法）の項目の間隔を広げる。
+ * 右の列は金額のボタンと説明で長いので、左の列の終わり（支払方法の下）が、右の列の摘要の下より少し下に来るようにする。値はブラウザで見て調整してよい。
+ * 1 列のとき（992px 未満）は、今のまま。
+ */
+@media (min-width: 992px) {
+    .date-input {
+        width: 50%;
+        max-width: 220px;
+    }
+
+    .form-col-left .field {
+        margin-bottom: var(--hb-space-6);
+    }
+
+    .form-col-left .field:last-child {
+        margin-bottom: 0;
+    }
 }
 
 /* 金額の欄：大きめの文字（見出しの 1.75rem）、ターコイズの枠（#0E9594。白との比 3.66 対 1）、数字は右寄せ。選んだとき（フォーカス）は .form-control:focus の枠が効く */
@@ -271,24 +290,78 @@ main.form-wide {
 
 /* ヘッダー（メニュー、ユーザー名、ログアウト）。幅が足りないときは折り返す。メニューの <a> にはクラスを付けない（テストが確かめている） */
 .app-header {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    align-items: center;
-    gap: 4px 16px;
     padding: 8px 16px;
 }
 
-.menu a {
-    padding: 4px 10px;
+/* ヘッダーの中身（issue 017）：左にロゴ、真ん中にメニュー、右にユーザー名とログアウト。幅は本文（トップ）と同じ 1120px まで、中央にそろえる。幅が足りないときは折り返す（JavaScript は使わない） */
+.app-header-inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 16px;
+    max-width: 1120px;
+    margin: 0 auto;
+}
+
+/* ロゴ：34px の角丸の四角に白い線のアイコン。地は主ボタンの地（#0B7F7E。白との比 4.83）。基本のターコイズ（--hb-teal）は枠だけなので使わない */
+.brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--hb-text);
     text-decoration: none;
 }
 
-/* 今開いている画面の項目（aria-current="page"。クラスは付けない）：薄いターコイズの背景と #0B6E6B の文字。薄いターコイズを使うのは、ここと小さな印だけ */
+.brand-logo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: var(--hb-teal-button);
+    color: #fff;
+}
+
+.brand-name {
+    font-weight: 700;
+}
+
+/* メニュー：アイコン + 文字。高さ 44px、角 10px。今の項目以外は補足の文字の色。<a> にクラスは付けない（テストが確かめている） */
+.menu {
+    gap: 4px;
+}
+
+.menu a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 0 12px;
+    border-radius: 10px;
+    color: var(--hb-text-sub);
+    text-decoration: none;
+}
+
+.menu a svg {
+    flex: none;
+}
+
+.menu a:hover {
+    color: var(--hb-teal-text);
+}
+
+/*
+ * 今開いている画面の項目（aria-current="page"。クラスは付けない）：薄いターコイズの背景と #0B6E6B の文字、太さ 700。薄いターコイズを使うのは、ここと小さな印だけ。
+ * 太さ 700 は、文字の決まり（設計書 2.3）の例外（issue 017）。ボタンを 400 にしたのは小さいボタンの線がつぶれたため。メニューの文字は 1rem でそれより大きい。
+ * ブラウザで確かめて、にじむようなら 400 に戻す。
+ */
 .menu a[aria-current="page"] {
     background-color: var(--hb-teal-pale);
     color: var(--hb-teal-text);
-    border-radius: var(--bs-border-radius);
+    font-weight: 700;
+    border-radius: 10px;
 }
 
 /* ヘッダーの帯は白にして、ページの背景（#F6F8F8）と区切る。下の線の色は --bs-border-color（#E2E8E8） */
@@ -298,6 +371,18 @@ main.form-wide {
 
 .logout-form {
     margin: 0;
+}
+
+.user-area {
+    margin-left: auto;
+}
+
+.user-name {
+    color: var(--hb-text-sub);
+}
+
+.user-honorific {
+    margin-left: 0.25em;
 }
 
 /* フォームの項目（ラベル・入力欄・エラー） */
@@ -466,6 +551,12 @@ dl.detail dd {
     margin: 0;
 }
 
+.top-today {
+    margin: 0 0 var(--hb-space-1);
+    color: var(--hb-text-sub);
+    font-size: var(--hb-font-size-small);
+}
+
 .top-actions {
     display: flex;
     flex-wrap: wrap;
@@ -494,6 +585,106 @@ dl.detail dd {
 
 .top-numbers strong {
     font-size: var(--hb-font-size-h2);
+}
+
+/*
+ * 季節のメーター（issue 017）：左に合計、右に棒と割合の文。大きな数字は見出しと同じ 1.75rem。
+ * 左は中身の幅だけ（flex: 0 0 auto）、右の棒が残りの幅を全部使う（flex: 1 1 auto）。左右の間は 40px（768px 以上）。せまいときは上下。
+ */
+.top-season-grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--hb-space-4);
+}
+
+.top-season-main {
+    flex: 0 0 auto;
+}
+
+.top-season-bar {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+@media (min-width: 768px) {
+    .top-season-grid {
+        flex-direction: row;
+        align-items: center;
+        gap: 40px;
+    }
+}
+
+.top-season h2 {
+    margin-bottom: var(--hb-space-1);
+    color: var(--hb-text-sub);
+    font-size: var(--hb-font-size-small);
+}
+
+.top-numbers .top-season-amount {
+    font-size: var(--hb-font-size-h1);
+}
+
+.top-season-budget {
+    color: var(--hb-text-sub);
+}
+
+.top-numbers {
+    margin-bottom: var(--hb-space-1);
+}
+
+/* 「残り ○円」：「残り」は補足の灰色のまま、金額だけを本文の色の太字にして、少し目立たせる */
+.top-season-remaining {
+    margin: 0;
+    color: var(--hb-text-sub);
+}
+
+.top-season-remaining strong {
+    color: var(--hb-text);
+    font-weight: 700;
+}
+
+.top-season-labels {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--hb-space-1) var(--hb-space-3);
+    margin: 0;
+    color: var(--hb-text-sub);
+    font-size: var(--hb-font-size-small);
+}
+
+/* ペースの一言（右側の棒のすぐ下）：濃いターコイズ（#0B6E6B。リンクと同じ色）の太字。ゆっくり／ほぼ同じ／速めのどれでも同じ色。赤・青（予実比較の意味の色）は使わない */
+.top-season-pace {
+    margin: var(--hb-space-2) 0 0;
+    color: var(--hb-teal-text);
+    font-weight: 700;
+}
+
+.top-season-unset {
+    margin: var(--hb-space-3) 0 0;
+}
+
+.top-season .top-meter {
+    height: 16px;
+}
+
+/* 2 列の部分（issue 017）：せまいときは縦 1 列（HTML の順：円グラフ → ひとこと → 進み具合）。992px 以上で、左 360px・右は残り全部 */
+.top-columns {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0 var(--hb-space-4);
+}
+
+.top-col-left,
+.top-col-right {
+    min-width: 0;
+}
+
+@media (min-width: 992px) {
+    .top-columns {
+        grid-template-columns: 360px minmax(0, 1fr);
+        align-items: start;
+    }
 }
 
 .top-note {
@@ -532,16 +723,16 @@ dl.detail dd {
 /* 円グラフ：背景は style 属性の conic-gradient。真ん中を白く抜いて、今週の合計を出す */
 .top-pie-box {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     align-items: center;
-    gap: var(--hb-space-5);
+    gap: var(--hb-space-4);
 }
 
 .top-pie {
     position: relative;
     flex: none;
-    width: 11rem;
-    height: 11rem;
+    width: 220px;
+    height: 220px;
     border-radius: 50%;
 }
 
@@ -566,9 +757,12 @@ dl.detail dd {
 }
 
 .top-pie-list {
-    flex: 1;
-    min-width: 16rem;
+    width: 100%;
     margin-bottom: 0;
+}
+
+.top-pie-note {
+    margin: var(--hb-space-3) 0 0;
 }
 
 .top-chip {
@@ -602,31 +796,76 @@ dl.detail dd {
     background: var(--hb-chart-6);
 }
 
-/* 今週の科目ごとのメーター：行の色は予実比較と同じ決まり（週の予算と切り上げた実績で判定済み） */
-.top-weeks tr.week-over td {
+/*
+ * 今週の進み具合（issue 017）：1 科目が 2 行。1 行目に科目名・状態の短い文・実績 / 週の予算、2 行目に棒と「今日」の線。
+ * 行の色は予実比較と同じ決まり（週の予算と切り上げた実績で判定済み）。棒の太さ：合計 14px、科目 10px。
+ */
+.top-weeks-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--hb-space-1) var(--hb-space-3);
+}
+
+.top-weeks-head h2 {
+    margin-bottom: var(--hb-space-1);
+}
+
+.top-weeks {
+    margin: var(--hb-space-3) 0 0;
+    padding: 0;
+}
+
+.top-week-row {
+    padding: var(--hb-space-2) var(--hb-space-3);
+}
+
+.top-week-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--hb-space-1) var(--hb-space-3);
+}
+
+.top-week-name {
+    font-weight: 700;
+}
+
+.top-week-status {
+    font-size: var(--hb-font-size-small);
+}
+
+.top-week-amounts {
+    margin-left: auto;
+    font-variant-numeric: tabular-nums;
+}
+
+.top-week-separator {
+    margin: var(--hb-space-1) 0;
+    border-top: 1px solid var(--hb-line);
+}
+
+.top-weeks .top-meter {
+    height: 10px;
+    margin: var(--hb-space-2) 0 0;
+}
+
+.top-weeks .top-week-total .top-meter {
+    height: 14px;
+}
+
+.top-weeks li.week-over {
     color: #c62828;
 }
 
-.top-weeks tr.week-low td {
+.top-weeks li.week-low {
     color: #1565c0;
 }
 
-.top-weeks tr.week-within {
-    --bs-table-bg: var(--hb-apricot);
-}
-
-.top-weeks td.within-mark {
-    font-size: 1.5em;
-    line-height: 1;
-}
-
-.top-weeks tr.total-row td {
-    border-top: 2px solid #999;
-}
-
-.top-weeks-meter {
-    width: 40%;
-    min-width: 9rem;
+.top-weeks li.week-within {
+    background: var(--hb-apricot);
+    border-radius: 10px;
 }
 
 @media (max-width: 575.98px) {
@@ -653,39 +892,68 @@ dl.detail dd {
 }
 
 .hitokoto-frame h2 {
-    font-size: var(--hb-font-size-h2);
     margin-bottom: var(--hb-space-3);
+    color: var(--hb-teal-text);
+    font-size: var(--hb-font-size-body);
 }
 
-.hitokoto-item + .hitokoto-item {
+/* 行：左にアイコンの四角、右に文（issue 017）。行の間は区切り線 */
+.hitokoto-row {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--hb-space-3);
+}
+
+.hitokoto-row + .hitokoto-row {
     margin-top: var(--hb-space-3);
     padding-top: var(--hb-space-3);
     border-top: 1px solid var(--hb-line);
 }
 
+/* アイコンの四角：薄いターコイズの地 + 濃いターコイズの線のアイコン。薄いターコイズは小さな印にだけ使う決まり（issue 015）なので、枠そのものには使わない */
+.hitokoto-icon {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--hb-teal-pale);
+    color: var(--hb-teal-text);
+}
+
+.hitokoto-body {
+    flex: 1;
+    min-width: 0;
+}
+
 .hitokoto-label {
-    margin-bottom: var(--hb-space-1);
+    margin: 0 0 var(--hb-space-1);
     color: var(--hb-text-sub);
     font-size: var(--hb-font-size-small);
 }
 
-.hitokoto-label strong {
-    color: var(--hb-text);
-    font-size: var(--hb-font-size-body);
+.hitokoto-name {
+    margin: 0 0 var(--hb-space-1);
+}
+
+.hitokoto-name span {
+    color: var(--hb-text-sub);
+    font-size: var(--hb-font-size-small);
 }
 
 .hitokoto-text {
-    margin-bottom: 0;
+    margin: 0;
 }
 
 .hitokoto-next {
-    margin: var(--hb-space-3) 0 0;
+    margin: var(--hb-space-2) 0 0;
     color: var(--hb-text-sub);
     font-size: var(--hb-font-size-small);
 }
 
-.hitokoto-graph {
-    margin: var(--hb-space-3) 0 0;
-    padding-top: var(--hb-space-3);
-    border-top: 1px solid var(--hb-line);
+.hitokoto-graph-text {
+    margin: 0;
+    padding-top: var(--hb-space-2);
 }

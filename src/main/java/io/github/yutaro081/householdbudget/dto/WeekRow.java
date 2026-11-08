@@ -13,7 +13,9 @@ import io.github.yutaro081.householdbudget.domain.BudgetColor;
  * @param color        色。予実比較と同じ判定（BudgetColorJudge）を、週の予算と切り上げた実績に当てはめたもの
  * @param withinBudget 予算内の印（💮）を出すか（BudgetColorJudge.isWithinBudget）
  * @param barPermille  棒の長さ（1000分率。0〜1000）。週の予算が未設定なら 0（棒は出さない）
+ * @param statusKey    状態の短い文のメッセージのキー（top.status.over／low／within／none）。予算 0円で実績 0円（色なし）のときは null（文を出さない）
+ * @param statusAmount 状態の文の金額（top.status.over の「○円オーバー」＝実績 − 週の予算）。ほかは null
  */
 public record WeekRow(String categoryName, Long budget, long actual, Long difference, BudgetColor color,
-		boolean withinBudget, int barPermille) {
+		boolean withinBudget, int barPermille, String statusKey, Long statusAmount) {
 }

@@ -14,7 +14,7 @@
     <!--/* 登録（transactionId がない）と編集（transactionId がある）で共用する（設計書 4.4.2、U1：表示と送信は同じ URL）。
          992px 以上は 2 列（左：日付・科目・取引先・支払方法／右：金額・金額ボタン・摘要）、それより小さいときは 1 列（設計書 2.3、issue 015 の 3 回目）。
          HTML は「左の列 → 右の列」の順に書く（1 列のときの順と、Tab で進む順が、見た目の順と合う）。2 列は CSS（Bootstrap の row / col-lg-6）だけで作る。
-         ラベルの横の「必須」「任意・30 文字以内」は表示だけ（required・maxlength は付けない、G1）。
+         ラベルの横の「必須」「任意・30 文字以内」は表示だけ（required・maxlength は付けない、G1）。issue 017：灰色の小さな文字（チップではない）、ラベルは太字、金額のラベルは「金額（円）」、日付の欄は 992px 以上で列の半分（最大 220px）、左の列は 992px 以上で項目の間隔を広げる。
          プルダウンが空のとき（B2、Q5-7 の A）は、足りない種類の説明とマスタの画面へのリンクを出し、フォームは出さない。
          入力欄には、カンマも「円」も使わない（2.3）。金額は文字として受け付ける（G1）。
          エラーで戻ったときも、入力値と選んでいた値が残る（th:field）。利用者の入力は th:field / th:text で出す。th:utext は使わない（7.5） */-->
@@ -31,10 +31,10 @@
           th:action="${transactionId == null} ? @{/transactions/new} : @{/transactions/{id}/edit(id=${transactionId})}"
           th:object="${transactionForm}" method="post" class="form-card" novalidate>
         <div class="row g-4">
-            <div class="col-lg-6">
+            <div class="col-lg-6 form-col-left">
                 <div class="field">
                     <label class="form-label" for="transactionDate">日付 <span class="field-chip field-chip-required">必須</span></label>
-                    <input class="form-control" type="date" th:field="*{transactionDate}">
+                    <input class="form-control date-input" type="date" th:field="*{transactionDate}">
                     <div class="field-error" th:each="message : ${#fields.errors('transactionDate')}" th:text="${message}">エラー</div>
                 </div>
 
@@ -68,9 +68,9 @@
 
             <div class="col-lg-6">
                 <div class="field">
-                    <label class="form-label" for="amount">金額 <span class="field-chip field-chip-required">必須</span></label>
+                    <label class="form-label" for="amount">金額（円） <span class="field-chip field-chip-required">必須</span></label>
                     <input class="form-control amount-input" type="text" inputmode="numeric" th:field="*{amount}">
-                    <div class="field-hint">円。1〜1000000の整数</div>
+                    <div class="field-hint">1〜1,000,000 の整数</div>
                     <div class="field-error" th:each="message : ${#fields.errors('amount')}" th:text="${message}">エラー</div>
                     <!--/* 金額の入力を助けるボタン（設計書 2.3、issue 009）。JavaScript が動いたときだけ見せる（hidden を外す）。
                          ボタンは type="button"（送信しない）。どの欄に効くかは data-amount-target で指す。税込のボタンは、画面を開いたとき欄に値が入っていれば、JavaScript が最初から押せなくする（編集画面、エラーで表示し直した画面）。

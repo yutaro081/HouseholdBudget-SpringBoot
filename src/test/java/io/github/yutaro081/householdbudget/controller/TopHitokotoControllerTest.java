@@ -160,9 +160,9 @@ class TopHitokotoControllerTest {
 
 		String body = topBody(a);
 
-		int pie = body.indexOf("今週の使い道");
+		int pie = body.indexOf("今週 何に使ったか");
 		int frame = body.indexOf(HEADING);
-		int weeks = body.indexOf("今週の科目ごとのメーター");
+		int weeks = body.indexOf("今週の進み具合");
 		assertThat(pie).isGreaterThanOrEqualTo(0);
 		assertThat(frame).isGreaterThan(pie);
 		assertThat(weeks).isGreaterThan(frame);
@@ -178,7 +178,7 @@ class TopHitokotoControllerTest {
 
 		String frame = frame(topBody(a));
 
-		assertThat(frame).contains("七十二候", "山茶始開", "つばきはじめてひらく");
+		assertThat(frame).contains("七十二候（立冬の初候）", "山茶始開", "つばきはじめてひらく");
 		assertThat(frame).contains("冬のはじまりに合わせて、サザンカの花が咲きはじめます。");
 		assertThat(frame).contains("次の節気：小雪まであと14日");
 	}
@@ -191,7 +191,7 @@ class TopHitokotoControllerTest {
 
 		String frame = frame(topBody(a));
 
-		assertThat(frame).contains("二十四節気", "今日は立冬。");
+		assertThat(frame).contains("二十四節気（立冬）", "今日は立冬。");
 		assertThat(frame).doesNotContain("山茶始開").doesNotContain("次の節気");
 	}
 

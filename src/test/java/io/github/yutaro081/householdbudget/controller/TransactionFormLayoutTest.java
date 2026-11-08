@@ -172,6 +172,24 @@ class TransactionFormLayoutTest {
 		}
 	}
 
+	/** issue 017：金額のラベルは「金額（円）」 */
+	@Test
+	void amountLabelHasTheYenInParentheses() throws Exception {
+		for (String body : new String[] { newPage(), editPage(), errorPage() }) {
+			assertThat(body).containsPattern("<label[^>]*for=\"amount\"[^>]*>金額（円） <span class=\"field-chip field-chip-required\">必須</span>");
+		}
+	}
+
+	/** issue 017：日付の欄に date-input（992px 以上で幅を半分にする目印）、左の列に form-col-left（項目の間隔を広げる目印）を付ける */
+	@Test
+	void dateInputAndLeftColumnCarryTheLayoutHooks() throws Exception {
+		for (String body : new String[] { newPage(), editPage(), errorPage() }) {
+			assertThat(body).containsPattern("<input class=\"form-control date-input\" type=\"date\"");
+			assertThat(body).contains("<div class=\"col-lg-6 form-col-left\">");
+			assertThat(count(body, "form-col-left")).isEqualTo(1);
+		}
+	}
+
 	@Test
 	void marksAreInsideTheLabelsOfTheirFields() throws Exception {
 		String body = newPage();
@@ -184,9 +202,11 @@ class TransactionFormLayoutTest {
 	@Test
 	void amountRangeHintIsBelowTheAmountFieldWithTheSameWords() throws Exception {
 		String body = newPage();
-		assertThat(body).contains("円。1〜1000000の整数");
-		assertThat(body.indexOf("id=\"amount\"")).isLessThan(body.indexOf("円。1〜1000000の整数"));
-		assertThat(body.indexOf("円。1〜1000000の整数")).as("金額ボタンの前").isLessThan(body.indexOf("data-amount-buttons"));
+		assertThat(body).contains("1〜1,000,000 の整数");
+		// issue 017：ラベルが「金額（円）」になったので、補足の頭の「円。」はなくした。カンマ付き
+		assertThat(body).doesNotContain("円。1〜1000000の整数", "円。1〜");
+		assertThat(body.indexOf("id=\"amount\"")).isLessThan(body.indexOf("1〜1,000,000 の整数"));
+		assertThat(body.indexOf("1〜1,000,000 の整数")).as("金額ボタンの前").isLessThan(body.indexOf("data-amount-buttons"));
 		assertThat(count(newPage(), "class=\"field-error\"")).as("エラーがない画面に field-error はない").isZero();
 	}
 
@@ -262,7 +282,8 @@ class TransactionFormLayoutTest {
 		Matcher media = Pattern.compile("@media \\(min-width: 992px\\)\\s*\\{\\s*main\\.form-wide\\s*\\{([^}]*)\\}").matcher(css);
 		assertThat(media.find()).as("992px 以上の規則").isTrue();
 		assertThat(media.group(1)).contains("max-width: 960px");
-		assertThat(css).as("768px では切り替えない").doesNotContain("min-width: 768px");
+		// 768px の規則は、トップの季節のメーター（issue 017）にある。取引の登録・編集画面の幅は、768px では切り替えない
+		assertThat(css).as("768px では切り替えない").doesNotContainPattern("(?s)@media \\(min-width: 768px\\)\\s*\\{[^@]*?form-wide");
 	}
 
 	@Test
@@ -286,11 +307,55 @@ class TransactionFormLayoutTest {
 	}
 
 	@Test
-	void cardAndChipsUseTheDesignedColorsAndRadius() throws Exception {
+	void cardUsesTheDesignedColorsAndRadius() throws Exception {
 		String css = css();
 		assertThat(rule(css, ".form-card")).contains("background-color: var(--hb-input-bg)", "border-radius: var(--hb-radius-card)", "var(--hb-line)");
-		assertThat(rule(css, ".field-chip-required")).contains("background-color: var(--hb-teal-pale)", "color: var(--hb-teal-text)");
-		assertThat(rule(css, ".field-chip-optional")).contains("color: var(--hb-text-sub)");
+	}
+
+	/** issue 017：「必須」「任意・30 文字以内」は、薄いターコイズのチップをやめて、灰色の小さな文字（補足の文字の色）だけ。背景も枠もなし */
+	@Test
+	void marksAreSmallGrayTextOnly() throws Exception {
+		String css = stripComments(css());
+		String mark = rule(css, ".field-chip");
+
+		assertThat(mark).contains("color: var(--hb-text-sub)", "font-size: var(--hb-font-size-small)", "font-weight: 400");
+		assertThat(mark).doesNotContain("background").doesNotContain("border").doesNotContain("padding").doesNotContain("teal");
+		assertThat(css).as("チップごとの規則（薄いターコイズの地、枠）を作らない").doesNotContain(".field-chip-required").doesNotContain(".field-chip-optional");
 		assertThat(css).as("「必須」の印に赤を使わない（赤は意味の色）").doesNotContainPattern("field-chip[^{]*\\{[^}]*(danger|c62828)");
+	}
+
+	/** issue 017：項目のラベルは太字（700）。この画面のフォームのラベルだけ。ボタンの文字は 400 のまま */
+	@Test
+	void labelsOfTheFormAreBold() throws Exception {
+		String css = stripComments(css());
+
+		assertThat(rule(css, ".form-card .form-label")).contains("font-weight: 700");
+		assertThat(css).containsPattern("\\.btn\\s*\\{[^}]*--bs-btn-font-weight:\\s*400");
+	}
+
+	/** issue 017：日付の欄は、992px 以上のとき、列の半分（最大 220px）。それより小さいときは今のまま（規則は 992px 以上の中にだけある） */
+	@Test
+	void dateFieldIsHalfTheColumnUpTo220pxFrom992px() throws Exception {
+		String css = stripComments(css());
+
+		Matcher media = Pattern.compile("@media \\(min-width: 992px\\)\\s*\\{[^@]*?\\.date-input\\s*\\{([^}]*)\\}").matcher(css);
+		assertThat(media.find()).as("992px 以上の規則").isTrue();
+		assertThat(media.group(1)).contains("width: 50%", "max-width: 220px");
+		assertThat(count(css, ".date-input")).as("992px 以上の中にだけある").isEqualTo(1);
+	}
+
+	/** issue 017：992px 以上で、左の列の項目の間隔を広げる（左の列の終わりが、右の列の摘要の下より少し下に来るように） */
+	@Test
+	void leftColumnFieldsAreSpacedWiderFrom992px() throws Exception {
+		String css = stripComments(css());
+
+		Matcher media = Pattern.compile("@media \\(min-width: 992px\\)\\s*\\{[^@]*?\\.form-col-left \\.field\\s*\\{([^}]*)\\}").matcher(css);
+		assertThat(media.find()).as("992px 以上の規則").isTrue();
+		assertThat(media.group(1)).contains("margin-bottom: var(--hb-space-6)");
+		assertThat(css).as("1 列のときの間隔（.field の 1rem）は変えない").containsPattern("\\.field\\s*\\{\\s*margin-bottom: 1rem;");
+	}
+
+	private static String stripComments(String css) {
+		return css.replaceAll("(?s)/\\*.*?\\*/", "");
 	}
 }

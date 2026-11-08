@@ -139,7 +139,7 @@ class TopControllerTest {
 		Owner a = createOwner("topctl01");
 		category(a, "食費", 30_000);
 
-		assertThat(topBody(a)).contains("<a href=\"/\" aria-current=\"page\">トップ</a>");
+		MenuAssertions.assertCurrentItem(topBody(a), "/", "トップ");
 	}
 
 	// ---- 表示の内容 ----
@@ -153,8 +153,8 @@ class TopControllerTest {
 
 		String body = topBody(a);
 
-		assertThat(body).contains("トップ", "使った額", "残り", "今日");
-		assertThat(body).contains("今週の使い道", "今週の科目ごとのメーター", "週の予算");
+		assertThat(body).contains("トップ", "この季節に使った合計", "残り", "今日");
+		assertThat(body).contains("今週 何に使ったか", "今週の進み具合", "週の予算");
 		assertThat(body).contains("60,000円");                 // 季節の予算の合計（30,000 × 2）
 		assertThat(body).contains("1,234円");                  // 季節の使った額（切り上げない）
 		assertThat(body).contains("1,300円");                  // 今週の実績（100 円単位で切り上げ）
@@ -171,15 +171,16 @@ class TopControllerTest {
 		String body = topBody(a);
 
 		assertThat(body).containsPattern("<a [^>]*href=\"/comparison\"[^>]*>予実比較を見る</a>");
-		assertThat(body).containsPattern("<a [^>]*href=\"/transactions/new\"[^>]*>取引を登録</a>");
+		assertThat(body).containsPattern(java.util.regex.Pattern.compile("<a [^>]*href=\"/transactions/new\"[^>]*><svg[^>]*>.*?</svg>取引を登録</a>", java.util.regex.Pattern.DOTALL));
 	}
 
 	@Test
-	void noPaceMessageIsShown() throws Exception {
+	void noForecastOrAlertMessageIsShown() throws Exception {
+		// issue 017 で、ペースの一言（ゆっくり／ほぼ同じ／速め）は出すことにした。予測や前もっての知らせ、「超えています」の言い方は出さない
 		Owner a = createOwner("topctl04");
 		category(a, "食費", 30_000);
 
-		assertThat(topBody(a)).doesNotContain("ゆっくり", "早めです", "ほぼ同じ", "予算を超えています");
+		assertThat(topBody(a)).doesNotContain("予算を超えています", "このままだと", "超えそう", "着地", "早めです");
 	}
 
 	@Test
@@ -205,7 +206,7 @@ class TopControllerTest {
 		String body = topBody(a);
 
 		assertThat(body).contains("先に科目を追加してください").contains("href=\"/categories\"");
-		assertThat(body).doesNotContain("conic-gradient(").doesNotContain("今週の科目ごとのメーター");
+		assertThat(body).doesNotContain("conic-gradient(").doesNotContain("今週の進み具合").doesNotContain("今週 何に使ったか");
 		assertThat(body).contains("予実比較を見る", "取引を登録");
 	}
 
@@ -218,7 +219,7 @@ class TopControllerTest {
 
 		assertThat(body).contains("今週はまだ使っていません");
 		assertThat(body).doesNotContain("conic-gradient(");
-		assertThat(body).contains("今週の科目ごとのメーター", "食費");
+		assertThat(body).contains("今週の進み具合", "食費");
 	}
 
 	@Test

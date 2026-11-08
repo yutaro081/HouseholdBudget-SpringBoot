@@ -18,7 +18,7 @@ import io.github.yutaro081.householdbudget.domain.SolarTermTestData;
 /**
  * 文面と日付の表のファイル（src/main/resources/hitokoto/）のテスト（設計書 5.12、手順書 issue-016-hitokoto.md 5.4）。
  * Spring もデータベースも使わない。ファイルが欠けたまま動かさないための確認（件数・番号・空の文）と、
- * 二十四節気の日付の表を、本人が国立天文台のページと見比べた日付（SolarTermTestData）と照らし合わせる。
+ * 二十四節気の日付の表を、暦要項から取得した日付の写し（SolarTermTestData）と照らし合わせる。
  */
 class HitokotoTextsTest {
 
@@ -125,7 +125,7 @@ class HitokotoTextsTest {
 		assertThat(calendar.hasYear(2028)).isFalse();
 	}
 
-	/** 本人が国立天文台のページと見比べた日付（2026・2027年の48件）と、2025年の24件に一致する */
+	/** 暦要項から取得した日付の写し（2025〜2027年の72件）と一致する（写し間違いを見つける） */
 	@Test
 	void theTableMatchesTheDatesCheckedAgainstTheObservatoryPage() {
 		Map<Integer, String> expected = Map.of(2025, SolarTermTestData.Y2025, 2026, SolarTermTestData.Y2026, 2027,

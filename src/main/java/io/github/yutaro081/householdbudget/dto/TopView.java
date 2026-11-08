@@ -27,9 +27,18 @@ import io.github.yutaro081.householdbudget.domain.SeasonPeriod;
  * @param rows                科目ごとの行（科目の登録順。使っていない科目も含む）
  * @param total               合計の行。科目が0件のときも値は作るが、画面は出さない
  * @param hitokoto            きょうのひとこと（暦のひとこと、グラフへのひとこと。設計書 5.12）
+ * @param today               今日の日付（見出しの行「今日は ○月○日」。issue 017）
+ * @param seasonFirstMonth    今の季節の最初の月（秋＝9、冬＝12）。見出し「（9月〜11月）」
+ * @param seasonLastMonth     今の季節の最後の月（秋＝11、冬＝2）
+ * @param seasonDaysLeft      季節の終わりまであと何日（今日を含める。最後の日は 1）
+ * @param seasonUsedPercent   「予算のうち ○% を使った」の％（四捨五入。100％をこえてもそのまま）。予算が未設定・0円なら null
+ * @param seasonElapsedPercent 「縦の線は『今日』（季節の ○%）」の％（四捨五入）
+ * @param weekDayNumber       今日が今週の何日目か（日曜＝1、土曜＝7）。「縦の線は『今日』（週の ○ 日目）」
+ * @param paceKey             ペースの一言のメッセージのキー（top.pace.slow／same／fast）。予算が未設定・0円のときは null（出さない）
  */
 public record TopView(SeasonPeriod season, Long seasonBudget, long seasonActual, Long seasonRemaining,
 		int seasonBarPermille, int seasonTodayPermille, LocalDate weekStart, LocalDate weekEnd,
 		int weekTodayPermille, boolean hasCategories, List<PieSlices.Slice> slices, long pieTotal, String pieStops,
-		List<WeekRow> rows, WeekRow total, HitokotoView hitokoto) {
+		List<WeekRow> rows, WeekRow total, HitokotoView hitokoto, LocalDate today, int seasonFirstMonth,
+		int seasonLastMonth, int seasonDaysLeft, Integer seasonUsedPercent, int seasonElapsedPercent, int weekDayNumber, String paceKey) {
 }

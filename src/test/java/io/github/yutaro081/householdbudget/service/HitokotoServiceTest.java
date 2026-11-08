@@ -197,4 +197,27 @@ class HitokotoServiceTest {
 				.isEqualTo(new HitokotoView.GraphLine("hitokoto.graph.top", "食費", 4_500L));
 	}
 
+	// ---- issue 017：題の補足（「七十二候（立冬の初候）」の括弧の中） ----
+
+	@Test
+	void detailTellsWhichSekkiAndWhichKo() {
+		assertThat(calendarOnly(LocalDate.of(2026, 11, 8)).items().get(0).detail()).isEqualTo("立冬の初候");
+		assertThat(calendarOnly(LocalDate.of(2026, 11, 12)).items().get(0).detail()).isEqualTo("立冬の次候");
+		assertThat(calendarOnly(LocalDate.of(2026, 11, 17)).items().get(0).detail()).isEqualTo("立冬の末候");
+		assertThat(calendarOnly(LocalDate.of(2026, 2, 2)).items().get(0).detail()).isEqualTo("大寒の末候");     // 年の最後の候（2/3 は節分）
+		assertThat(calendarOnly(LocalDate.of(2026, 2, 5)).items().get(0).detail()).isEqualTo("立春の初候");     // 年の最初の候
+	}
+
+	@Test
+	void detailOfASekkiIsItsOwnNameAndAnEventHasNone() {
+		HitokotoView sekki = calendarOnly(LocalDate.of(2026, 11, 7));
+		HitokotoView event = calendarOnly(LocalDate.of(2026, 1, 1));
+		HitokotoView both = calendarOnly(LocalDate.of(2026, 7, 7));
+
+		assertThat(sekki.items().get(0).detail()).isEqualTo("立冬");
+		assertThat(event.items().get(0).detail()).isNull();
+		assertThat(both.items().get(0).detail()).isNull();       // 七夕
+		assertThat(both.items().get(1).detail()).isEqualTo("小暑");
+	}
+
 }

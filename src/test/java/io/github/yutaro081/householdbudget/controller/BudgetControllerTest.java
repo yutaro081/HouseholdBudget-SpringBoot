@@ -428,7 +428,7 @@ class BudgetControllerTest {
 	void pageHasMenuTitleFormAndNoCommasOrYenInInputs() throws Exception {
 		String body = body(mockMvc.perform(get("/budgets").param("year", "2026").param("season", "autumn").with(asA)).andReturn());
 
-		assertThat(body).contains("href=\"/budgets\" aria-current=\"page\">予算");   // メニューの「予算」（今開いている項目。issue 015）
+		MenuAssertions.assertCurrentItem(body, "/budgets", "予算");   // メニューの「予算」（今開いている項目。issue 015、017）
 		assertThat(body).contains("予算設定", "保存");
 		assertThat(body).as("保存ボタンがある（0件のテストが否定で確かめる文字列と同じ。Bootstrap のクラスが付いても成り立つ形）").contains(">保存</button>");
 		assertThat(body).contains("name=\"_csrf\"");
