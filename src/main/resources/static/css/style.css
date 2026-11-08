@@ -5,6 +5,27 @@
  */
 
 /*
+ * フォント（設計書 1.2、2.3「文字の決まり」、issue 015 の 2 回目）：Zen Kaku Gothic New（SIL OFL。ライセンスは static/fonts/OFL.txt と THIRD-PARTY-NOTICES.md）。
+ * ファイルはアプリの中（/fonts/…）にあり、外のサーバーは使わない。太さは 400 と 700 の 2 本だけ（500・600 は置かないので、見出しなどは 700 に指定する）。
+ * フォントが読めるまで、またはフォントにない文字は、--hb-font-family の次のフォントで表示する（font-display: swap）。
+ */
+@font-face {
+    font-family: "Zen Kaku Gothic New";
+    src: url("../fonts/ZenKakuGothicNew-Regular.woff2") format("woff2");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Zen Kaku Gothic New";
+    src: url("../fonts/ZenKakuGothicNew-Bold.woff2") format("woff2");
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+/*
  * 色の決まり（設計書 2.3「色の決まり」、issue 015 の 1 回目）。
  * 色は、ここの変数（--hb-…）にまとめる。Bootstrap の変数は、このファイルで上書きする（bootstrap.min.css は書き換えない）。
  * --hb-teal（#0E9594）は、文字を乗せない所（棒、ロゴの地など）だけに使う。今の画面では、まだ使っていない。
@@ -28,7 +49,16 @@
     --hb-apricot: #FFF2E5;
     --hb-danger: #B02A37;
 
-    /* Bootstrap の変数の上書き（本文・強調・補足の文字、背景、線、リンク） */
+    /* 文字：フォントと、大きさ 4 段（rem。ブラウザの文字の大きさの設定に合わせて変わる。標準の 16px で 28px・20px・16px・13px と同じ） */
+    --hb-font-family: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", Meiryo, sans-serif;
+    --hb-font-size-h1: 1.75rem;
+    --hb-font-size-h2: 1.25rem;
+    --hb-font-size-body: 1rem;
+    --hb-font-size-small: 0.8125rem;
+
+    /* Bootstrap の変数の上書き（フォント、本文・強調・補足の文字、背景、線、リンク） */
+    --bs-body-font-family: var(--hb-font-family);
+    --bs-body-font-size: var(--hb-font-size-body);
     --bs-body-color: var(--hb-text);
     --bs-body-color-rgb: 36, 48, 47;
     --bs-emphasis-color: var(--hb-text);
@@ -45,6 +75,34 @@
     /* エラーの文字（.field-error）と、削除ボタンの赤。Bootstrap の標準の赤 #DC3545 は、背景 #F6F8F8 の上で 4.25 対 1 だったので、濃くした（6.09 対 1） */
     --bs-danger: var(--hb-danger);
     --bs-danger-rgb: 176, 42, 55;
+}
+
+/*
+ * 文字の太さと大きさ。見出し・表の見出しは 700（Bootstrap の標準の見出しは 500。500 のフォントは置かない）。補足は .small / small。
+ * ボタンの文字は 400（Bootstrap の標準と同じ）。最初は 700 にしたが、小さい日本語の文字を太字にすると線がつぶれて読みにくかったので戻した（issue 015 の 2 回目、Q15-7 の見直し）。
+ */
+h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
+    font-weight: 700;
+}
+
+h1, .h1 {
+    font-size: var(--hb-font-size-h1);
+}
+
+h2, .h2 {
+    font-size: var(--hb-font-size-h2);
+}
+
+small, .small {
+    font-size: var(--hb-font-size-small);
+}
+
+th {
+    font-weight: 700;
+}
+
+.btn {
+    --bs-btn-font-weight: 400;
 }
 
 /* 主ボタン：地は #0B7F7E（白い文字と 4.83 対 1）。マウスを載せたとき・押したときは、少し濃くする。ボタンは自分の変数を持つので、クラスに上書きする */
@@ -150,7 +208,7 @@ main.narrow {
 /* 項目の横（真下）のエラー（赤い文字、設計書 6.9）。<div class="field-error"> はテストが数えているので、クラスを足さない */
 .field-error {
     color: var(--bs-danger, #c00);
-    font-size: 0.875em;
+    font-size: var(--hb-font-size-small);
     margin-top: 0.25rem;
 }
 
@@ -221,7 +279,7 @@ dl.detail dd {
 
 .season-title {
     margin: 0;
-    font-size: 1.2em;
+    font-size: var(--hb-font-size-h2);
     text-align: center;
 }
 
@@ -236,7 +294,7 @@ dl.detail dd {
 
 .season-hint {
     color: var(--hb-text-sub);
-    font-size: 0.85em;
+    font-size: var(--hb-font-size-small);
 }
 
 /* 予算設定の表：予算額の入力欄 */
@@ -248,7 +306,7 @@ dl.detail dd {
 /* 「（この季節は未設定）」の印（設計書 2.3、Q26） */
 .unset-mark {
     color: var(--hb-text-sub);
-    font-size: 0.85em;
+    font-size: var(--hb-font-size-small);
     margin-left: 6px;
 }
 
@@ -286,5 +344,5 @@ dl.detail dd {
 /* 色の意味の注記（Q7-6 の C） */
 .legend {
     color: var(--hb-text-sub);
-    font-size: 0.85em;
+    font-size: var(--hb-font-size-small);
 }

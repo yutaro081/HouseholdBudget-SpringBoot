@@ -38,6 +38,7 @@
 | Thymeleaf | Spring Boot が管理する版 | 画面（HTML）の作成。表示する値は自動で無害化される | Spring Boot の標準的な画面の仕組み。入門者向けで、XSS 対策（章7）が標準で入っている |
 | Thymeleaf Extras Spring Security（`thymeleaf-extras-springsecurity6`） | Spring Boot が管理する版 | 画面にログイン中のユーザー名を出す（ヘッダー、2.3） | Spring Security の情報を Thymeleaf から読める。Initializr が Spring Security と Thymeleaf の組み合わせで自動で足す部品で、ユーザー名を出すのに使うため残す（Phase 3 で決定） |
 | Bootstrap（CSS のみ） | 5.3.8（Phase 8 で確認。MIT ライセンス） | 画面の見た目を整える。iPad でも見やすくする（Phase 8、Q8-12） | 自作の CSS だけでは、余白・ボタン・表・フォームの見た目をそろえる手間が大きい。CSS だけを使い、Bootstrap の JavaScript は入れない（ハンバーガーメニューなどは使わない。自作の短い JavaScript は別。1.1）。アプリの中に1ファイルで置き（CDN なし）、面接会場でインターネットにつながらなくても崩れない。ライセンスの表示は `THIRD-PARTY-NOTICES.md` |
+| Zen Kaku Gothic New（フォント） | 1.002（もとの配布元 `googlefonts/zen-kakugothic` の commit `2705757e17e42954f3acbdf921ac0ae24d1270cd`。SIL OFL 1.1） | 画面の文字のフォント。太さ 400 と 700 の woff2 を 1 ファイルずつ（`static/fonts/`） | 本人が選んだ（issue 015）。アプリの中に置き（CDN なし）、面接会場でインターネットにつながらなくても同じ見た目になる。ライセンスの表示は `THIRD-PARTY-NOTICES.md` と `static/fonts/OFL.txt` |
 | Spring MVC | Spring Boot が管理する版 | URL を受けて Controller を呼ぶ | Web アプリの基本部品 |
 | Spring Security | Spring Boot が管理する版 | ログイン・ログアウト、ログイン必須、CSRF 対策 | 要件6章のセキュリティを自作せずに実現でき、実績がある |
 | BCrypt | Spring Security に含まれる | パスワードのハッシュ化 | 元に戻せない形で保存する要件（6章）。標準で使える |
@@ -49,7 +50,7 @@
 | VS Code / Git / GitHub / Claude Code | 最新版（Phase 0 で確認済み） | 開発の道具 | 要件で指定（7章） |
 
 - パスワードの文字数（8〜30）はハッシュ化の前の入力で確認する（3.2）。
-- 画面の見た目は、**Bootstrap の CSS**（`static/css/bootstrap.min.css`。アプリの中に置き、CDN は使わない。**Bootstrap の JavaScript は入れない**）と、自作の CSS（`static/css/style.css`。Bootstrap にないものと、テストが確かめるクラスだけ）で作る。（Phase 8、Q8-17〜Q8-21）
+- 画面の見た目は、**Bootstrap の CSS**（`static/css/bootstrap.min.css`。アプリの中に置き、CDN は使わない。**Bootstrap の JavaScript は入れない**）と、自作の CSS（`static/css/style.css`。Bootstrap にないものと、テストが確かめるクラスだけ）で作る。画面の文字は Zen Kaku Gothic New で、フォントのファイルは `static/fonts/` に置く（CDN は使わない）。（Phase 8、Q8-17〜Q8-21）
 
 ### 1.3 層の分担
 
@@ -222,7 +223,7 @@ sequenceDiagram
 | 予算設定処理 | `/budgets?year=…&season=…`（画面と同じ URL） | POST | ○ | 指定した季節の全科目の予算額を入力チェックして、まとめて保存する（Q27 の c） |
 | 予実比較 | `/comparison`（例：`/comparison?year=2026&season=spring`） | GET | ○ | 季節ごとの科目別の予算・実績・差額を表示する。予算が未設定の科目は「未設定」（2.4） |
 
-- 画面を表示するための CSS や画像（`/css/**`、`/js/**` など）も、ログイン前から読めるようにする（章7）。
+- 画面を表示するための CSS や画像（`/css/**`、`/js/**`、`/fonts/**` など）も、ログイン前から読めるようにする（章7）。
 - 詳細は、取引にだけ作る。科目・取引先・支払方法には詳細画面を作らない（一覧で足りるため）。
 
 ### 2.3 画面ごとの表示項目と入力項目
@@ -264,6 +265,19 @@ sequenceDiagram
 
 - 表の見出し行や、行にマウスを載せたときの色には、薄いターコイズを使わない（Bootstrap の標準のまま）。
 - 色の値は、実装のあとに、明るさの比を測り直した結果を手順書に記録する。
+
+**文字の決まり**（issue 015 の 2 回目）
+
+画面の文字は、次のとおりにする。`style.css` の変数にまとめ、Bootstrap の変数を `style.css` で上書きする。
+
+| 用途 | 決まり |
+|---|---|
+| フォント | `"Zen Kaku Gothic New"`。読み込めない間と、フォントにない文字は、`"Hiragino Sans"`、`"Yu Gothic"`、`Meiryo`、`sans-serif` の順に使う（`font-display: swap`）。ファイルはアプリの中（`/fonts/…`）から読み、外のサーバーは使わない |
+| 太さ | 本文・**ボタンは 400**。見出し・表の見出し・太字は 700（500 のフォントは置かないので、見出しの標準の 500 は使わない） |
+| 大きさ（4 段） | 見出し 1.75rem／見出し 2 1.25rem／本文 1rem／補足 0.8125rem |
+
+- **見直し（2026年11月8日）**：最初の決まりは「見出し・**ボタン**・表の見出し・太字は 700」だった。ブラウザで確かめたところ、「変更」「削除」などの小さいボタンの文字が、700 だと線がつぶれて、にじんだように読みにくかった（小さい日本語の文字を太字（700）にすると、画数の多い字の線がつぶれて、にじんだように読みにくくなる）。**ボタンの文字だけ 400 に戻した**（Bootstrap の標準と同じ）。見出しと表の見出しは、大きさがあるので 700 のまま。
+- 大きさは **px ではなく rem で書く**。ブラウザの文字の大きさの設定に合わせて、画面全体が変わるようにするため。標準（1rem ＝ 16px）のときは、見出し 28px・見出し 2 20px・本文 16px・補足 13px と同じ見た目になる。
 
 **ログイン `/login`**
 
@@ -764,7 +778,8 @@ flowchart LR
 | `messages.properties` | エラーメッセージ・画面の文言（章6） |
 | `templates/` | 画面のファイル（Thymeleaf）。4.4.2 に一覧 |
 | `static/css/bootstrap.min.css` | Bootstrap v5.3.8 の CSS（配布物そのまま。先頭の著作権表示を消さない）。ログイン前から読める（章2、`/css/**`）。ライセンスは `THIRD-PARTY-NOTICES.md` |
-| `static/css/style.css` | 自作の CSS（**色の変数 `--hb-…` と、Bootstrap の変数の上書き**、Bootstrap にないもの、テストが確かめるクラス）。Bootstrap のあとに読み込む。ログイン前から読める（章2） |
+| `static/css/style.css` | 自作の CSS（**色の変数 `--hb-…` と、Bootstrap の変数の上書き**、**フォントの指定（`@font-face`）と文字の大きさ**、Bootstrap にないもの、テストが確かめるクラス）。Bootstrap のあとに読み込む。ログイン前から読める（章2） |
+| `static/fonts/` | Zen Kaku Gothic New の woff2（`ZenKakuGothicNew-Regular.woff2`〔400〕、`ZenKakuGothicNew-Bold.woff2`〔700〕）と、ライセンス全文 `OFL.txt`（issue 015 の 2 回目）。ログイン前から読める（章2、`/fonts/**`）。ブラウザに 30 日覚えさせる（7.10）。ライセンスは `THIRD-PARTY-NOTICES.md` |
 | `static/js/back-reload.js` | 自作の短い JavaScript。ブラウザの「戻る」で覚えていた画面が出たとき（`pageshow` の `event.persisted` が `true`）に、画面を読み直す（7.10、Phase 8 の Q8-25）。`common.html` の `head` から、全画面で読み込む。ログイン前から読める（章2、`/js/**`）。利用者の入力は扱わない |
 | `static/js/amount-buttons.js` | 自作の短い JavaScript（issue 009）。取引の登録・編集画面の、金額の入力を助けるボタンの動き（足す、税込にする、欄を空にする、税込のボタンの押せる・押せないの切り替え）。計算は整数だけ。欄の値を読んで書き戻すだけで、利用者の入力をファイルの中に埋め込まない。**この画面だけ**で読み込む（`transactions/form.html` の中。`defer`）。`/js/**` は許可済みで、設定は変えない（章2） |
 
@@ -1542,7 +1557,7 @@ Spring 標準の変換（`Integer` の項目に何も足さない場合）は、
 | 要件6章の対策 | どうやって実現するか | 関係する章 |
 |---|---|---|
 | パスワードはハッシュ化して保存する | 登録のとき、`RegistrationService` が BCrypt（Spring Security の `PasswordEncoder`）でハッシュ化し、`users.password_hash` に保存する。元のパスワードは保存しない・画面に出さない・ログに出さない。ログインでは、入力をハッシュと照らして確かめる（元に戻さない）。`PasswordEncoder` は `SecurityConfig` で1つだけ用意する | 3.2、5.2、5.3、6（H1） |
-| ログインしていない人は、ログイン画面とアカウント登録画面以外を開けない | `SecurityConfig` で「すべての URL はログイン必須」を基本にし、例外を `/login`、`/register`、`/css/**`、`/js/**`、`/error` だけにする（7.3）。未ログインは `/login` へ移動する | 2.2、4.5、5.2 |
+| ログインしていない人は、ログイン画面とアカウント登録画面以外を開けない | `SecurityConfig` で「すべての URL はログイン必須」を基本にし、例外を `/login`、`/register`、`/css/**`、`/js/**`、`/fonts/**`、`/error` だけにする（7.3）。未ログインは `/login` へ移動する | 2.2、4.5、5.2 |
 | SQL インジェクション対策 | 検索・保存はすべて Spring Data JPA の**パラメータ付き**の方法で行い、入力値を文字列でつなげた SQL を**書かない**（7.4） | 4.6 |
 | XSS 対策 | 画面に出す値は `th:text`（または `[[...]]`）で表示し、**`th:utext` は使わない**（7.5） | 2、4.4 |
 | CSRF 対策 | Spring Security の CSRF 対策を**有効のまま**使う。データを変えるリクエストはすべて POST にし、フォームにトークンを入れる（7.6） | 2.1、2.2 |
@@ -1559,6 +1574,7 @@ Spring 標準の変換（`Integer` の項目に何も足さない場合）は、
 | `/register`（GET・POST） | アカウント登録のため（R2） |
 | `/css/**` | 画面の見た目の CSS。ログイン画面と登録画面にも使うため |
 | `/js/**` | 画面の短い JavaScript（7.10 の「戻る」の処理）。全画面が読み込むので、ログイン画面と登録画面にも要る。許可しないと、未ログインでは JavaScript の代わりにログイン画面が返り、読み込めない |
+| `/fonts/**` | 画面のフォント（Zen Kaku Gothic New）。ログイン画面と登録画面にも使うため。許可しないと、未ログインではフォントの代わりにログイン画面が返り、読み込めない |
 | `/error` | Spring Boot がエラー画面を出すときに使う URL。ログイン前でもエラー画面を表示できるようにするため（2.5、7.7） |
 
 - 未ログインでそれ以外を開いたら、`/login` へ移動する。ログイン成功後は、開こうとしていた URL に関係なく取引一覧へ移動する（U5）。
@@ -1654,7 +1670,7 @@ Spring 標準の変換（`Integer` の項目に何も足さない場合）は、
 - セッションの Cookie には、`HttpOnly`（JavaScript から読めない）と `SameSite=Lax`（他のサイトからの POST に付かない）を明示的に設定する（S1）。
 - セッションIDの受け渡しは、**Cookie だけ**にする。URL に付ける方式（`;jsessionid=…`）は使わない（S8）。
 - `Secure`（HTTPS のときだけ送る）は、今は自分のパソコンの HTTP なので付けない。インターネットへの公開（要件9章）をするときに必要になる。
-- 画面を返すときの HTTP のヘッダー（クリックジャッキング対策など、Spring Security が標準で付けるもの）は、**そのまま使い、外さない**。`Cache-Control: no-store` が付いていることは、自動テスト `CacheControlHeaderTest` で確かめる（Phase 8、4.14）。
+- 画面を返すときの HTTP のヘッダー（クリックジャッキング対策など、Spring Security が標準で付けるもの）は、**そのまま使い、外さない**。`Cache-Control: no-store` が付いていることは、自動テスト `CacheControlHeaderTest` で確かめる（Phase 8、4.14）。ただし、**静的なフォントのファイル（`/fonts/**`）だけは例外**とし、`Cache-Control: max-age=30日` を付けて、ブラウザに覚えさせる（毎回約 2 MB を取り直さないため。issue 015 の 2 回目、Q15-8）。Spring MVC が静的ファイルに `Cache-Control` を付けると、Spring Security は上書きしない（実際の応答で確かめた）。画面（HTML）と `/css/**`・`/js/**` は、`no-store` のまま。フォントのファイルを入れ替えるときは、ファイル名を変える。
 
 ### 7.11 守りの確認（Phase 8）
 

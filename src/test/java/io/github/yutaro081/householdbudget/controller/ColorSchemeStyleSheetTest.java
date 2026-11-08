@@ -115,7 +115,9 @@ class ColorSchemeStyleSheetTest {
 
 	@Test
 	void styleSheetLoadsNothingFromOutside() throws Exception {
-		assertThat(css("/css/style.css")).doesNotContain("http://", "https://", "@import", "url(");
+		// 例外は、アプリの中のフォントのファイルを指す url("../fonts/…woff2") だけ（issue 015 の 2 回目）。それ以外の url(...) は使わない
+		String withoutOwnFonts = css("/css/style.css").replaceAll("url\\(\"\\.\\./fonts/ZenKakuGothicNew-(Regular|Bold)\\.woff2\"\\)", "");
+		assertThat(withoutOwnFonts).doesNotContain("http://", "https://", "@import", "url(");
 	}
 
 	@Test

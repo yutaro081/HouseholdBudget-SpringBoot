@@ -78,6 +78,7 @@
 - Spring Boot
 - MySQL
 - Bootstrap（見た目を整えるための CSS だけを使う。Bootstrap の JavaScript は使わない）
+- Zen Kaku Gothic New（画面の文字のフォント。アプリの中に置き、外のサーバーから読み込まない）
 - VS Code
 - Git / GitHub
 - Claude Code
