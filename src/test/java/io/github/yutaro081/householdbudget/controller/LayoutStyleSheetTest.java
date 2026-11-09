@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 /**
  * ヘッダーとトップの並びの CSS（style.css）のテスト（設計書 2.3、4.3、issue 017 の 1 回目）。
  * 見た目そのもの（折り返し、色の見え方、にじみ）は、ここでは確かめられない。ブラウザで確かめる。
- * ここでは、決めた数字（1120px、992px、360px、44px、34px、16px・10px・14px の棒）と、色の決まりを確かめる。
+ * ここでは、決めた数字（1120px、992px、440px、44px、34px、16px・10px・14px の棒）と、色の決まりを確かめる。
  */
 class LayoutStyleSheetTest {
 
@@ -60,13 +60,13 @@ class LayoutStyleSheetTest {
 	}
 
 	@Test
-	void twoColumnsStartAt992pxWithAFixed360pxLeftColumn() throws Exception {
+	void twoColumnsStartAt992pxWithAFixed440pxLeftColumn() throws Exception {
 		String css = css();
 
 		assertThat(rule(css, ".top-columns")).as("せまいときは 1 列").contains("grid-template-columns: 1fr");
 		List<String> blocks = mediaBlocks(css, "(min-width: 992px)");
 		String twoColumns = blocks.stream().filter(b -> b.contains(".top-columns")).findFirst().orElse("");
-		assertThat(twoColumns).as("992px 以上で 2 列").contains("grid-template-columns: 360px minmax(0, 1fr)");
+		assertThat(twoColumns).as("992px 以上で 2 列").contains("grid-template-columns: 440px minmax(0, 1fr)");
 	}
 
 	/**

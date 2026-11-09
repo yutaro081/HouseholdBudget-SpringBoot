@@ -65,6 +65,18 @@ class TopStyleSheetTest {
 		}
 	}
 
+	/** 今週 何に使ったか：期間は見出しと同じ行（せまいときだけ折り返す）。一覧は、行の上下の余白が半分、行の間の線なし。赤・青は金額の色 */
+	@Test
+	void pieHeadingRowAndCompactListAndJudgementColors() throws Exception {
+		String css = css();
+
+		assertThat(rule(css, ".top-pie-head")).contains("display: flex", "flex-wrap: wrap", "align-items: baseline");
+		assertThat(rule(css, ".top-pie-list td")).contains("padding-top: 0.25rem", "padding-bottom: 0.25rem", "border-bottom-width: 0");
+		assertThat(rule(css, ".top-pie-list tr.pie-over td.num")).containsIgnoringCase("#c62828");
+		assertThat(rule(css, ".top-pie-list tr.pie-low td.num")).containsIgnoringCase("#1565c0");
+		assertThat(withoutComments(css)).as("行の背景（薄いアプリコット）は付けない").doesNotContainPattern("\\.top-pie[^{]*\\{[^}]*apricot");
+	}
+
 	@Test
 	void weekRowColorsAreTheSameAsTheComparisonRules() throws Exception {
 		String css = css();

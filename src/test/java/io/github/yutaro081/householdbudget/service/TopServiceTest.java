@@ -352,6 +352,56 @@ class TopServiceTest {
 		assertThat(view.pieStops()).startsWith("var(--hb-chart-1) 0.0%").endsWith("100.0%");
 	}
 
+	/** 円グラフの一覧の判定は、「今週の進み具合」の行と同じ（週の予算 ＝ 予算 ÷ 13 を 100 円単位で切り上げ）。issue 017 の見直し */
+	@Test
+	void eachPieSliceHasTheSameJudgementAsTheWeekRowOfTheSameCategory() {
+		Owner a = createOwner("toptest30");
+		Category food = category(a, "食費");
+		budget(a, food, AUTUMN_2026, 40_000);       // 週の予算 3,100
+		spend(a, food, SUNDAY, 4_200);              // 超過 → 赤
+		Category misc = category(a, "雑費");
+		budget(a, misc, AUTUMN_2026, 30_000);       // 週の予算 2,400
+		spend(a, misc, SUNDAY, 2_000);              // 1/3 を超えて予算以下 → 💮
+		Category transport = category(a, "交通費");
+		budget(a, transport, AUTUMN_2026, 25_000);  // 週の予算 2,000
+		spend(a, transport, SUNDAY, 600);           // 1/3 以下 → 青
+		Category unset = category(a, "予算なし科目");
+		spend(a, unset, SUNDAY, 500);               // 予算が未設定 → 色なし
+
+		TopView view = top(a, SUNDAY);
+
+		assertThat(view.slices()).extracting(s -> s.name()).containsExactly("食費", "雑費", "交通費", "予算なし科目");
+		assertThat(view.slices().get(0).color()).isEqualTo(BudgetColor.RED);
+		assertThat(view.slices().get(1).color()).isEqualTo(BudgetColor.NONE);
+		assertThat(view.slices().get(1).withinBudget()).isTrue();
+		assertThat(view.slices().get(2).color()).isEqualTo(BudgetColor.BLUE);
+		assertThat(view.slices().get(3).color()).isEqualTo(BudgetColor.NONE);
+		assertThat(view.slices().get(3).withinBudget()).isFalse();
+		for (var slice : view.slices()) {
+			var row = view.rows().stream().filter(r -> slice.name().equals(r.categoryName())).findFirst().orElseThrow();
+			assertThat(slice.color()).as(slice.name() + " の色").isEqualTo(row.color());
+			assertThat(slice.withinBudget()).as(slice.name() + " の 💮").isEqualTo(row.withinBudget());
+		}
+	}
+
+	@Test
+	void theOtherSliceHasNoJudgement() {
+		Owner a = createOwner("toptest31");
+		for (int i = 1; i <= 8; i++) {
+			Category c = category(a, "科目" + i);
+			budget(a, c, AUTUMN_2026, 0);            // 予算 0 円で実績あり → 赤
+			spend(a, c, SUNDAY, i * 100);
+		}
+
+		TopView view = top(a, SUNDAY);
+
+		assertThat(view.slices()).hasSize(6);
+		assertThat(view.slices().subList(0, 5)).extracting(s -> s.color()).containsOnly(BudgetColor.RED);
+		assertThat(view.slices().get(5).name()).isEqualTo(PieSlices.OTHER_NAME);
+		assertThat(view.slices().get(5).color()).isEqualTo(BudgetColor.NONE);
+		assertThat(view.slices().get(5).withinBudget()).isFalse();
+	}
+
 	// ---- 他の人のデータ ----
 
 	@Test
@@ -437,7 +487,7 @@ class TopServiceTest {
 		Category over = category(a, "超過");
 		Category low = category(a, "少なめ");
 		Category within = category(a, "予算内");
-		Category unset = category(a, "未設定");
+		category(a, "未設定");               // 予算を設定しない科目（4 番目の行。下で「予算なし」を確かめる）
 		Category zero = category(a, "ゼロ");
 		budget(a, over, AUTUMN_2026, 30_000);
 		budget(a, low, AUTUMN_2026, 30_000);

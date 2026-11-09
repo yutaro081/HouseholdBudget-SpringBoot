@@ -194,7 +194,7 @@ main.narrow {
     max-width: 420px;
 }
 
-/* トップの本体の幅（issue 017）。2 列（左 360px + 右）が入る 1120px まで。ほかの画面は 960px のまま */
+/* トップの本体の幅（issue 017）。2 列（左 440px + 右）が入る 1120px まで。ほかの画面は 960px のまま */
 main.top-wide {
     max-width: 1120px;
 }
@@ -670,7 +670,7 @@ dl.detail dd {
     height: 16px;
 }
 
-/* 2 列の部分（issue 017）：せまいときは縦 1 列（HTML の順：円グラフ → ひとこと → 進み具合）。992px 以上で、左 360px・右は残り全部 */
+/* 2 列の部分（issue 017）：せまいときは縦 1 列（HTML の順：円グラフ → ひとこと → 進み具合）。992px 以上で、左 440px（issue 017 の見直し。360px から広げた）・右は残り全部 */
 .top-columns {
     display: grid;
     grid-template-columns: 1fr;
@@ -684,7 +684,7 @@ dl.detail dd {
 
 @media (min-width: 992px) {
     .top-columns {
-        grid-template-columns: 360px minmax(0, 1fr);
+        grid-template-columns: 440px minmax(0, 1fr);
         align-items: start;
     }
 }
@@ -761,6 +761,39 @@ dl.detail dd {
 .top-pie-list {
     width: 100%;
     margin-bottom: 0;
+}
+
+/* 一覧の行：上下の余白は今の半分（0.5rem → 0.25rem）、行の間の区切り線はなし（issue 017 の見直し） */
+.top-pie-list td {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+    border-bottom-width: 0;
+}
+
+/* 今週の判定（今週の進み具合・予実比較と同じ意味の色）。赤・青は金額の文字の色。💮 は科目名の横（<td> の中）。行の背景は付けない。Bootstrap の表のセルの色より強くするため、td.num まで書く */
+.top-pie-list tr.pie-over td.num {
+    color: #c62828;
+}
+
+.top-pie-list tr.pie-low td.num {
+    color: #1565c0;
+}
+
+/* 見出しと期間を同じ行に並べる。期間は小さい文字（.top-note）。入りきらないときだけ、期間が下に回る */
+.top-pie-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--hb-space-1) var(--hb-space-3);
+    margin-bottom: var(--hb-space-3);
+}
+
+.top-pie-head h2 {
+    margin-bottom: 0;
+}
+
+.top-pie-head p {
+    margin: 0;
 }
 
 .top-pie-note {

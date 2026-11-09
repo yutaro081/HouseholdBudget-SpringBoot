@@ -133,4 +133,48 @@ class PieSlicesTest {
 		assertThat(PieSlices.cssStops(slices)).isEqualTo("var(--hb-chart-1) 0.0% 60.0%, var(--hb-chart-2) 60.0% 100.0%");
 	}
 
+	// ---- 今週の判定（issue 017 の見直し。一覧の各行に、今週の進み具合と同じ判定を出す） ----
+
+	@Test
+	void eachSliceCarriesTheJudgementOfItsEntry() {
+		List<Slice> slices = of(
+				new Entry("食費", 4200, BudgetColor.RED, false),
+				new Entry("雑費", 2000, BudgetColor.NONE, true),
+				new Entry("交通費", 600, BudgetColor.BLUE, false),
+				new Entry("予算なし", 500, BudgetColor.NONE, false));
+
+		assertThat(slices).extracting(Slice::name).containsExactly("食費", "雑費", "交通費", "予算なし");
+		assertThat(slices).extracting(Slice::color).containsExactly(BudgetColor.RED, BudgetColor.NONE, BudgetColor.BLUE, BudgetColor.NONE);
+		assertThat(slices).extracting(Slice::withinBudget).containsExactly(false, true, false, false);
+	}
+
+	@Test
+	void anEntryWithoutAJudgementHasNoColorAndNoMark() {
+		Slice slice = of(new Entry("食費", 1000)).get(0);
+
+		assertThat(slice.color()).isEqualTo(BudgetColor.NONE);
+		assertThat(slice.withinBudget()).isFalse();
+	}
+
+	/** 「その他」にまとめた行は、まとめた科目が赤でも 💮 でも、判定を出さない */
+	@Test
+	void theOtherSliceHasNoJudgementEvenIfTheMergedEntriesHaveOne() {
+		List<Entry> entries = new ArrayList<>();
+		for (int i = 1; i <= 8; i++) {
+			entries.add(new Entry("科目" + i, i * 100, i % 2 == 0 ? BudgetColor.RED : BudgetColor.NONE, i % 2 == 1));
+		}
+
+		List<Slice> slices = PieSlices.of(entries);
+
+		assertThat(slices).hasSize(6);
+		Slice other = slices.get(5);
+		assertThat(other.name()).isEqualTo(PieSlices.OTHER_NAME);
+		assertThat(other.color()).isEqualTo(BudgetColor.NONE);
+		assertThat(other.withinBudget()).isFalse();
+		// 上位 5 科目は、自分の判定のまま（科目8＝赤、科目7＝💮、科目6＝赤、科目5＝💮、科目4＝赤）
+		assertThat(slices.subList(0, 5)).extracting(Slice::color)
+				.containsExactly(BudgetColor.RED, BudgetColor.NONE, BudgetColor.RED, BudgetColor.NONE, BudgetColor.RED);
+		assertThat(slices.subList(0, 5)).extracting(Slice::withinBudget).containsExactly(false, true, false, true, false);
+	}
+
 }
