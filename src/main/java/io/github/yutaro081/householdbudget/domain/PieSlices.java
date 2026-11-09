@@ -32,8 +32,18 @@ public final class PieSlices {
 	private PieSlices() {
 	}
 
-	/** 入力：科目名と、切り上げた額 */
-	public record Entry(String name, long amount) {
+	/**
+	 * 入力：科目名と、切り上げた額、今週の判定（issue 017 の見直し）。
+	 *
+	 * @param color        今週の色（週の予算と切り上げた実績から、BudgetColorJudge で決めたもの。判定しないときは NONE）
+	 * @param withinBudget 今週の予算内の印（💮）を出すか
+	 */
+	public record Entry(String name, long amount, BudgetColor color, boolean withinBudget) {
+
+		/** 判定なし（色なし、💮 なし）。「その他」にまとめた行も、これ */
+		public Entry(String name, long amount) {
+			this(name, amount, BudgetColor.NONE, false);
+		}
 	}
 
 	/**
@@ -46,9 +56,11 @@ public final class PieSlices {
 	 * @param endPermille   円の中の終了位置（1000分率）
 	 * @param colorNumber   色の番号（1〜6。--hb-chart-N）
 	 * @param mergedCount   まとめた科目の数（まとめていなければ 1）
+	 * @param color         今週の判定の色（赤・青・なし）。「その他」は、まとめた科目が何色でも NONE
+	 * @param withinBudget  今週の予算内の印（💮）を出すか。「その他」は false
 	 */
 	public record Slice(String name, long amount, int percent, int startPermille, int endPermille, int colorNumber,
-			int mergedCount) {
+			int mergedCount, BudgetColor color, boolean withinBudget) {
 
 		/** conic-gradient の1区間。数字と固定の文字だけで組み立てる（科目名は入れない。設計書 7.5）。例：var(--hb-chart-1) 0.0% 60.0% */
 		public String cssStop() {
@@ -117,7 +129,8 @@ public final class PieSlices {
 			boolean last = i == shown.size() - 1;
 			int end = last ? PeriodProgress.FULL : (int) (cumulative * PeriodProgress.FULL / total);
 			int percent = (int) ((entry.amount() * 200 + total) / (total * 2));   // 四捨五入（0.5 は切り上げ）
-			slices.add(new Slice(entry.name(), entry.amount(), percent, start, end, i + 1, merged.get(i)));
+			slices.add(new Slice(entry.name(), entry.amount(), percent, start, end, i + 1, merged.get(i),
+					entry.color(), entry.withinBudget()));
 			start = end;
 		}
 		return slices;

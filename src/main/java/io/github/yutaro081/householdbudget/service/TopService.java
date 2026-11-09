@@ -92,8 +92,10 @@ public class TopService {
 					? Long.valueOf(seasonBudgetOf.get(category.getId())) : null;
 			Long weeklyBudget = WeeklyAmount.weeklyBudget(seasonBudget);
 			long actual = WeeklyAmount.roundUpActual(weekActualOf.getOrDefault(category.getId(), 0L));
-			rows.add(row(category.getName(), weeklyBudget, actual));
-			pieEntries.add(new PieSlices.Entry(category.getName(), actual));
+			WeekRow weekRow = row(category.getName(), weeklyBudget, actual);
+			rows.add(weekRow);
+			// 円グラフの一覧の判定は、「今週の進み具合」の同じ科目の行と同じ（issue 017 の見直し）。「その他」にまとめた行は、PieSlices が判定なしにする
+			pieEntries.add(new PieSlices.Entry(category.getName(), actual, weekRow.color(), weekRow.withinBudget()));
 			commentRows.add(new GraphComment.Row(category.getName(), weeklyBudget, actual));
 
 			totalActual += actual;

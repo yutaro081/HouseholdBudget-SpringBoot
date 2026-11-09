@@ -29,9 +29,10 @@ class PaceMessagesTest {
 	void sentencesAreExactlyTheDecidedOnes() throws Exception {
 		Properties p = messages();
 
-		assertThat(p.getProperty("top.pace.slow")).isEqualTo("日の進み方より、使い方がゆっくりです。");
-		assertThat(p.getProperty("top.pace.same")).isEqualTo("日の進み方と、使い方はほぼ同じです。");
-		assertThat(p.getProperty("top.pace.fast")).isEqualTo("日の進み方より、使い方が速めです。");
+		// {0}＝季節の％（日の進み方）、{1}＝予算の％（使った割合）。メーターの数字と同じ値を、画面で渡す
+		assertThat(p.getProperty("top.pace.slow")).isEqualTo("季節は {0}% 過ぎて、予算は {1}% 使いました。使うペースは、ゆっくりめです。");
+		assertThat(p.getProperty("top.pace.same")).isEqualTo("季節は {0}% 過ぎて、予算は {1}% 使いました。使うペースは、ほぼ予定どおりです。");
+		assertThat(p.getProperty("top.pace.fast")).isEqualTo("季節は {0}% 過ぎて、予算は {1}% 使いました。使うペースは、速めです。");
 	}
 
 	@Test

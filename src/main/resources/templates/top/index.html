@@ -57,7 +57,7 @@
                     <div class="top-meter-today" th:style="|left: ${top.seasonTodayPermille / 10}.${top.seasonTodayPermille % 10}%|"></div>
                 </div>
                 <!--/* ペースの一言：使った割合と日の進み方を比べた一言（issue 017 での見直し）。右側の棒のすぐ下。予算が未設定・0円のときは出さない。濃いターコイズの太字（3つとも同じ色。赤・青は使わない） */-->
-                <p class="top-season-pace" th:if="${top.paceKey != null}" th:text="#{${top.paceKey}}">日の進み方より、使い方がゆっくりです。</p>
+                <p class="top-season-pace" th:if="${top.paceKey != null}" th:text="#{${top.paceKey}(${top.seasonElapsedPercent}, ${top.seasonUsedPercent})}">季節は 77% 過ぎて、予算は 71% 使いました。使うペースは、ゆっくりめです。</p>
             </div>
         </div>
         <p class="top-season-unset" th:if="${top.seasonBudget == null}">今の季節の予算がまだありません。<a th:href="@{/budgets}">予算の画面で設定してください</a></p>
@@ -70,8 +70,11 @@
 
             <!--/* 今週 何に使ったか：使った科目だけ（100円単位で切り上げた額）。7科目以上は上位5科目＋その他。色はターコイズの濃淡と灰色だけ。 */-->
             <section class="top-section top-pie-section">
-                <h2>今週 何に使ったか</h2>
-                <p class="top-note" th:text="|${top.weekStart.monthValue}月${top.weekStart.dayOfMonth}日（#{weekday.__${top.weekStart.dayOfWeek.value}__}）〜 ${top.weekEnd.monthValue}月${top.weekEnd.dayOfMonth}日（#{weekday.__${top.weekEnd.dayOfWeek.value}__}）|">11月8日（日）〜 11月14日（土）</p>
+                <!--/* 見出しの右に、小さい文字で期間（せまいときだけ下に回る。issue 017 の見直し） */-->
+                <div class="top-pie-head">
+                    <h2>今週 何に使ったか</h2>
+                    <p class="top-note" th:text="|${top.weekStart.monthValue}月${top.weekStart.dayOfMonth}日（#{weekday.__${top.weekStart.dayOfWeek.value}__}）〜 ${top.weekEnd.monthValue}月${top.weekEnd.dayOfMonth}日（#{weekday.__${top.weekEnd.dayOfWeek.value}__}）|">11月8日（日）〜 11月14日（土）</p>
+                </div>
                 <p th:if="${#lists.isEmpty(top.slices)}">今週はまだ使っていません</p>
                 <div class="top-pie-box" th:unless="${#lists.isEmpty(top.slices)}">
                     <div class="top-pie" role="img" aria-label="今週 何に使ったかの円グラフ。科目ごとの金額と割合は、下の一覧にあります"
@@ -81,16 +84,15 @@
                             <strong th:text="|${#numbers.formatInteger(top.pieTotal, 1, 'COMMA')}円|">2,800円</strong>
                         </div>
                     </div>
-                    <table class="list top-pie-list table align-middle">
-                        <thead>
-                        <tr><th><span class="visually-hidden">色</span></th><th>科目</th><th class="num">金額</th><th class="num">割合</th></tr>
-                        </thead>
+                    <!--/* 頭の行（科目・金額・割合）は出さない。読み上げ用に aria-label を付ける。各行に、今週の判定：赤・青は金額の文字の色（行のクラス pie-over／pie-low）、💮 は科目名の横。「その他」は判定なし。行の背景は付けない */-->
+                    <table class="list top-pie-list table align-middle" aria-label="今週の科目ごとの金額と割合">
                         <tbody>
-                        <tr th:each="slice : ${top.slices}">
+                        <tr th:each="slice : ${top.slices}" th:class="${slice.color.name() == 'RED'} ? 'pie-over' : (${slice.color.name() == 'BLUE'} ? 'pie-low' : null)">
                             <td><span class="top-chip" th:classappend="|chart-${slice.colorNumber}|" aria-hidden="true"></span></td>
                             <td>
                                 <span th:text="${slice.name}">食費</span>
                                 <span class="top-note" th:if="${slice.mergedCount > 1}" th:text="|（${slice.mergedCount}科目）|">（2科目）</span>
+                                <th:block th:if="${slice.withinBudget}"><span aria-hidden="true">💮</span><span class="visually-hidden">予算内</span></th:block>
                             </td>
                             <td class="num" th:text="|${#numbers.formatInteger(slice.amount, 1, 'COMMA')}円|">1,200円</td>
                             <td class="num" th:text="|${slice.percent}%|">24%</td>

@@ -384,9 +384,92 @@ class TopLayoutTest {
 
 		String body = topBody(a);
 
-		assertThat(seasonCard(body)).contains("日の進み方より、使い方がゆっくりです。");
-		assertThat(body.indexOf("日の進み方より、使い方がゆっくりです。")).isGreaterThan(body.indexOf("縦の線は『今日』"));
-		assertThat(body.indexOf("日の進み方より、使い方がゆっくりです。")).isLessThan(body.indexOf("top-columns"));
+		assertThat(seasonCard(body)).contains("季節は 76% 過ぎて、予算は 65% 使いました。使うペースは、ゆっくりめです。");
+		assertThat(body.indexOf("使うペースは、ゆっくりめです。")).isGreaterThan(body.indexOf("縦の線は『今日』"));
+		assertThat(body.indexOf("使うペースは、ゆっくりめです。")).isLessThan(body.indexOf("top-columns"));
+	}
+
+	// ---- 今週 何に使ったか（issue 017 の見直し：期間の位置、頭の行なし、今週の判定） ----
+
+	/** 円グラフの一覧の表（頭の行なし）を取り出す */
+	private static String pieTable(String body) {
+		String left = leftColumn(body);
+		int start = left.indexOf("<table");
+		assertThat(start).as("一覧の表がある").isGreaterThanOrEqualTo(0);
+		return left.substring(start, left.indexOf("</table>", start));
+	}
+
+	/** 一覧の 1 行（科目名を含む <tr> から </tr> まで） */
+	private static String pieRow(String body, String name) {
+		String table = pieTable(body);
+		int at = table.indexOf(">" + name + "<");
+		assertThat(at).as(name + " の行がある").isGreaterThanOrEqualTo(0);
+		int start = table.lastIndexOf("<tr", at);
+		return table.substring(start, table.indexOf("</tr>", at));
+	}
+
+	@Test
+	void thePeriodIsOnTheSameRowAsTheHeadingAndTheListHasNoHeaderRow() throws Exception {
+		Owner a = createOwner("toplay30");
+		spend(a, category(a, "食費", 30_000), SUNDAY, 1_234);
+
+		String body = topBody(a);
+		String left = leftColumn(body);
+
+		assertThat(left).containsPattern("<div class=\"top-pie-head\">\\s*<h2>今週 何に使ったか</h2>\\s*<p class=\"top-note\">11月8日（日）〜 11月14日（土）</p>\\s*</div>");
+		String table = pieTable(body);
+		assertThat(table).doesNotContain("<thead", "<th", "visually-hidden\">色");
+		assertThat(table).as("頭の行の代わりに、読み上げ用の名前").contains("aria-label=\"今週の科目ごとの金額と割合\"");
+	}
+
+	@Test
+	void theHeadingRowIsAlsoShownWhenNothingWasSpentThisWeek() throws Exception {
+		Owner a = createOwner("toplay31");
+		category(a, "食費", 30_000);
+
+		String left = leftColumn(topBody(a));
+
+		assertThat(left).containsPattern("<div class=\"top-pie-head\">\\s*<h2>今週 何に使ったか</h2>");
+		assertThat(left).contains("今週はまだ使っていません").doesNotContain("<table");
+	}
+
+	/** 判定は「今週の進み具合」と同じ。赤・青は金額の文字の色（クラスは行に付ける）、💮 は科目名の横 */
+	@Test
+	void eachListRowShowsTheJudgementOfTheWeek() throws Exception {
+		Owner a = createOwner("toplay32");
+		spend(a, category(a, "食費", 40_000), SUNDAY, 4_200);        // 週の予算 3,100 → 赤
+		spend(a, category(a, "雑費", 30_000), SUNDAY, 2_000);        // 2,400 → 💮
+		spend(a, category(a, "交通費", 25_000), SUNDAY, 600);        // 2,000 → 青
+		spend(a, category(a, "予算なし科目", null), SUNDAY, 500);     // 未設定 → 色なし
+
+		String body = topBody(a);
+		String mark = "<span aria-hidden=\"true\">💮</span><span class=\"visually-hidden\">予算内</span>";
+
+		String food = pieRow(body, "食費");
+		assertThat(food).contains("class=\"pie-over\"", "<td class=\"num\">4,200円</td>").doesNotContain("💮", "pie-low");
+		String misc = pieRow(body, "雑費");
+		assertThat(misc).contains(mark).doesNotContain("pie-over", "pie-low");
+		assertThat(misc.indexOf(">雑費<")).as("💮 は科目名の横").isLessThan(misc.indexOf("💮"));
+		assertThat(misc.indexOf("💮")).as("金額より前").isLessThan(misc.indexOf("2,000円"));
+		String transport = pieRow(body, "交通費");
+		assertThat(transport).contains("class=\"pie-low\"").doesNotContain("💮", "pie-over");
+		String unset = pieRow(body, "予算なし科目");
+		assertThat(unset).doesNotContain("💮", "pie-over", "pie-low");
+	}
+
+	@Test
+	void theOtherRowHasNoJudgementAndNoRowHasABackgroundClass() throws Exception {
+		Owner a = createOwner("toplay33");
+		for (int i = 1; i <= 8; i++) {
+			spend(a, category(a, "科目" + i, 0), SUNDAY, i * 100);   // 予算 0 円で実績あり → どれも赤
+		}
+
+		String body = topBody(a);
+		String other = pieRow(body, "その他");
+
+		assertThat(other).doesNotContain("pie-over", "pie-low", "💮");
+		assertThat(pieRow(body, "科目8")).contains("class=\"pie-over\"");
+		assertThat(pieTable(body)).as("行の背景（薄いアプリコット）の目印は付けない").doesNotContain("week-within", "pie-within", "row-within");
 	}
 
 	private static int count(String text, String part) {
@@ -427,10 +510,10 @@ class TopLayoutTest {
 		Category food = category(a, "食費", 100_000);
 
 		spend(a, food, SUNDAY, 76_000);       // 76％ ／ 76％ → ほぼ同じ
-		assertThat(seasonCard(topBody(a))).contains("日の進み方と、使い方はほぼ同じです。");
+		assertThat(seasonCard(topBody(a))).contains("季節は 76% 過ぎて、予算は 76% 使いました。使うペースは、ほぼ予定どおりです。");
 
 		spend(a, food, SUNDAY, 14_000);       // 合計 90,000（90％）→ 差 +14 → 速め
-		assertThat(seasonCard(topBody(a))).contains("日の進み方より、使い方が速めです。");
+		assertThat(seasonCard(topBody(a))).contains("季節は 76% 過ぎて、予算は 90% 使いました。使うペースは、速めです。");
 	}
 
 	@Test
@@ -439,10 +522,10 @@ class TopLayoutTest {
 		Category food = category(a, "食費", 100_000);
 
 		spend(a, food, SUNDAY, 71_000);       // 71％ ／ 76％ → 差 −5
-		assertThat(seasonCard(topBody(a))).contains("日の進み方より、使い方がゆっくりです。");
+		assertThat(seasonCard(topBody(a))).contains("季節は 76% 過ぎて、予算は 71% 使いました。使うペースは、ゆっくりめです。");
 
 		spend(a, food, SUNDAY, 10_000);       // 81％ → 差 +5
-		assertThat(seasonCard(topBody(a))).contains("日の進み方より、使い方が速めです。");
+		assertThat(seasonCard(topBody(a))).contains("季節は 76% 過ぎて、予算は 81% 使いました。使うペースは、速めです。");
 	}
 
 	@Test
@@ -450,12 +533,31 @@ class TopLayoutTest {
 		Owner a = createOwner("toplay23");
 		Category food = category(a, "食費", null);
 		spend(a, food, SUNDAY, 500);
-		assertThat(seasonCard(topBody(a))).doesNotContain("日の進み方より", "日の進み方と、使い方");
+		assertThat(seasonCard(topBody(a))).doesNotContain("使うペースは", "過ぎて、予算は");
 
 		Owner b = createOwner("toplay24");
 		Category zero = category(b, "食費", 0);
 		spend(b, zero, SUNDAY, 500);
-		assertThat(seasonCard(topBody(b))).doesNotContain("日の進み方より", "日の進み方と、使い方");
+		assertThat(seasonCard(topBody(b))).doesNotContain("使うペースは", "過ぎて、予算は");
+	}
+
+	/** 一言の 2 つの％は、メーターに出している「季節の ○%」「予算のうち ○%」と同じ値（issue 017 の見直し） */
+	@Test
+	void thePercentagesInThePaceSentenceAreTheSameAsTheOnesShownOnTheMeter() throws Exception {
+		Owner a = createOwner("toplay26");
+		Category food = category(a, "食費", 130_000);
+		spend(a, food, SUNDAY, 84_326);
+
+		String card = seasonCard(topBody(a));
+		java.util.regex.Matcher used = java.util.regex.Pattern.compile("予算のうち ([0-9]+)% を使った").matcher(card);
+		java.util.regex.Matcher elapsed = java.util.regex.Pattern.compile("季節の ([0-9]+)%").matcher(card);
+		java.util.regex.Matcher pace = java.util.regex.Pattern.compile("季節は ([0-9]+)% 過ぎて、予算は ([0-9]+)% 使いました").matcher(card);
+
+		assertThat(used.find()).isTrue();
+		assertThat(elapsed.find()).isTrue();
+		assertThat(pace.find()).isTrue();
+		assertThat(pace.group(1)).as("季節の％").isEqualTo(elapsed.group(1));
+		assertThat(pace.group(2)).as("予算の％").isEqualTo(used.group(1));
 	}
 
 	@Test
@@ -466,7 +568,7 @@ class TopLayoutTest {
 
 		String body = topBody(a);
 
-		assertThat(body).containsPattern("<p class=\"top-season-pace\">日の進み方より、使い方が速めです。</p>");
+		assertThat(body).containsPattern("<p class=\"top-season-pace\">季節は 76% 過ぎて、予算は 90% 使いました。使うペースは、速めです。</p>");
 		assertThat(body).doesNotContain("このままだと", "超えそう", "着地");
 	}
 
@@ -474,7 +576,7 @@ class TopLayoutTest {
 	void theSentenceIsNotShownWhenThereIsNoCategory() throws Exception {
 		Owner a = createOwner("toplay26");
 
-		assertThat(topBody(a)).doesNotContain("日の進み方より", "日の進み方と、使い方");
+		assertThat(topBody(a)).doesNotContain("使うペースは", "過ぎて、予算は");
 	}
 
 }
