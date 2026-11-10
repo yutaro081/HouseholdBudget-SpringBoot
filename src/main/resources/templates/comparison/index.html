@@ -9,6 +9,14 @@
     <!--/* 見出し（年・季節・期間）と、前・次の季節のリンク。範囲の端ではリンクを出さない（設計書 2.4）。予算設定と共有する部品 */-->
     <div th:replace="~{fragments/season :: nav(${comparison.period}, ${comparison.previous}, ${comparison.next}, '/comparison')}"></div>
 
+    <!--/* 着地見込み（issue 018。要件4.4、設計書 2.3・5.13）：今の季節だけ、表の上に 1 行。見込みの額（100円単位に切り上げ）が予算を超えるときだけ、その下に「上回ります」を 1 行。
+         色・印は付けない（赤・青・💮 は、実績の判定の意味の色）。予算が未設定・0円、過去・未来の季節、科目が0件のときは、landing が null で出ない。式は LandingForecast */-->
+    <div class="comparison-landing" th:if="${landing != null}">
+        <p th:text="#{comparison.landing(${landing.amount}, ${comparison.total.budget})}">このペースだと、季節の終わりには、合計で約 142,000 円（予算 175,000 円）の見込みです。</p>
+        <p th:if="${landing.overBudget}" th:text="#{comparison.landing.over}">見込みは、予算を上回ります。</p>
+        <p class="comparison-landing-note" th:text="#{comparison.landing.note}">月ごとにまとめて払うものは、払う日で見込みが上下します。</p>
+    </div>
+
     <!--/* 科目が0件のときは、案内を出して、表と合計行は出さない（設計書 2.3、Q7-7 の A） */-->
     <div class="notice alert alert-warning" th:if="${#lists.isEmpty(comparison.rows)}">
         <p>先に科目を追加してください。<a th:href="@{/categories}">科目の画面へ</a></p>

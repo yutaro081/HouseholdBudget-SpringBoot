@@ -56,8 +56,9 @@
                     <div class="top-meter-bar" th:style="|width: ${top.seasonBarPermille / 10}.${top.seasonBarPermille % 10}%|"></div>
                     <div class="top-meter-today" th:style="|left: ${top.seasonTodayPermille / 10}.${top.seasonTodayPermille % 10}%|"></div>
                 </div>
-                <!--/* ペースの一言：使った割合と日の進み方を比べた一言（issue 017 での見直し）。右側の棒のすぐ下。予算が未設定・0円のときは出さない。濃いターコイズの太字（3つとも同じ色。赤・青は使わない） */-->
-                <p class="top-season-pace" th:if="${top.paceKey != null}" th:text="#{${top.paceKey}(${top.seasonElapsedPercent}, ${top.seasonUsedPercent})}">季節は 77% 過ぎて、予算は 71% 使いました。使うペースは、ゆっくりめです。</p>
+                <!--/* 見込みの一文（issue 018。issue 017 のペースの一言を置きかえた）：事実の文〔季節の％と使った割合。メーターと同じ値〕と、着地見込み〔予実比較の合計と同じ値。100円単位に切り上げ〕。
+                     右側の棒のすぐ下。予算が未設定・0円のときは出さない。濃いターコイズの太字（赤・青は使わない）。数字を述べるだけ */-->
+                <p class="top-season-pace" th:if="${top.landingAmount != null}" th:text="#{top.landing(${top.seasonElapsedPercent}, ${top.seasonUsedPercent}, ${top.landingAmount}, ${top.landingPercent})}">季節は 77% 過ぎて、予算は 62% 使いました。このペースだと、季節の終わりには約 142,000 円（予算の 81%）の見込みです。</p>
             </div>
         </div>
         <p class="top-season-unset" th:if="${top.seasonBudget == null}">今の季節の予算がまだありません。<a th:href="@{/budgets}">予算の画面で設定してください</a></p>

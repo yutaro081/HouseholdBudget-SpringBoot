@@ -377,16 +377,16 @@ class TopLayoutTest {
 	}
 
 	@Test
-	void slowPaceIsShownBelowTheMeterInsideTheSeasonCard() throws Exception {
+	void theLandingSentenceIsShownBelowTheMeterInsideTheSeasonCard() throws Exception {
 		Owner a = createOwner("toplay20");
 		Category food = category(a, "食費", 130_000);
-		spend(a, food, SUNDAY, 84_326);       // 65％ ／ 日の進み方 76％ → 差 −11
+		spend(a, food, SUNDAY, 84_326);       // 65％ ／ 日の進み方 76％。見込み：112,310.62… → 112,400（予算の 86％）
 
 		String body = topBody(a);
 
-		assertThat(seasonCard(body)).contains("季節は 76% 過ぎて、予算は 65% 使いました。使うペースは、ゆっくりめです。");
-		assertThat(body.indexOf("使うペースは、ゆっくりめです。")).isGreaterThan(body.indexOf("縦の線は『今日』"));
-		assertThat(body.indexOf("使うペースは、ゆっくりめです。")).isLessThan(body.indexOf("top-columns"));
+		assertThat(seasonCard(body)).contains("季節は 76% 過ぎて、予算は 65% 使いました。このペースだと、季節の終わりには約 112,400 円（予算の 86%）の見込みです。");
+		assertThat(body.indexOf("このペースだと")).isGreaterThan(body.indexOf("縦の線は『今日』"));
+		assertThat(body.indexOf("このペースだと")).isLessThan(body.indexOf("top-columns"));
 	}
 
 	// ---- 今週 何に使ったか（issue 017 の見直し：期間の位置、頭の行なし、今週の判定） ----
@@ -504,46 +504,50 @@ class TopLayoutTest {
 		assertThat(count(fromRightDiv, "<div") - count(fromRightDiv, "</div>")).as("右側の <div> の中にある").isEqualTo(1);
 	}
 
+	/** 予算 100,000 円。2026-11-08（69 日目、D ＝ 91、L ＝ 22）。76,000 円で見込みは 100,218.33… → 100,300（予算を少し上回るが、％は 100）。90,000 円で 117,602.95… → 117,700（118％）。120,000 円で 154,855.69… → 154,900（155％） */
 	@Test
-	void sameAndFastPaceSentences() throws Exception {
+	void theLandingSentenceShowsTheAmountAndThePercentOfTheBudgetEvenAbove100Percent() throws Exception {
 		Owner a = createOwner("toplay21");
 		Category food = category(a, "食費", 100_000);
 
-		spend(a, food, SUNDAY, 76_000);       // 76％ ／ 76％ → ほぼ同じ
-		assertThat(seasonCard(topBody(a))).contains("季節は 76% 過ぎて、予算は 76% 使いました。使うペースは、ほぼ予定どおりです。");
+		spend(a, food, SUNDAY, 76_000);
+		assertThat(seasonCard(topBody(a))).contains("季節は 76% 過ぎて、予算は 76% 使いました。このペースだと、季節の終わりには約 100,300 円（予算の 100%）の見込みです。");
 
-		spend(a, food, SUNDAY, 14_000);       // 合計 90,000（90％）→ 差 +14 → 速め
-		assertThat(seasonCard(topBody(a))).contains("季節は 76% 過ぎて、予算は 90% 使いました。使うペースは、速めです。");
+		spend(a, food, SUNDAY, 14_000);       // 合計 90,000
+		assertThat(seasonCard(topBody(a))).contains("季節は 76% 過ぎて、予算は 90% 使いました。このペースだと、季節の終わりには約 117,700 円（予算の 118%）の見込みです。");
+
+		spend(a, food, SUNDAY, 30_000);       // 合計 120,000
+		assertThat(seasonCard(topBody(a))).contains("季節は 76% 過ぎて、予算は 120% 使いました。このペースだと、季節の終わりには約 154,900 円（予算の 155%）の見込みです。");
 	}
 
+	/** 5 ポイントの判定（ゆっくりめ・ほぼ予定どおり・速め）は、なくした（issue 018）。戻っていないこと */
 	@Test
-	void exactlyFivePointsOfDifferenceIsSlowOrFast() throws Exception {
+	void theFivePointJudgementOfIssue017IsGone() throws Exception {
 		Owner a = createOwner("toplay22");
 		Category food = category(a, "食費", 100_000);
+		spend(a, food, SUNDAY, 71_000);       // 差 −5 だった例
 
-		spend(a, food, SUNDAY, 71_000);       // 71％ ／ 76％ → 差 −5
-		assertThat(seasonCard(topBody(a))).contains("季節は 76% 過ぎて、予算は 71% 使いました。使うペースは、ゆっくりめです。");
+		String card = seasonCard(topBody(a));
 
-		spend(a, food, SUNDAY, 10_000);       // 81％ → 差 +5
-		assertThat(seasonCard(topBody(a))).contains("季節は 76% 過ぎて、予算は 81% 使いました。使うペースは、速めです。");
+		assertThat(card).contains("このペースだと").doesNotContain("使うペースは", "ゆっくりめ", "ほぼ予定どおり", "速めです");
 	}
 
 	@Test
-	void noPaceSentenceWithoutABudgetOrWithAZeroBudget() throws Exception {
+	void noLandingSentenceWithoutABudgetOrWithAZeroBudget() throws Exception {
 		Owner a = createOwner("toplay23");
 		Category food = category(a, "食費", null);
 		spend(a, food, SUNDAY, 500);
-		assertThat(seasonCard(topBody(a))).doesNotContain("使うペースは", "過ぎて、予算は");
+		assertThat(seasonCard(topBody(a))).doesNotContain("このペースだと", "過ぎて、予算は", "見込みです");
 
 		Owner b = createOwner("toplay24");
 		Category zero = category(b, "食費", 0);
 		spend(b, zero, SUNDAY, 500);
-		assertThat(seasonCard(topBody(b))).doesNotContain("使うペースは", "過ぎて、予算は");
+		assertThat(seasonCard(topBody(b))).doesNotContain("このペースだと", "過ぎて、予算は", "見込みです");
 	}
 
-	/** 一言の 2 つの％は、メーターに出している「季節の ○%」「予算のうち ○%」と同じ値（issue 017 の見直し） */
+	/** 最初の 2 つの％は、メーターに出している「季節の ○%」「予算のうち ○%」と同じ値。見込みの額と％は、予算から計算した値と合う */
 	@Test
-	void thePercentagesInThePaceSentenceAreTheSameAsTheOnesShownOnTheMeter() throws Exception {
+	void thePercentagesInTheSentenceAreTheSameAsTheOnesShownOnTheMeter() throws Exception {
 		Owner a = createOwner("toplay26");
 		Category food = category(a, "食費", 130_000);
 		spend(a, food, SUNDAY, 84_326);
@@ -551,32 +555,38 @@ class TopLayoutTest {
 		String card = seasonCard(topBody(a));
 		java.util.regex.Matcher used = java.util.regex.Pattern.compile("予算のうち ([0-9]+)% を使った").matcher(card);
 		java.util.regex.Matcher elapsed = java.util.regex.Pattern.compile("季節の ([0-9]+)%").matcher(card);
-		java.util.regex.Matcher pace = java.util.regex.Pattern.compile("季節は ([0-9]+)% 過ぎて、予算は ([0-9]+)% 使いました").matcher(card);
+		java.util.regex.Matcher sentence = java.util.regex.Pattern
+				.compile("季節は ([0-9]+)% 過ぎて、予算は ([0-9]+)% 使いました。このペースだと、季節の終わりには約 ([0-9,]+) 円（予算の ([0-9]+)%）の見込みです。")
+				.matcher(card);
 
 		assertThat(used.find()).isTrue();
 		assertThat(elapsed.find()).isTrue();
-		assertThat(pace.find()).isTrue();
-		assertThat(pace.group(1)).as("季節の％").isEqualTo(elapsed.group(1));
-		assertThat(pace.group(2)).as("予算の％").isEqualTo(used.group(1));
+		assertThat(sentence.find()).isTrue();
+		assertThat(sentence.group(1)).as("季節の％").isEqualTo(elapsed.group(1));
+		assertThat(sentence.group(2)).as("予算の％（使った割合）").isEqualTo(used.group(1));
+		long amount = Long.parseLong(sentence.group(3).replace(",", ""));
+		assertThat(amount % 100).as("見込みは 100 円単位").isZero();
+		assertThat(Integer.parseInt(sentence.group(4))).as("予算に対する％は、表示する額 ÷ 予算の四捨五入")
+				.isEqualTo((int) ((200 * amount + 130_000) / (2 * 130_000)));
 	}
 
 	@Test
-	void theSentenceHasNoColorClassAndNoPrediction() throws Exception {
+	void theSentenceHasNoColorClassAndNoAlertWords() throws Exception {
 		Owner a = createOwner("toplay25");
 		Category food = category(a, "食費", 100_000);
 		spend(a, food, SUNDAY, 90_000);
 
 		String body = topBody(a);
 
-		assertThat(body).containsPattern("<p class=\"top-season-pace\">季節は 76% 過ぎて、予算は 90% 使いました。使うペースは、速めです。</p>");
-		assertThat(body).doesNotContain("このままだと", "超えそう", "着地");
+		assertThat(body).containsPattern("<p class=\"top-season-pace\">季節は 76% 過ぎて、予算は 90% 使いました。このペースだと、季節の終わりには約 117,700 円（予算の 118%）の見込みです。</p>");
+		assertThat(body).doesNotContain("このままだと", "超えそう", "着地", "上回ります");   // 上回ります〔予実比較の 1 行〕は、トップには出さない（Q018-2 の b）
 	}
 
 	@Test
 	void theSentenceIsNotShownWhenThereIsNoCategory() throws Exception {
-		Owner a = createOwner("toplay26");
+		Owner a = createOwner("toplay27");
 
-		assertThat(topBody(a)).doesNotContain("使うペースは", "過ぎて、予算は");
+		assertThat(topBody(a)).doesNotContain("このペースだと", "過ぎて、予算は");
 	}
 
 }
