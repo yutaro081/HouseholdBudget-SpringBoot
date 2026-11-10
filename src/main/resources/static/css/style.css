@@ -1171,3 +1171,17 @@ main.list-wide {
 .list-card td.list-muted {
     color: var(--hb-text-sub);
 }
+
+/* 予実比較の着地見込み（issue 018）：表の上の 1 行と、補足。本文の色・400（意味の色〔赤・青〕は使わない。印も付けない） */
+.comparison-landing {
+    margin-bottom: var(--hb-space-4);
+}
+
+.comparison-landing p {
+    margin: 0 0 var(--hb-space-1);
+}
+
+.comparison-landing .comparison-landing-note {
+    color: var(--hb-text-sub);
+    font-size: var(--hb-font-size-small);
+}

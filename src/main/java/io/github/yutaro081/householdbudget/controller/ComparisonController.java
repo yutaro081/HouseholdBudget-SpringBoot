@@ -10,7 +10,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import io.github.yutaro081.householdbudget.domain.LandingForecast;
 import io.github.yutaro081.householdbudget.domain.SeasonPeriod;
+import io.github.yutaro081.householdbudget.dto.ComparisonResult;
 import io.github.yutaro081.householdbudget.exception.NotFoundException;
 import io.github.yutaro081.householdbudget.security.LoginUser;
 import io.github.yutaro081.householdbudget.service.ComparisonService;
@@ -47,7 +49,10 @@ public class ComparisonController {
 			Model model) {
 		SeasonPeriod period = SeasonPeriod.resolve(year, season, LocalDate.now(clock))
 				.orElseThrow(NotFoundException::new);
-		model.addAttribute("comparison", comparisonService.compare(loginUser.getUserId(), period));
+		ComparisonResult comparison = comparisonService.compare(loginUser.getUserId(), period);
+		model.addAttribute("comparison", comparison);
+		// 着地見込み（issue 018）：合計行の予算・実績から。今の季節だけ。予算が未設定・0円のときは出さない（null）
+		model.addAttribute("landing", LandingForecast.of(comparison.total().budget(), comparison.total().actual(), period, LocalDate.now(clock)).orElse(null));
 		return "comparison/index";
 	}
 

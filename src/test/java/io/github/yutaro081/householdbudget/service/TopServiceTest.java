@@ -519,21 +519,23 @@ class TopServiceTest {
 		assertThat(total.statusAmount()).isEqualTo(600L);
 	}
 
-	// ---- issue 017（見直し）：ペースの一言 ----
+	// ---- issue 018：着地見込み（トップの一文の数字） ----
 
-	/** 2026-11-08 は秋の 69 日目（69/91 ＝ 75.8％ → 76％）。予算 100,000 円で、使った割合を 71・72・80・81％ に動かす */
-	@ParameterizedTest(name = "使った額 {0} 円（{1}％）・日の進み方 76％ → {2}")
+	/**
+	 * 2026-11-08 は秋の 69 日目（D ＝ 91、L ＝ 22。69/91 ＝ 75.8％ → 76％）。予算 100,000 円で、使った額を動かす。
+	 * 期待値は、手と分数で計算した値（手順書 2.2）：見込み ＝（実績 × 91 × 113 ＋ 予算 × 22²）÷ 91²、100 円単位で切り上げ。
+	 */
+	@ParameterizedTest(name = "使った額 {0} 円 → 見込み {1} 円（予算の {2}％）")
 	@CsvSource({
-			"0,      0,  top.pace.slow",
-			"71000,  71, top.pace.slow",     // 差 −5（ちょうど）→ ゆっくり
-			"72000,  72, top.pace.same",     // 差 −4
-			"76000,  76, top.pace.same",
-			"80000,  80, top.pace.same",     // 差 +4
-			"81000,  81, top.pace.fast",     // 差 +5（ちょうど）→ 速め
-			"120000, 120, top.pace.fast"     // 予算を超えている
+			"0,      5900,   6",
+			"71000,  94100,  94",
+			"72000,  95300,  95",
+			"76000,  100300, 100",      // 100,218.33… → 100,300。予算を少し上回るが、％は 100
+			"80000,  105200, 105",
+			"120000, 154900, 155"       // 予算を超えている
 	})
-	void paceKeyFollowsTheDifferenceOfPercentages(int spent, int usedPercent, String key) {
-		Owner a = createOwner("toptest" + (200 + spent / 1000));
+	void landingFollowsTheSeasonTotal(int spent, long amount, int percent) {
+		Owner a = createOwner("toptest" + (300 + spent / 1000));
 		Category food = category(a, "食費");
 		budget(a, food, AUTUMN_2026, 100_000);
 		if (spent > 0) {
@@ -542,34 +544,93 @@ class TopServiceTest {
 
 		TopView view = top(a, SUNDAY);
 
-		assertThat(view.seasonUsedPercent()).isEqualTo(usedPercent);
-		assertThat(view.seasonElapsedPercent()).isEqualTo(76);
-		assertThat(view.paceKey()).isEqualTo(key);
+		assertThat(view.seasonUsedPercent()).isEqualTo(spent / 1000);
+		assertThat(view.landingAmount()).isEqualTo(amount);
+		assertThat(view.landingPercent()).isEqualTo(percent);
+	}
+
+	/** 合計の予算は設定済みの科目の合計、合計の実績は全科目の合計（予実比較の合計行と同じ） */
+	@Test
+	void landingUsesTheSameTotalsAsTheComparisonTotalRow() {
+		Owner a = createOwner("toptest40");
+		Category food = category(a, "食費");
+		Category transport = category(a, "交通費");
+		Category unset = category(a, "予算なし科目");
+		budget(a, food, AUTUMN_2026, 40_000);
+		budget(a, transport, AUTUMN_2026, 60_000);
+		spend(a, food, SUNDAY, 30_000);
+		spend(a, transport, SUNDAY, 46_000);
+		spend(a, unset, SUNDAY, 5_000);                      // 予算がない科目の実績も、合計の実績に入る
+
+		TopView view = top(a, SUNDAY);
+
+		// 予算 100,000、実績 81,000：（81,000 × 91 × 113 ＋ 100,000 × 484）÷ 8,281 ＝ 106,427.12… → 106,500
+		assertThat(view.seasonBudget()).isEqualTo(100_000L);
+		assertThat(view.seasonActual()).isEqualTo(81_000L);
+		assertThat(view.landingAmount()).isEqualTo(106_500L);
+		assertThat(view.landingPercent()).isEqualTo(107);
 	}
 
 	@Test
-	void noPaceKeyWhenTheBudgetIsUnsetOrZero() {
+	void noLandingWhenTheBudgetIsUnsetOrZero() {
 		Owner a = createOwner("toptest96");
 		Category food = category(a, "食費");
 		spend(a, food, SUNDAY, 500);
-		assertThat(top(a, SUNDAY).paceKey()).isNull();                  // 予算が未設定
+		assertThat(top(a, SUNDAY).landingAmount()).isNull();             // 予算が未設定
+		assertThat(top(a, SUNDAY).landingPercent()).isNull();
 
 		budget(a, food, AUTUMN_2026, 0);
-		assertThat(top(a, SUNDAY).paceKey()).isNull();                  // 予算が 0 円
+		assertThat(top(a, SUNDAY).landingAmount()).isNull();             // 予算の合計が 0 円（Q018-1 の A）
+		assertThat(top(a, SUNDAY).landingPercent()).isNull();
 	}
 
 	@Test
-	void paceUsesThePercentagesOfTheSeasonTheDateBelongsTo() {
+	void landingUsesTheSeasonTheDateBelongsTo() {
 		Owner a = createOwner("toptest97");
 		Category food = category(a, "食費");
 		budget(a, food, WINTER_2026, 90_000);
 		spend(a, food, LocalDate.of(2026, 12, 2), 1_000);
 
-		// 冬の最後の日（2027-02-28）：日の進み方は 100％、使った割合は 1％ → ゆっくり
+		// 冬（90 日）の最後の日（2027-02-28）：残りの日数は 0。見込み ＝ 実績 ＝ 1,000 円。1,000 ÷ 90,000 ＝ 1.1％ → 1
 		TopView view = top(a, LocalDate.of(2027, 2, 28));
 
-		assertThat(view.seasonElapsedPercent()).isEqualTo(100);
-		assertThat(view.paceKey()).isEqualTo("top.pace.slow");
+		assertThat(view.landingAmount()).isEqualTo(1_000L);
+		assertThat(view.landingPercent()).isEqualTo(1);
+	}
+
+	@Test
+	void otherUsersDataIsNeverMixedIntoTheLanding() {
+		Owner a = createOwner("toptest41");
+		Owner b = createOwner("toptest42");
+		Category foodA = category(a, "食費");
+		budget(a, foodA, AUTUMN_2026, 100_000);
+		spend(a, foodA, SUNDAY, 76_000);
+		Category foodB = category(b, "食費");
+		budget(b, foodB, AUTUMN_2026, 50_000);
+		spend(b, foodB, SUNDAY, 900_000);
+
+		TopView view = top(a, SUNDAY);
+
+		assertThat(view.landingAmount()).isEqualTo(100_300L);
+		assertThat(view.landingPercent()).isEqualTo(100);
+	}
+
+	/** 取引の上限 1,000,000 円の取引が、季節に数百件ある場合でも、集計から見込みまで、そのまま正しく計算される */
+	@Test
+	void manyLargeTransactionsAreCalculatedExactly() {
+		Owner a = createOwner("toptest43");
+		Category food = category(a, "食費");
+		budget(a, food, AUTUMN_2026, 3_000_000);
+		for (int i = 0; i < 500; i++) {
+			spend(a, food, LocalDate.of(2026, 10, 1).plusDays(i % 30), 1_000_000);
+		}
+
+		TopView view = top(a, SUNDAY);
+
+		// 実績 500,000,000、予算 3,000,000、D ＝ 91、L ＝ 22：（5 億 × 91 × 113 ＋ 300 万 × 484）÷ 8,281 ＝ 621,054,462.02… → 切り上げて 621,054,500 円
+		assertThat(view.seasonActual()).isEqualTo(500_000_000L);
+		assertThat(view.landingAmount()).isEqualTo(621_054_500L);
+		assertThat(view.landingPercent()).isEqualTo(20_702);           // 予算の約 207 倍（％は 100% をこえてもそのまま）
 	}
 
 }

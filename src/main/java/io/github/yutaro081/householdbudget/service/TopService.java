@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import io.github.yutaro081.householdbudget.domain.BudgetColor;
 import io.github.yutaro081.householdbudget.domain.BudgetColorJudge;
 import io.github.yutaro081.householdbudget.domain.GraphComment;
-import io.github.yutaro081.householdbudget.domain.PaceComment;
+import io.github.yutaro081.householdbudget.domain.LandingForecast;
 import io.github.yutaro081.householdbudget.domain.PeriodProgress;
 import io.github.yutaro081.householdbudget.domain.PieSlices;
 import io.github.yutaro081.householdbudget.domain.SeasonPeriod;
@@ -113,10 +114,10 @@ public class TopService {
 		HitokotoView hitokoto = hitokotoService.hitokoto(today, commentRows, anyBudget ? Long.valueOf(totalBudget) : null,
 				totalActual);
 
-		// ペースの一言（issue 017 での見直し）：使った割合と日の進み方（どちらも四捨五入した整数の％）を比べる。使った割合がなければ出さない
+		// 見込みの一文（issue 018）：事実の文〔季節の％と使った割合。四捨五入した整数〕と、着地見込み〔予実比較の合計行と同じ値から、同じ式で〕。予算が未設定・0円なら出さない
 		Integer usedPercent = PeriodProgress.usedPercent(seasonTotal.budget(), seasonTotal.actual());
 		int elapsedPercent = PeriodProgress.seasonElapsedPercent(season, today);
-		String paceKey = PaceComment.judge(usedPercent, elapsedPercent).map(TopService::paceKey).orElse(null);
+		Optional<LandingForecast.Result> landing = LandingForecast.of(seasonTotal.budget(), seasonTotal.actual(), season, today);
 
 		return new TopView(season, seasonTotal.budget(), seasonTotal.actual(), seasonTotal.difference(),
 				PeriodProgress.barPermille(seasonTotal.budget(), seasonTotal.actual()),
@@ -124,16 +125,9 @@ public class TopService {
 				week.start(), week.endDate(), PeriodProgress.weekElapsedPermille(week.dayNumber(today)),
 				!categories.isEmpty(), slices, pieTotal, PieSlices.cssStops(slices), rows, total, hitokoto,
 				today, season.startDate().getMonthValue(), season.endDateExclusive().minusDays(1).getMonthValue(),
-				PeriodProgress.seasonDaysLeft(season, today), usedPercent, elapsedPercent, week.dayNumber(today), paceKey);
-	}
-
-	/** ペースの一言のメッセージのキー（文は messages.properties） */
-	private static String paceKey(PaceComment.Pace pace) {
-		return switch (pace) {
-			case SLOW -> "top.pace.slow";
-			case SAME -> "top.pace.same";
-			case FAST -> "top.pace.fast";
-		};
+				PeriodProgress.seasonDaysLeft(season, today), usedPercent, elapsedPercent, week.dayNumber(today),
+				landing.map(LandingForecast.Result::amount).orElse(null),
+				landing.map(LandingForecast.Result::percentOfBudget).orElse(null));
 	}
 
 	/** 週の予算（未設定なら null）と、切り上げた実績から、1行（科目の行も合計の行も同じ）を作る。 */

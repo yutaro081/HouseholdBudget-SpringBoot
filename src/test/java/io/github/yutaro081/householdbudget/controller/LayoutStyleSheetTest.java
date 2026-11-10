@@ -84,15 +84,15 @@ class LayoutStyleSheetTest {
 		assertThat(wide).as("768px 以上で左右に並べる").contains("flex-direction: row", "gap: 40px");
 	}
 
-	/** ペースの一言：濃いターコイズ（#0B6E6B、リンクと同じ色）の太字。ゆっくり／ほぼ同じ／速めのどれでも同じ色。赤・青の意味の色は使わない */
+	/** 見込みの一文（issue 018。issue 017 のペースの一言を置きかえた）：濃いターコイズ（#0B6E6B、リンクと同じ色）の太字。赤・青の意味の色は使わない */
 	@Test
-	void thePaceSentenceIsDarkTealBoldWithNoMeaningColor() throws Exception {
+	void theLandingSentenceIsDarkTealBoldWithNoMeaningColor() throws Exception {
 		String css = css();
 		String pace = rule(css, ".top-season-pace");
 
 		assertThat(pace).contains("color: var(--hb-teal-text)", "font-weight: 700");
 		assertThat(pace).doesNotContain("#c62828").doesNotContain("#1565c0").doesNotContain("--hb-apricot").doesNotContain("--hb-danger");
-		assertThat(css).as("ゆっくり／ほぼ同じ／速めで色を変える規則を作らない").doesNotContain("top-season-pace.").doesNotContain("pace-slow")
+		assertThat(css).as("見込みの大きさ（予算を上回るかどうか）で色を変える規則を作らない。issue 017 の判定ごとのクラスも残さない").doesNotContain("top-season-pace.").doesNotContain("pace-slow")
 				.doesNotContain("pace-fast").doesNotContain("pace-same");
 		assertThat(css).as("リンクの文字と同じ色（--hb-teal-text は #0B6E6B）").contains("--hb-teal-text: #0B6E6B");
 	}

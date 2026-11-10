@@ -175,12 +175,16 @@ class TopControllerTest {
 	}
 
 	@Test
-	void noForecastOrAlertMessageIsShown() throws Exception {
-		// issue 017 で、ペースの一言（ゆっくり／ほぼ同じ／速め）は出すことにした。予測や前もっての知らせ、「超えています」の言い方は出さない
+	void noAlertWordsAreShown() throws Exception {
+		// issue 018 で、見込みの数字は出すことにした（「このペースだと…の見込みです」）。警告・断定の言い方（「超えています」「このままだと」「超えそう」）、
+		// 専門用語「着地」、issue 017 の 5 ポイントの判定の言葉（ゆっくりめ・ほぼ予定どおり・速めです）は出さない
 		Owner a = createOwner("topctl04");
 		category(a, "食費", 30_000);
 
-		assertThat(topBody(a)).doesNotContain("予算を超えています", "このままだと", "超えそう", "着地", "早めです");
+		String body = topBody(a);
+
+		assertThat(body).contains("このペースだと");
+		assertThat(body).doesNotContain("予算を超えています", "このままだと", "超えそう", "着地", "早めです", "ゆっくりめ", "ほぼ予定どおり", "速めです");
 	}
 
 	@Test

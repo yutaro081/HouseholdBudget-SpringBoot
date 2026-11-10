@@ -34,11 +34,13 @@ import io.github.yutaro081.householdbudget.domain.SeasonPeriod;
  * @param seasonUsedPercent   「予算のうち ○% を使った」の％（四捨五入。100％をこえてもそのまま）。予算が未設定・0円なら null
  * @param seasonElapsedPercent 「縦の線は『今日』（季節の ○%）」の％（四捨五入）
  * @param weekDayNumber       今日が今週の何日目か（日曜＝1、土曜＝7）。「縦の線は『今日』（週の ○ 日目）」
- * @param paceKey             ペースの一言のメッセージのキー（top.pace.slow／same／fast）。予算が未設定・0円のときは null（出さない）
+ * @param landingAmount      着地見込みの額（円。100 円単位。予算が未設定・0 円なら null）〔issue 018。issue 017 のペースの一言のキー `paceKey` を置きかえた〕
+ * @param landingPercent     着地見込みの、予算に対する％（なければ null）
  */
 public record TopView(SeasonPeriod season, Long seasonBudget, long seasonActual, Long seasonRemaining,
 		int seasonBarPermille, int seasonTodayPermille, LocalDate weekStart, LocalDate weekEnd,
 		int weekTodayPermille, boolean hasCategories, List<PieSlices.Slice> slices, long pieTotal, String pieStops,
 		List<WeekRow> rows, WeekRow total, HitokotoView hitokoto, LocalDate today, int seasonFirstMonth,
-		int seasonLastMonth, int seasonDaysLeft, Integer seasonUsedPercent, int seasonElapsedPercent, int weekDayNumber, String paceKey) {
+		int seasonLastMonth, int seasonDaysLeft, Integer seasonUsedPercent, int seasonElapsedPercent, int weekDayNumber,
+		Long landingAmount, Integer landingPercent) {
 }
