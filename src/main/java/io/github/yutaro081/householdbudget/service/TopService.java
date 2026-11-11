@@ -117,7 +117,8 @@ public class TopService {
 		// 見込みの一文（issue 018）：事実の文〔季節の％と使った割合。四捨五入した整数〕と、着地見込み〔予実比較の合計行と同じ値から、同じ式で〕。予算が未設定・0円なら出さない
 		Integer usedPercent = PeriodProgress.usedPercent(seasonTotal.budget(), seasonTotal.actual());
 		int elapsedPercent = PeriodProgress.seasonElapsedPercent(season, today);
-		Optional<LandingForecast.Result> landing = LandingForecast.of(seasonTotal.budget(), seasonTotal.actual(), season, today);
+		Optional<LandingForecast.Result> landing = LandingForecast.of(seasonTotal.budget(), seasonTotal.actual(), season, today,
+				comparisonService.countingStart(userId, season, today));
 
 		return new TopView(season, seasonTotal.budget(), seasonTotal.actual(), seasonTotal.difference(),
 				PeriodProgress.barPermille(seasonTotal.budget(), seasonTotal.actual()),

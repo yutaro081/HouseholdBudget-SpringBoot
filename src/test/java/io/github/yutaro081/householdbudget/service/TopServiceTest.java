@@ -85,6 +85,15 @@ class TopServiceTest {
 		budgetRepository.save(new Budget(o.id(), c, period.year(), period.season(), amount));
 	}
 
+	/**
+	 * 「記録は、ずっと昔に始めた」状態にする（issue 020）。どの計算の範囲（過去 3 年、12 季節、直前の季節）にも入らない昔の日付（2001 年 春。DB の下限は 2000-03-01）に、1 円の取引を足す。
+	 * 最初の取引の日が季節の途中だと、数え始めの日がその日になる。このテストは、季節の初日から数える前提で書いてあるので、
+	 * 最初の取引の日を、季節より前にそろえる。ほかの数字（季節の実績、記録のある年など）は変わらない。
+	 */
+	private void recordingStartedLongAgo(Owner o, Category c) {
+		spend(o, c, LocalDate.of(2001, 3, 1), 1);
+	}
+
 	private void spend(Owner o, Category c, LocalDate date, int amount) {
 		transactionRepository.save(new Transaction(o.id(), date, amount, c, null, o.vendor(), o.paymentMethod()));
 	}
@@ -537,6 +546,7 @@ class TopServiceTest {
 	void landingFollowsTheSeasonTotal(int spent, long amount, int percent) {
 		Owner a = createOwner("toptest" + (300 + spent / 1000));
 		Category food = category(a, "食費");
+		recordingStartedLongAgo(a, food);
 		budget(a, food, AUTUMN_2026, 100_000);
 		if (spent > 0) {
 			spend(a, food, LocalDate.of(2026, 9, 3), spent);
@@ -554,6 +564,7 @@ class TopServiceTest {
 	void landingUsesTheSameTotalsAsTheComparisonTotalRow() {
 		Owner a = createOwner("toptest40");
 		Category food = category(a, "食費");
+		recordingStartedLongAgo(a, food);
 		Category transport = category(a, "交通費");
 		Category unset = category(a, "予算なし科目");
 		budget(a, food, AUTUMN_2026, 40_000);
@@ -603,6 +614,7 @@ class TopServiceTest {
 		Owner a = createOwner("toptest41");
 		Owner b = createOwner("toptest42");
 		Category foodA = category(a, "食費");
+		recordingStartedLongAgo(a, foodA);
 		budget(a, foodA, AUTUMN_2026, 100_000);
 		spend(a, foodA, SUNDAY, 76_000);
 		Category foodB = category(b, "食費");
@@ -620,6 +632,7 @@ class TopServiceTest {
 	void manyLargeTransactionsAreCalculatedExactly() {
 		Owner a = createOwner("toptest43");
 		Category food = category(a, "食費");
+		recordingStartedLongAgo(a, food);
 		budget(a, food, AUTUMN_2026, 3_000_000);
 		for (int i = 0; i < 500; i++) {
 			spend(a, food, LocalDate.of(2026, 10, 1).plusDays(i % 30), 1_000_000);

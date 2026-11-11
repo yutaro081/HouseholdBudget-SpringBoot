@@ -26,6 +26,13 @@ import io.github.yutaro081.householdbudget.entity.Transaction;
  */
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
 
+	/**
+	 * 自分の取引の日付の最小値（いちばん最初の取引の日）。取引がなければ空（issue 020。着地見込み・自動予算のペースの数え始めの日。設計書 5.13）。
+	 * パラメータ付きの JPQL。他人の取引は入らない（user_id で絞る。3.9）。
+	 */
+	@Query("select min(t.transactionDate) from Transaction t where t.userId = :userId")
+	Optional<LocalDate> findFirstTransactionDate(@Param("userId") Long userId);
+
 	/** 自分の取引で、その科目が使われているか。 */
 	boolean existsByUserIdAndCategoryId(Long userId, Long categoryId);
 

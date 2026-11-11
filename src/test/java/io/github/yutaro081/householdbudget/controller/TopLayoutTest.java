@@ -128,6 +128,15 @@ class TopLayoutTest {
 		return c;
 	}
 
+	/**
+	 * 「記録は、ずっと昔に始めた」状態にする（issue 020）。どの計算の範囲（過去 3 年、12 季節、直前の季節）にも入らない昔の日付（2001 年 春。DB の下限は 2000-03-01）に、1 円の取引を足す。
+	 * 最初の取引の日が季節の途中だと、数え始めの日がその日になる。このテストは、季節の初日から数える前提で書いてあるので、
+	 * 最初の取引の日を、季節より前にそろえる。ほかの数字（季節の実績、記録のある年など）は変わらない。
+	 */
+	private void recordingStartedLongAgo(Owner o, Category c) {
+		spend(o, c, LocalDate.of(2001, 3, 1), 1);
+	}
+
 	private void spend(Owner o, Category c, LocalDate date, int amount) {
 		transactionRepository.save(new Transaction(o.id(), date, amount, c, null, o.vendor(), o.paymentMethod()));
 	}
@@ -380,6 +389,7 @@ class TopLayoutTest {
 	void theLandingSentenceIsShownBelowTheMeterInsideTheSeasonCard() throws Exception {
 		Owner a = createOwner("toplay20");
 		Category food = category(a, "食費", 130_000);
+		recordingStartedLongAgo(a, food);
 		spend(a, food, SUNDAY, 84_326);       // 65％ ／ 日の進み方 76％。見込み：112,310.62… → 112,400（予算の 86％）
 
 		String body = topBody(a);
@@ -509,6 +519,7 @@ class TopLayoutTest {
 	void theLandingSentenceShowsTheAmountAndThePercentOfTheBudgetEvenAbove100Percent() throws Exception {
 		Owner a = createOwner("toplay21");
 		Category food = category(a, "食費", 100_000);
+		recordingStartedLongAgo(a, food);
 
 		spend(a, food, SUNDAY, 76_000);
 		assertThat(seasonCard(topBody(a))).contains("季節は 76% 過ぎて、予算は 76% 使いました。このペースだと、季節の終わりには約 100,300 円（予算の 100%）の見込みです。");
@@ -574,6 +585,7 @@ class TopLayoutTest {
 	void theSentenceHasNoColorClassAndNoAlertWords() throws Exception {
 		Owner a = createOwner("toplay25");
 		Category food = category(a, "食費", 100_000);
+		recordingStartedLongAgo(a, food);
 		spend(a, food, SUNDAY, 90_000);
 
 		String body = topBody(a);

@@ -1,6 +1,7 @@
 package io.github.yutaro081.householdbudget.domain;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
 /**
@@ -53,6 +54,17 @@ public final class LandingForecast {
 	 * @throws ArithmeticException あふれたとき
 	 */
 	public static Optional<Result> of(Long budget, long actual, SeasonPeriod season, LocalDate today) {
+		return of(budget, actual, season, today, season.startDate());
+	}
+
+	/**
+	 * 数え始めの日を指定する見込み（issue 020。設計書 5.13）。countFrom は {@link CountingStart#of} で決めた日。
+	 * 季節の初日なら、上の形と同じ。季節の中の日なら、D′ ＝ その日から季節の終わりまでの日数、予算は D′ ÷ D に日割りして混ぜる。
+	 * 「予算に対する％」と「上回る」は、季節全体の予算で決める（日割りは、式の中だけ）。
+	 *
+	 * @param countFrom 数え始めの日。季節の中にない日、今日より後の日は、季節の初日として扱う
+	 */
+	public static Optional<Result> of(Long budget, long actual, SeasonPeriod season, LocalDate today, LocalDate countFrom) {
 		if (budget == null || budget <= 0) {
 			return Optional.empty();
 		}
@@ -61,7 +73,9 @@ public final class LandingForecast {
 		}
 		int days = PeriodProgress.seasonDays(season);
 		int remainingDays = days - PeriodProgress.seasonDayNumber(season, today);   // 今日は経過に含める。最後の日は 0
-		long amount = amount(budget, actual, days, remainingDays);
+		LocalDate start = CountingStart.of(season, countFrom, today);
+		int countedDays = days - (int) ChronoUnit.DAYS.between(season.startDate(), start);   // D′
+		long amount = amount(budget, actual, days, remainingDays, countedDays);
 		return Optional.of(new Result(amount, percent(amount, budget), amount > budget));
 	}
 
@@ -73,12 +87,24 @@ public final class LandingForecast {
 	 * @throws ArithmeticException あふれたとき
 	 */
 	public static long amount(long budget, long actual, int days, int remainingDays) {
+		return amount(budget, actual, days, remainingDays, days);
+	}
+
+	/**
+	 * 数え始めの日があるときの見込みの額（円。100 円単位に切り上げ）
+	 * ＝ 切り上げ（（実績 × D ×（D′ ＋ L）＋ 予算 × L²）÷（100 × D × D′））× 100。D′ ＝ D なら、上の形と同じ。
+	 *
+	 * @param countedDays D′（数え始めの日から季節の終わりまでの日数）
+	 * @throws ArithmeticException あふれたとき
+	 */
+	public static long amount(long budget, long actual, int days, int remainingDays, int countedDays) {
 		long d = days;
 		long l = remainingDays;
-		long fromActual = Math.multiplyExact(Math.multiplyExact(actual, d), Math.addExact(d, l));   // 実績 × D × (D + L)
+		long dp = countedDays;
+		long fromActual = Math.multiplyExact(Math.multiplyExact(actual, d), Math.addExact(dp, l));  // 実績 × D × (D′ + L)
 		long fromBudget = Math.multiplyExact(budget, Math.multiplyExact(l, l));                     // 予算 × L²
 		long numerator = Math.addExact(fromActual, fromBudget);
-		long denominator = Math.multiplyExact(UNIT, Math.multiplyExact(d, d));                     // 100 × D²
+		long denominator = Math.multiplyExact(UNIT, Math.multiplyExact(d, dp));                    // 100 × D × D′
 		return Math.multiplyExact(Math.ceilDiv(numerator, denominator), UNIT);
 	}
 

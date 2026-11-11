@@ -1,5 +1,6 @@
 package io.github.yutaro081.householdbudget.service;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -10,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import io.github.yutaro081.householdbudget.domain.BudgetColor;
 import io.github.yutaro081.householdbudget.domain.BudgetColorJudge;
+import io.github.yutaro081.householdbudget.domain.CountingStart;
 import io.github.yutaro081.householdbudget.domain.SeasonPeriod;
 import io.github.yutaro081.householdbudget.dto.CategoryActual;
 import io.github.yutaro081.householdbudget.dto.ComparisonResult;
@@ -43,6 +45,15 @@ public class ComparisonService {
 		this.categoryService = categoryService;
 		this.budgetRepository = budgetRepository;
 		this.transactionRepository = transactionRepository;
+	}
+
+	/**
+	 * 着地見込み・自動予算のペースの、日数を数え始める日（設計書 5.13、issue 020）。
+	 * 自分のいちばん最初の取引の日が、その季節の中にあり、今日より後でないときだけ、その日。それ以外は季節の初日。
+	 */
+	@Transactional(readOnly = true)
+	public LocalDate countingStart(Long userId, SeasonPeriod season, LocalDate today) {
+		return CountingStart.of(season, transactionRepository.findFirstTransactionDate(userId).orElse(null), today);
 	}
 
 	/**

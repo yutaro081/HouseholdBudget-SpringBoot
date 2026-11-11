@@ -52,7 +52,8 @@ public class ComparisonController {
 		ComparisonResult comparison = comparisonService.compare(loginUser.getUserId(), period);
 		model.addAttribute("comparison", comparison);
 		// 着地見込み（issue 018）：合計行の予算・実績から。今の季節だけ。予算が未設定・0円のときは出さない（null）
-		model.addAttribute("landing", LandingForecast.of(comparison.total().budget(), comparison.total().actual(), period, LocalDate.now(clock)).orElse(null));
+		model.addAttribute("landing", LandingForecast.of(comparison.total().budget(), comparison.total().actual(), period, LocalDate.now(clock),
+				comparisonService.countingStart(loginUser.getUserId(), period, LocalDate.now(clock))).orElse(null));
 		return "comparison/index";
 	}
 

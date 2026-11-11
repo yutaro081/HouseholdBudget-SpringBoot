@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import io.github.yutaro081.householdbudget.domain.AutoBudgetSeasons;
 import io.github.yutaro081.householdbudget.domain.BudgetProposal;
+import io.github.yutaro081.householdbudget.domain.CountingStart;
 import io.github.yutaro081.householdbudget.domain.MedianAmount;
 import io.github.yutaro081.householdbudget.domain.ProposalChoice;
 import io.github.yutaro081.householdbudget.domain.SeasonPeriod;
@@ -87,6 +88,9 @@ public class AutoBudgetService {
 				&& !today.isBefore(previous.get().startDate()) && today.isBefore(previous.get().endDateExclusive());
 		Map<Long, Long> previousActuals = previous.map(s -> actuals.getOrDefault(s, Map.<Long, Long>of())).orElse(Map.of());
 
+		// 直前の季節のペースの数え始め（issue 020）：自分のいちばん最初の取引の日（なければ null）
+		LocalDate firstTransactionDate = transactionRepository.findFirstTransactionDate(userId).orElse(null);
+
 		List<AutoBudgetView.Row> rows = new ArrayList<>();
 		long previousActualTotal = 0;
 		for (BudgetEditView.Row currentRow : current.rows()) {
@@ -95,7 +99,7 @@ public class AutoBudgetService {
 			previousActualTotal = Math.addExact(previousActualTotal, previousActual);
 			Budget previousBudget = previousBudgets.get(categoryId);
 			Long previousBudgetAmount = previousBudget == null ? null : (long) previousBudget.getAmount();
-			Optional<SpendingPace.Pace> pace = previous.flatMap(s -> SpendingPace.of(previousActual, s, today));
+			Optional<SpendingPace.Pace> pace = previous.flatMap(s -> SpendingPace.of(previousActual, s, today, CountingStart.of(s, firstTransactionDate, today)));
 
 			List<Long> amounts = new ArrayList<>();
 			for (SeasonPeriod season : recordSeasons) {
@@ -117,7 +121,7 @@ public class AutoBudgetService {
 				: previousBudgets.values().stream().mapToLong(Budget::getAmount).sum();
 		Long previousPaceTotal = null;
 		if (previousContainsToday && previousActualTotal > 0) {
-			previousPaceTotal = SpendingPace.of(previousActualTotal, previous.get(), today)
+			previousPaceTotal = SpendingPace.of(previousActualTotal, previous.get(), today, CountingStart.of(previous.get(), firstTransactionDate, today))
 					.map(SpendingPace.Pace::displayAmount).orElse(null);
 		}
 

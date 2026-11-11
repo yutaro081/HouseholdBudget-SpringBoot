@@ -91,6 +91,15 @@ class AutoBudgetServiceTest {
 		budgetRepository.save(new Budget(owner.id(), category, period.year(), period.season(), amount));
 	}
 
+	/**
+	 * 「記録は、ずっと昔に始めた」状態にする（issue 020）。どの計算の範囲（過去 3 年、12 季節、直前の季節）にも入らない昔の日付（2001 年 春。DB の下限は 2000-03-01）に、1 円の取引を足す。
+	 * 最初の取引の日が季節の途中だと、数え始めの日がその日になる。このテストは、季節の初日から数える前提で書いてあるので、
+	 * 最初の取引の日を、季節より前にそろえる。ほかの数字（季節の実績、記録のある年など）は変わらない。
+	 */
+	private void recordingStartedLongAgo(Owner o, Category c) {
+		spendOn(o, c, LocalDate.of(2001, 3, 1), 1);
+	}
+
 	private void spendOn(Owner owner, Category category, LocalDate date, int amount) {
 		transactionRepository.save(new Transaction(owner.id(), date, amount, category, null,
 				owner.vendor(), owner.paymentMethod()));
@@ -586,6 +595,7 @@ class AutoBudgetServiceTest {
 	void thePaceIsUsedFromThe14thDay() {
 		Owner a = createOwner("autosvc24");
 		Category food = category(a, "食費");
+		recordingStartedLongAgo(a, food);
 		budget(a, food, AUTUMN_2026, 30_000);
 		spendOn(a, food, LocalDate.of(2026, 9, 2), 5_000);
 
@@ -688,6 +698,7 @@ class AutoBudgetServiceTest {
 	void ruleTwoIsChosenBeforeRuleThree() {
 		Owner a = createOwner("autosvc29");
 		Category food = category(a, "食費");
+		recordingStartedLongAgo(a, food);
 		spendIn(a, food, AUTUMN_2026, 3_600);
 		budget(a, food, AUTUMN_2026, 8_000);
 

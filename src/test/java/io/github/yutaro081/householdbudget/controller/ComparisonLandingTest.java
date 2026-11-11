@@ -105,6 +105,15 @@ class ComparisonLandingTest {
 		return c;
 	}
 
+	/**
+	 * 「記録は、ずっと昔に始めた」状態にする（issue 020）。どの計算の範囲（過去 3 年、12 季節、直前の季節）にも入らない昔の日付（2001 年 春。DB の下限は 2000-03-01）に、1 円の取引を足す。
+	 * 最初の取引の日が季節の途中だと、着地見込みの数え始めの日がその日になる。このテストは、季節の初日から数える前提で書いてあるので、
+	 * 最初の取引の日を、季節より前にそろえる。ほかの数字（季節の実績など）は変わらない。
+	 */
+	private void recordingStartedLongAgo(Category c) {
+		transactionRepository.save(new Transaction(userId, LocalDate.of(2001, 3, 1), 1, c, null, vendor, payment));
+	}
+
 	private void spend(Category c, int amount) {
 		transactionRepository.save(new Transaction(userId, TODAY, amount, c, null, vendor, payment));
 	}
@@ -120,6 +129,7 @@ class ComparisonLandingTest {
 	@Test
 	void theLandingLineIsShownAboveTheTableForTheCurrentSeason() throws Exception {
 		Category food = category("食費", 100_000, Season.AUTUMN, 2026);
+		recordingStartedLongAgo(food);
 		spend(food, 60_000);                // 見込み：80,350.20… → 80,400。予算以下
 
 		String body = page("/comparison");
@@ -134,6 +144,7 @@ class ComparisonLandingTest {
 	@Test
 	void theSameLineIsShownWhenTheCurrentSeasonIsGivenInTheUrl() throws Exception {
 		Category food = category("食費", 100_000, Season.AUTUMN, 2026);
+		recordingStartedLongAgo(food);
 		spend(food, 60_000);
 
 		assertThat(page("/comparison?year=2026&season=autumn")).contains(sentence("80,400", "100,000"));
@@ -142,6 +153,7 @@ class ComparisonLandingTest {
 	@Test
 	void theTotalUsesAllCategoriesForTheActualAndOnlyBudgetedCategoriesForTheBudget() throws Exception {
 		Category food = category("食費", 40_000, Season.AUTUMN, 2026);
+		recordingStartedLongAgo(food);
 		Category transport = category("交通費", 60_000, Season.AUTUMN, 2026);
 		Category unset = category("予算なし科目", null, Season.AUTUMN, 2026);
 		spend(food, 30_000);
@@ -156,6 +168,7 @@ class ComparisonLandingTest {
 	@Test
 	void theOverLineIsShownOnlyWhenTheRoundedForecastIsOverTheBudget() throws Exception {
 		Category food = category("食費", 100_000, Season.AUTUMN, 2026);
+		recordingStartedLongAgo(food);
 		spend(food, 76_000);                // 100,218.33… → 100,300：予算を上回る
 
 		String body = page("/comparison");
@@ -169,6 +182,7 @@ class ComparisonLandingTest {
 	@Test
 	void exactlyOnTheBudgetOrOneYenBelowDoesNotShowTheOverLine() throws Exception {
 		Category food = category("食費", 91_000, Season.AUTUMN, 2026);
+		recordingStartedLongAgo(food);
 		spend(food, 69_000);
 
 		assertThat(page("/comparison")).contains(sentence("91,000", "91,000")).doesNotContain(OVER);
@@ -177,6 +191,7 @@ class ComparisonLandingTest {
 	@Test
 	void oneYenOverTheExpectedPaceShowsTheOverLine() throws Exception {
 		Category food = category("食費", 91_000, Season.AUTUMN, 2026);
+		recordingStartedLongAgo(food);
 		spend(food, 69_001);                // 91,001.24… → 91,100
 
 		assertThat(page("/comparison")).contains(sentence("91,100", "91,000"), OVER);
@@ -189,6 +204,7 @@ class ComparisonLandingTest {
 	@Test
 	void thePercentOnTheTopCanBe100WhileTheComparisonSaysOver() throws Exception {
 		Category food = category("食費", 91_000, Season.AUTUMN, 2026);
+		recordingStartedLongAgo(food);
 		spend(food, 69_001);
 
 		String comparison = page("/comparison");
@@ -236,6 +252,7 @@ class ComparisonLandingTest {
 	@Test
 	void theLinesHaveNoColorClassNoMarkAndNoAlertWords() throws Exception {
 		Category food = category("食費", 100_000, Season.AUTUMN, 2026);
+		recordingStartedLongAgo(food);
 		spend(food, 90_000);                // 117,602.95… → 117,700（上回る）
 
 		String body = page("/comparison");
@@ -253,6 +270,7 @@ class ComparisonLandingTest {
 	@Test
 	void otherUsersDataIsNeverMixedIn() throws Exception {
 		Category food = category("食費", 100_000, Season.AUTUMN, 2026);
+		recordingStartedLongAgo(food);
 		spend(food, 60_000);
 		Long otherId = userRepository.save(new User("cmplnd2", "dummy-hash-for-test")).getId();
 		Category otherFood = categoryRepository.save(new Category(otherId, "食費"));
