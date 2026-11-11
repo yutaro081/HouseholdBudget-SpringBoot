@@ -236,10 +236,10 @@
 
 - 順番：設計書 → この手順書 → テスト〔先に失敗を確かめた：4 件〕→ `style.css`、`budgets/form.html`、`comparison/index.html`。
 - テスト：`LayoutStyleSheetTest` に 2 件〔ヘッダーの余白、`table-wide`〕、`ComparisonControllerTest` に 1 件、`BudgetAutoControllerTest` に 1 件。
-- 画像の撮り直しと README の作業は、issue 020 のあとにまとめて行う〔下の「画像と README の作業」〕。
+- 画像の撮り直しと README の作業は、**issue 024 のあと**にまとめて行う〔2026年11月11日に、issue 020 のあとから変えた。[issue 024](../issues/024-画面の仕上げ.md) で画面の見た目が変わるため〕〔下の「画像と README の作業」〕。
 - ログイン・登録を、背の高い画面で少し上に置く〔下の余白を `max(0px, (100vh - 768px) * 0.5)` だけ足す。設計書 2.3。テスト 1 件〕。
 
-## 画像と README の作業〔issue 020 のあと。まとめて行う。2026年11月11日に決めた。文書だけ〕
+## 画像と README の作業〔issue 024 のあと〔issue 020 のあとから変えた〕。まとめて行う。2026年11月11日に決めた。文書だけ〕
 
 ### 撮る画像
 
