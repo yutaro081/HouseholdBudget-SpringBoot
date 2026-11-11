@@ -107,6 +107,12 @@ class ComparisonStyleSheetTest {
 		assertThat(rule(css, ".comparison-table .cell-mark")).contains("font-weight: 400");
 	}
 
+	/** 見込みのセルの「/ その科目の予算」は、小さめの灰色（400） */
+	@Test
+	void theBudgetInTheForecastCellIsSmallAndGray() throws Exception {
+		assertThat(rule(css(), ".comparison-table .cell-sub")).contains("color: var(--hb-text-sub)", "font-size: var(--hb-font-size-small)", "font-weight: 400");
+	}
+
 	@Test
 	void theHeadingsHaveTheBodySizeAndBold() throws Exception {
 		assertThat(rule(css(), ".comparison-table thead th")).contains("font-size: var(--hb-font-size-body)", "font-weight: 700");

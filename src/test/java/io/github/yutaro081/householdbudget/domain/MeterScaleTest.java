@@ -72,6 +72,14 @@ class MeterScaleTest {
 		assertThat(MeterScale.of(2_400L, 0, elapsed).todayPermille()).isEqualTo(expected);
 	}
 
+	/** 季節の最終日など、日が進んだ割合が 100％ のとき、「今日」の線は予算の線と同じ位置（700）になる。文字が重ならないことは、名前を上下に分けて保つ（HTML のテスト） */
+	@Test
+	void onTheLastDayTheTodayLineIsAtTheBudgetPosition() {
+		Meter m = MeterScale.of(2_400L, 1_000, 1000);
+
+		assertThat(m.todayPermille()).isEqualTo(m.budgetPermille()).isEqualTo(700);
+	}
+
 	@Test
 	void anUnsetBudgetGivesAnEmptyMeter() {
 		Meter m = MeterScale.of(null, 5_000, 500);

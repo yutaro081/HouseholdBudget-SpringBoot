@@ -223,7 +223,7 @@ class ComparisonRedesignTest {
 		assertThat(card).as("表の上").isLessThan(body.indexOf("<table"));
 		assertThat(card).as("年と季節を選ぶ欄の下").isGreaterThan(body.indexOf("season-select"));
 		String cardText = body.substring(card, body.indexOf("<table"));
-		assertThat(cardText).contains("約 50,500円", "予算 50,000円", "実績 39,900円（80%）", "class=\"top-meter\"", "予算のうち 80% を使った", "縦の線は『今日』（季節の 79%）");
+		assertThat(cardText).contains("約 50,500円", "予算 50,000円", "実績 39,900円（80%）", "class=\"top-meter\"", "予算のうち 80% を使った", "今日（79%）");
 		assertThat(cardText).contains("見込みは、予算を上回ります。", "月ごとにまとめて払うものは、払う日で見込みが上下します。");
 	}
 
@@ -240,12 +240,12 @@ class ComparisonRedesignTest {
 		int budget = card.indexOf("予算 50,000円");
 		int actual = card.indexOf("実績 39,900円（80%）");
 		int labels = card.indexOf("予算のうち 80% を使った");
-		int today = card.indexOf("縦の線は『今日』");
+		int today = card.indexOf("今日（79%）");
 		int meter = card.indexOf("class=\"top-meter\"");
 		assertThat(forecast).isGreaterThanOrEqualTo(0).isLessThan(budget);
 		assertThat(budget).isLessThan(actual);
 		assertThat(actual).as("数字の下にメーター").isLessThan(labels);
-		assertThat(labels).as("ラベルは、メーターのすぐ上（左：使った割合、右：今日）").isLessThan(today);
+		assertThat(labels).as("ラベルは、メーターの上（使った割合）。その下の行に、「今日」の名前（issue 020 の見直し）").isLessThan(today);
 		assertThat(today).isLessThan(meter);
 		assertThat(card.indexOf("見込みは、予算を上回ります。")).as("上回る文は、メーターの下").isGreaterThan(meter);
 		assertThat(card.indexOf("月ごとにまとめて払うもの")).as("補足は、一番下").isGreaterThan(card.indexOf("見込みは、予算を上回ります。"));

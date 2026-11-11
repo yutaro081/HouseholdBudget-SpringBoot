@@ -227,7 +227,7 @@ class TopLayoutTest {
 		// 「残り」は補足の灰色のまま、金額だけを太字（強調）にする（issue 017 の見直し）
 		assertThat(body).contains("<p class=\"top-season-remaining\">残り <strong>45,674円</strong></p>");
 		assertThat(body).contains("予算のうち 65% を使った");
-		assertThat(body).contains("縦の線は『今日』（季節の 76%）");
+		assertThat(body).as("「今日」の名前は、棒の上（issue 020 の見直し。メーターの上の説明「縦の線は…」は、なくした）").contains("今日（76%）");
 	}
 
 	@Test
@@ -324,7 +324,7 @@ class TopLayoutTest {
 
 		assertThat(right).contains("<ul class=\"top-weeks");
 		assertThat(right).doesNotContain("<table");
-		assertThat(right).contains("縦の線は『今日』（週の 1 日目）");
+		assertThat(right).contains("点線は『今日』（週の 1 日目）").doesNotContain("縦の線は『今日』");
 		assertThat(right).contains("週の予算＝今日が入っている季節の予算 ÷ 13（100円単位で切り上げ）");
 		int total = right.indexOf("top-week-total");
 		assertThat(total).isGreaterThanOrEqualTo(0);
@@ -396,7 +396,7 @@ class TopLayoutTest {
 		String body = topBody(a);
 
 		assertThat(seasonCard(body)).contains("季節は 76% 過ぎて、予算は 65% 使いました。このペースだと、季節の終わりには約 112,400 円（予算の 86%）の見込みです。");
-		assertThat(body.indexOf("このペースだと")).isGreaterThan(body.indexOf("縦の線は『今日』"));
+		assertThat(body.indexOf("このペースだと")).isGreaterThan(body.indexOf("top-meter-today-label"));
 		assertThat(body.indexOf("このペースだと")).isLessThan(body.indexOf("top-columns"));
 	}
 
@@ -566,7 +566,7 @@ class TopLayoutTest {
 
 		String card = seasonCard(topBody(a));
 		java.util.regex.Matcher used = java.util.regex.Pattern.compile("予算のうち ([0-9]+)% を使った").matcher(card);
-		java.util.regex.Matcher elapsed = java.util.regex.Pattern.compile("季節の ([0-9]+)%").matcher(card);
+		java.util.regex.Matcher elapsed = java.util.regex.Pattern.compile("今日（([0-9]+)%）").matcher(card);
 		java.util.regex.Matcher sentence = java.util.regex.Pattern
 				.compile("季節は ([0-9]+)% 過ぎて、予算は ([0-9]+)% 使いました。このペースだと、季節の終わりには約 ([0-9,]+) 円（予算の ([0-9]+)%）の見込みです。")
 				.matcher(card);

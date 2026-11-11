@@ -201,8 +201,8 @@ class ComparisonForecastGapTest {
 
 		assertThat(food).hasSize(6);
 		assertThat(food.get(0)).startsWith("食費");
-		assertThat(food.subList(1, 6)).as("予算・実績・残り・見込み・見込みとの差").containsExactly("40,000", "30,000", "10,000", "38,100", "1,900");
-		assertThat(transport.subList(1, 6)).containsExactly("10,000", "9,900", "100", "12,500", "超える見込み-2,500");
+		assertThat(food.subList(1, 6)).as("予算・実績・残り・見込み（/ その科目の予算）・見込みとの差").containsExactly("40,000", "30,000", "10,000", "38,100/40,000", "1,900");
+		assertThat(transport.subList(1, 6)).containsExactly("10,000", "9,900", "100", "12,500/10,000", "超える見込み-2,500");
 	}
 
 	@Test
@@ -213,6 +213,33 @@ class ComparisonForecastGapTest {
 
 		assertThat(body).doesNotContain("予算超えの見込み");
 		assertThat(cellHtml(rowOf(body, "交通費"), 4)).doesNotContain("cell-mark").contains("12,500");
+	}
+
+	/** 見込みのセルは「7,900 / 25,000」の形。「/ その科目の予算」は小さめの灰色（cell-sub）。見込みが「—」の科目は「—」だけ。合計の行も同じ形 */
+	@Test
+	void theForecastCellShowsTheForecastAndTheBudgetInSmallGray() throws Exception {
+		fourCategories();
+
+		String body = page("/comparison");
+
+		assertThat(cellHtml(rowOf(body, "食費"), 4)).contains("<span>38,100</span><span class=\"cell-sub\"> / 40,000</span>");
+		assertThat(cellHtml(rowOf(body, "合計"), 4)).contains("<span>50,500</span><span class=\"cell-sub\"> / 50,000</span>");
+		for (String name : new String[] { "雑費", "娯楽" }) {
+			String cell = cellHtml(rowOf(body, name), 4);
+			assertThat(cell).as(name + " は「—」だけ").doesNotContain("cell-sub", " / ");
+			assertThat(cellsOf(rowOf(body, name)).get(4)).isEqualTo("—");
+		}
+	}
+
+	@Test
+	void theTotalForecastIsADashAloneWhenThereIsNoTotalForecast() throws Exception {
+		Category food = category("食費", null);
+		spend(food, LocalDate.of(2026, 11, 3), 5_000);
+
+		String body = page("/comparison");
+
+		assertThat(cellHtml(rowOf(body, "合計"), 4)).doesNotContain("cell-sub");
+		assertThat(cellsOf(rowOf(body, "合計")).get(4)).isEqualTo("—");
 	}
 
 	@Test
@@ -243,7 +270,7 @@ class ComparisonForecastGapTest {
 
 		String row = rowOf(page("/comparison"), "食費");
 
-		assertThat(cellsOf(row).get(4)).isEqualTo("91,000");
+		assertThat(cellsOf(row).get(4)).isEqualTo("91,000/91,000");
 		assertThat(cellHtml(row, 5)).contains("<span>0</span>").doesNotContain("gap-over", "超える見込み");
 	}
 
@@ -270,7 +297,7 @@ class ComparisonForecastGapTest {
 		List<String> cells = cellsOf(row);
 
 		assertThat(cells).hasSize(6);
-		assertThat(cells.subList(1, 6)).containsExactly("50,000", "39,900", "10,100", "50,500", "超える見込み-500");
+		assertThat(cells.subList(1, 6)).containsExactly("50,000", "39,900", "10,100", "50,500/50,000", "超える見込み-500");
 		assertThat(cellHtml(row, 5)).contains("gap-cell gap-over");
 	}
 

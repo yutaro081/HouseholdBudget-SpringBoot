@@ -6,10 +6,13 @@
   ・棒：予算までは通常色、予算を超えた部分だけ赤（top-meter-over。予算の位置から始まる）。予算の縦線（top-meter-budget）と「今日」の縦線（top-meter-today）。
   ・「+○%」（top-meter-excess）：棒が右端で止まったときだけ文字が入る。場所は、いつもあけておく（縮尺がメーターによってずれないため）。
   ・withLabel：true のとき、予算の線の下に小さく「予算」（トップの季節のメーターと予実比較のカード）。今週の科目ごとのメーターは false（縦線だけ）。
+  ・todayText：null でないとき、棒の上の専用の行に、「今日」の名前（「今日（79%）」と「▼」。線の位置を中心にそろえる）。今週のメーターは null（文字を置かず、線の形だけで区別する：点線 ＝ 今日、実線 ＝ 予算）。
+    「予算」は棒の下なので、今日と予算の線が同じ位置（季節の最終日など）でも、文字は重ならない。
   ・棒は飾り（aria-hidden）。数字と文は、画面のほかの所に文字で出ている。
 */-->
-<th:block th:fragment="meter(m, withLabel)">
+<th:block th:fragment="meter(m, withLabel, todayText)">
 <div class="top-meter-box">
+    <div class="top-meter-today-label" th:if="${todayText != null}" th:style="|--today: ${m.todayPermille / 10}.${m.todayPermille % 10}%|"><span class="top-meter-today-text" th:text="${todayText}">今日（79%）</span><span class="top-meter-today-arrow">▼</span></div>
     <div class="top-meter" aria-hidden="true">
         <div class="top-meter-bar" th:style="|width: ${m.normalPermille / 10}.${m.normalPermille % 10}%|"></div>
         <div class="top-meter-bar top-meter-over" th:if="${m.over}" th:style="|left: ${m.overStartPermille / 10}.${m.overStartPermille % 10}%; width: ${m.overPermille / 10}.${m.overPermille % 10}%|"></div>

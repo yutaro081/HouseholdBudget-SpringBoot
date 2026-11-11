@@ -153,6 +153,61 @@ class MeterMarkupTest {
 		assertThat(count(body, "top-meter-budget-label")).isEqualTo(1);
 	}
 
+	// ---- 「今日」の名前は棒の上、「予算」は棒の下（issue 020 の見直し） ----
+
+	/** 季節の 79％（72 ÷ 91）。「今日」の名前は、棒の上の専用の行に「▼」と「今日（79%）」。「予算」は棒の下 */
+	@Test
+	void theTodayNameIsAboveTheSeasonBarAndTheBudgetNameIsBelow() throws Exception {
+		Category food = category("食費", 130_000);
+		spend(food, 3_000);
+
+		String card = seasonCard(page("/"));
+		int today = card.indexOf("class=\"top-meter-today-label\" style=\"--today: 55.3%\"");
+		int meter = card.indexOf("class=\"top-meter\"");
+		int budget = card.indexOf("class=\"top-meter-budget-label\"");
+
+		assertThat(today).isGreaterThanOrEqualTo(0);
+		assertThat(card).contains("<span class=\"top-meter-today-text\">今日（79%）</span>", "<span class=\"top-meter-today-arrow\">▼</span>");
+		assertThat(today).as("名前は、棒の上").isLessThan(meter);
+		assertThat(budget).as("「予算」は、棒の下").isGreaterThan(meter);
+	}
+
+	@Test
+	void theComparisonCardHasTheSameTodayNameAboveTheBar() throws Exception {
+		Category food = category("食費", 130_000);
+		spend(food, 3_000);
+
+		String body = page("/comparison");
+		String card = body.substring(body.indexOf("class=\"comparison-card\""), body.indexOf("<table"));
+
+		assertThat(card).contains("class=\"top-meter-today-label\" style=\"--today: 55.3%\"", "今日（79%）", "▼");
+		assertThat(card.indexOf("top-meter-today-label")).isLessThan(card.indexOf("class=\"top-meter\""));
+		assertThat(card.indexOf("class=\"top-meter-budget-label\"")).isGreaterThan(card.indexOf("class=\"top-meter\""));
+	}
+
+	/** メーターの上の説明「縦の線は『今日』（季節の ○%）」は、なくした */
+	@Test
+	void theDescriptionOfTheVerticalLineIsGone() throws Exception {
+		Category food = category("食費", 130_000);
+		spend(food, 3_000);
+
+		assertThat(page("/")).doesNotContain("縦の線は『今日』（季節の");
+		assertThat(page("/comparison")).doesNotContain("縦の線は『今日』（季節の");
+	}
+
+	/** 今週の小さなメーターは、文字を置かず、線の形だけで区別する。下の注記に「点線：今日／実線：予算」 */
+	@Test
+	void theWeeklyMetersHaveNoTextAndTheLegendExplainsTheLines() throws Exception {
+		Category food = category("食費", 130_000);
+		spend(food, 3_000);
+
+		String body = page("/");
+
+		assertThat(weeks(body)).doesNotContain("top-meter-today-label", "今日（");
+		assertThat(count(body, "top-meter-today-label")).as("「今日」の名前は、季節のメーターに 1 つだけ").isEqualTo(1);
+		assertThat(weeks(body)).contains("点線：今日／実線：予算");
+	}
+
 	// ---- 縮尺：予算（100％）は棒全体の 70％ の位置。「今日」の線も同じ縮尺（issue 020） ----
 
 	/** 季節 72 日目（791 → 今日の線 553 ＝ 55.3％）。実績 3,000 ÷ 予算 130,000 → 棒 16（1.6％）。予算の線・「予算」は 70.0％ */

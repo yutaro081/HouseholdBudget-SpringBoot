@@ -44,8 +44,9 @@ class MeterStyleSheetTest {
 		String css = css();
 		String today = rule(css, ".top-meter-today");
 
-		assertThat(today).contains("top: -0.25rem", "bottom: -0.25rem", "background: var(--hb-text)");
-		assertThat(rule(css, ".top-meter-budget")).as("予算の線は「今日」の線と同じ色にしない").doesNotContain("background: var(--hb-text);");
+		assertThat(today).contains("top: -0.25rem", "bottom: -0.25rem");
+		assertThat(today).as("「今日」の線は点線（本文の色）。形で見分ける").contains("border-left: 2px dotted var(--hb-text)").doesNotContain("background");
+		assertThat(rule(css, ".top-meter-budget")).as("予算の線は、灰色の実線").contains("background: var(--hb-text-sub)").doesNotContain("dotted");
 	}
 
 	/** 「予算」の文字は、線の位置を中心にそろえる（位置は style 属性の margin-left で渡される） */
@@ -54,6 +55,26 @@ class MeterStyleSheetTest {
 		String label = rule(css(), ".top-meter-budget-label");
 
 		assertThat(label).contains("width: max-content", "transform: translateX(-50%)", "font-size: var(--hb-font-size-small)", "color: var(--hb-text-sub)");
+	}
+
+	/** 「今日」の名前は、棒の上の専用の行（1 行目）。「予算」は棒の下（3 行目）。上下に分かれるので、今日と予算の線が同じ位置でも、文字が重ならない */
+	@Test
+	void theTodayNameHasItsOwnRowAboveTheBarAndTheBudgetNameIsBelow() throws Exception {
+		String css = css();
+
+		assertThat(rule(css, ".top-meter-today-label")).contains("grid-column: 1", "grid-row: 1", "position: relative");
+		assertThat(rule(css, ".top-meter-box .top-meter")).as("棒は 2 行目").contains("grid-column: 1", "grid-row: 2");
+		assertThat(rule(css, ".top-meter-excess")).as("「+○%」は棒と同じ行").contains("grid-column: 2", "grid-row: 2");
+		assertThat(rule(css, ".top-meter-budget-label")).as("「予算」は棒の下（3 行目）").contains("grid-row: 3");
+	}
+
+	/** 「今日」の名前：線の位置（--today）を中心にそろえる。端に寄りすぎるときは、文字だけを内側にずらす（clamp）。「▼」は線の真上に残す */
+	@Test
+	void theTodayNameIsCenteredOnTheLineButKeptInsideTheMeter() throws Exception {
+		String css = css();
+
+		assertThat(rule(css, ".top-meter-today-text")).contains("left: clamp(", "var(--today)", "transform: translateX(-50%)", "white-space: nowrap");
+		assertThat(rule(css, ".top-meter-today-arrow")).contains("left: var(--today)", "transform: translateX(-50%)");
 	}
 
 	/** 予算を超えた部分だけが、予算超過の色（赤 #c62828） */
