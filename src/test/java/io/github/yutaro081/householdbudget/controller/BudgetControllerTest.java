@@ -113,7 +113,7 @@ class BudgetControllerTest {
 	private List<Budget> allOf(Owner o) {
 		entityManager.flush();
 		entityManager.clear();
-		return budgetRepository.findByUserIdAndSeasonYearLessThan(o.userId(), 100000);
+		return budgetRepository.findAll().stream().filter(b -> b.getUserId().equals(o.userId())).toList();
 	}
 
 	private List<Budget> seasonOf(Owner o, int year, Season season) {
@@ -396,12 +396,12 @@ class BudgetControllerTest {
 				"name=\"rows[1].categoryId\" value=\"" + a.fare().getId() + "\"");
 	}
 
-	/** 次の季節（冬）：行がないので、前の季節（秋）の額が初期値で、「未設定」の印が出る */
+	/** 次の季節（冬）：行がないので、0円が初期値で、「未設定」の印が出る（issue 019：前の季節（秋）の額は使わない） */
 	@Test
-	void nextSeasonShowsPreviousAmountsWithMark() throws Exception {
+	void nextSeasonShowsZeroAmountsWithMark() throws Exception {
 		String body = body(mockMvc.perform(get("/budgets").param("year", "2026").param("season", "winter").with(asA)).andReturn());
 
-		assertThat(body).contains("name=\"rows[0].amount\" value=\"30000\"", "name=\"rows[1].amount\" value=\"0\"");
+		assertThat(body).contains("name=\"rows[0].amount\" value=\"0\"", "name=\"rows[1].amount\" value=\"0\"");
 		assertThat(count(body, "（この季節は未設定）")).isEqualTo(2);
 	}
 

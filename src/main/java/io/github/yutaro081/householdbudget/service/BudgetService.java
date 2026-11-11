@@ -1,7 +1,6 @@
 package io.github.yutaro081.householdbudget.service;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -45,12 +44,10 @@ public class BudgetService {
 
 	/**
 	 * 予算設定画面の表示データを作る。データベースには何も書かない。
-	 * 行は自分の科目の登録順。各行の最初の値は、次の順で決める（設計書 5.7、Q23・Q24）。
+	 * 行は自分の科目の登録順。各行の最初の値は、次の順で決める（設計書 5.7。issue 019 で、前の季節の額を使うのをやめた）。
 	 * <ol>
 	 * <li>その季節の予算が保存されていれば、その額（印なし）</li>
-	 * <li>なければ、表示季節より前の季節のうち、その科目で予算が設定されている、期間の順でいちばん近い季節の額（「未設定」の印）。
-	 * 最後に保存した季節ではない</li>
-	 * <li>それもなければ、0円（「未設定」の印）</li>
+	 * <li>なければ、0円（「未設定」の印）</li>
 	 * </ol>
 	 *
 	 * @throws NotFoundException 範囲外の季節
@@ -61,20 +58,13 @@ public class BudgetService {
 		List<Category> categories = categoryService.list(userId);
 		Map<Long, Budget> saved = savedOf(userId, period);
 
-		// 保存されていない科目があるときだけ、前の季節の額を探す
-		Map<Long, Budget> nearestEarlier = categories.stream().allMatch(c -> saved.containsKey(c.getId()))
-				? Map.of()
-				: nearestEarlierOf(userId, period);
-
 		List<BudgetEditView.Row> rows = new ArrayList<>();
 		for (Category category : categories) {
 			Budget own = saved.get(category.getId());
 			if (own != null) {
 				rows.add(new BudgetEditView.Row(category.getId(), category.getName(), own.getAmount(), false));
 			} else {
-				Budget earlier = nearestEarlier.get(category.getId());
-				rows.add(new BudgetEditView.Row(category.getId(), category.getName(),
-						earlier != null ? earlier.getAmount() : 0, true));
+				rows.add(new BudgetEditView.Row(category.getId(), category.getName(), 0, true));   // 保存されていなければ 0円（issue 019）
 			}
 		}
 		return view(period, rows);
@@ -191,26 +181,6 @@ public class BudgetService {
 			map.put(budget.getCategory().getId(), budget);
 		}
 		return map;
-	}
-
-	/**
-	 * 表示季節より前の、自分の予算から、科目ごとに、期間の順でいちばん近い季節の予算を選ぶ（設計書 5.7、Q23）。
-	 * 「前」は、年が前のもの＋同じ年で季節が前のもの。DB の季節の文字の順ではなく、期間の順で比べる（Q6-4 の A）。
-	 */
-	private Map<Long, Budget> nearestEarlierOf(Long userId, SeasonPeriod period) {
-		List<Budget> earlier = new ArrayList<>(budgetRepository.findByUserIdAndSeasonYearLessThan(userId, period.year()));
-		var seasonsBeforeInYear = period.season().earlierInYear();
-		if (!seasonsBeforeInYear.isEmpty()) {
-			earlier.addAll(budgetRepository.findByUserIdAndSeasonYearAndSeasonIn(userId, period.year(), seasonsBeforeInYear));
-		}
-
-		Comparator<Budget> byPeriod = Comparator.comparingInt(Budget::getSeasonYear)
-				.thenComparingInt(budget -> budget.getSeason().ordinal());
-		Map<Long, Budget> nearest = new LinkedHashMap<>();
-		for (Budget budget : earlier) {
-			nearest.merge(budget.getCategory().getId(), budget, (a, b) -> byPeriod.compare(a, b) >= 0 ? a : b);
-		}
-		return nearest;
 	}
 
 	private BudgetEditView view(SeasonPeriod period, List<BudgetEditView.Row> rows) {

@@ -22,7 +22,7 @@ public record BudgetEditView(SeasonPeriod period, SeasonPeriod previous, SeasonP
 	 *
 	 * @param categoryId   科目のID（画面の隠し項目に入れる）
 	 * @param categoryName 科目名
-	 * @param amount       入力欄の最初の値（その季節の予算 → 直前の季節の額 → 0円、設計書 5.7）。
+	 * @param amount       入力欄の最初の値（その季節の予算 → 0円、設計書 5.7。issue 019 で、直前の季節の額をやめた）。
 	 *                     入力エラーで表示し直すための行（BudgetService.rowsOf）では、画面は送られた値を使うので null
 	 * @param unset        「（この季節は未設定）」の印を出すか。その季節の予算が保存されていなければ true（Q26）
 	 */

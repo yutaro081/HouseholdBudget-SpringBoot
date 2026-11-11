@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import io.github.yutaro081.householdbudget.dto.CategoryActual;
+import io.github.yutaro081.householdbudget.dto.MonthlyActual;
 import io.github.yutaro081.householdbudget.entity.Transaction;
 
 /**
@@ -58,6 +59,25 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 			group by t.category.id
 			""")
 	List<CategoryActual> sumByCategory(@Param("userId") Long userId,
+			@Param("start") LocalDate start,
+			@Param("endExclusive") LocalDate endExclusive);
+
+	/**
+	 * 自分の取引を、期間内で科目・月ごとに合計する（自動予算の過去の実績。設計書 4.6、5.14、issue 019）。
+	 * 期間は「開始日以上、終了日の翌日未満」（sumByCategory と同じ）。月は取引の日付の年と月（冬の 1 月・2 月も、その日付の年と月。
+	 * 月を季節にまとめるのは Service）。取引のない科目・月は結果に出ない。
+	 * 値はすべてパラメータで渡し、文字列を連結しない（設計書 7.4）。user_id で必ず絞る（設計書 3.9）。
+	 */
+	@Query("""
+			select new io.github.yutaro081.householdbudget.dto.MonthlyActual(
+			         t.category.id, year(t.transactionDate), month(t.transactionDate), sum(t.amount))
+			from Transaction t
+			where t.userId = :userId
+			  and t.transactionDate >= :start
+			  and t.transactionDate < :endExclusive
+			group by t.category.id, year(t.transactionDate), month(t.transactionDate)
+			""")
+	List<MonthlyActual> sumByCategoryAndMonth(@Param("userId") Long userId,
 			@Param("start") LocalDate start,
 			@Param("endExclusive") LocalDate endExclusive);
 

@@ -80,7 +80,7 @@ class BudgetServiceTest {
 	private List<Budget> allBudgetsOf(Long userId) {
 		entityManager.flush();
 		entityManager.clear();
-		return budgetRepository.findByUserIdAndSeasonYearLessThan(userId, 100000);
+		return budgetRepository.findAll().stream().filter(b -> b.getUserId().equals(userId)).toList();
 	}
 
 	private static BudgetEditView.Row rowOf(BudgetEditView view, Long categoryId) {
@@ -105,16 +105,16 @@ class BudgetServiceTest {
 		assertThat(row.categoryName()).isEqualTo("食費");
 	}
 
-	/** 次の季節（冬）：行がないので、前の季節（秋）の額が初期値。印あり */
+	/** 次の季節（冬）：行がないので 0円、印あり（issue 019：前の季節（秋）の額は使わない。Q6-4 を変更） */
 	@Test
-	void nextSeasonShowsThePreviousSeasonAmountWithMark() {
+	void nextSeasonShowsZeroWithMarkEvenIfThePreviousSeasonIsSaved() {
 		Long u = createUser("bsvc2");
 		Category food = category(u, "食費");
 		saved(u, food, 2026, Season.AUTUMN, 30000);
 
 		BudgetEditView.Row row = rowOf(service.edit(u, p(2026, Season.WINTER)), food.getId());
 
-		assertThat(row.amount()).isEqualTo(30000);
+		assertThat(row.amount()).isZero();
 		assertThat(row.unset()).isTrue();
 	}
 
@@ -128,20 +128,6 @@ class BudgetServiceTest {
 		BudgetEditView.Row row = rowOf(service.edit(u, p(2026, Season.SUMMER)), food.getId());
 
 		assertThat(row.amount()).isZero();
-		assertThat(row.unset()).isTrue();
-	}
-
-	/** 2027年春：秋と冬が保存済みなら、直前＝冬の額 */
-	@Test
-	void nearestEarlierSeasonIsUsed() {
-		Long u = createUser("bsvc4");
-		Category food = category(u, "食費");
-		saved(u, food, 2026, Season.AUTUMN, 30000);
-		saved(u, food, 2026, Season.WINTER, 50000);
-
-		BudgetEditView.Row row = rowOf(service.edit(u, p(2027, Season.SPRING)), food.getId());
-
-		assertThat(row.amount()).isEqualTo(50000);
 		assertThat(row.unset()).isTrue();
 	}
 
@@ -161,24 +147,9 @@ class BudgetServiceTest {
 		assertThat(rowOf(service.edit(u, p(2026, Season.WINTER)), added.getId()).amount()).isZero();
 	}
 
-	/** 直前は、最後に保存した季節ではなく、期間の順でいちばん近い季節（Q23）。後の季節の額は使わない */
+	/** 年をまたぐ：保存済みの季節はその額、保存されていない夏は 0円（issue 019：直前の季節の額は使わない） */
 	@Test
-	void nearestEarlierIsByPeriodOrderNotByLastSaved() {
-		Long u = createUser("bsvc6");
-		Category food = category(u, "食費");
-		saved(u, food, 2025, Season.SPRING, 111);
-		saved(u, food, 2026, Season.AUTUMN, 222);      // 最後に保存した季節（夏より後）
-		saved(u, food, 2026, Season.WINTER, 333);
-
-		BudgetEditView.Row summer = rowOf(service.edit(u, p(2026, Season.SUMMER)), food.getId());
-
-		assertThat(summer.amount()).isEqualTo(111);     // 夏より前でいちばん近いのは、2025年春
-		assertThat(summer.unset()).isTrue();
-	}
-
-	/** 年をまたぐ：2026年春の直前は、2025年の冬（12月がある年が冬の年）。2025年の秋・2024年の冬より近い */
-	@Test
-	void nearestEarlierAcrossTheYearBoundary() {
+	void savedSeasonKeepsItsAmountAndTheFollowingSeasonShowsZero() {
 		Long u = createUser("bsvc7");
 		Category food = category(u, "食費");
 		saved(u, food, 2024, Season.WINTER, 1);
@@ -188,35 +159,24 @@ class BudgetServiceTest {
 
 		assertThat(rowOf(service.edit(u, p(2026, Season.SPRING)), food.getId()).amount()).isEqualTo(9);
 		assertThat(rowOf(service.edit(u, p(2026, Season.SPRING)), food.getId()).unset()).isFalse();
-		// 2026年春の行がない別の科目を見るために、夏で確かめる：直前は2026年春
-		assertThat(rowOf(service.edit(u, p(2026, Season.SUMMER)), food.getId()).amount()).isEqualTo(9);
+		// 夏は保存されていないので、直前の春（9）があっても 0円
+		assertThat(rowOf(service.edit(u, p(2026, Season.SUMMER)), food.getId()).amount()).isZero();
 	}
 
-	@Test
-	void nearestEarlierWithinTheSameYear() {
-		Long u = createUser("bsvc8");
-		Category food = category(u, "食費");
-		saved(u, food, 2026, Season.SPRING, 10);
-		saved(u, food, 2026, Season.SUMMER, 20);
-
-		assertThat(rowOf(service.edit(u, p(2026, Season.AUTUMN)), food.getId()).amount()).isEqualTo(20);
-		assertThat(rowOf(service.edit(u, p(2026, Season.WINTER)), food.getId()).amount()).isEqualTo(20);
-	}
-
-	/** 科目ごとに独立：ある科目は前の季節の額、ある科目は保存済み、ある科目は0円 */
+	/** 科目ごとに独立：ある科目は保存済み、ほかの科目は 0円（前の季節の額は使わない。issue 019） */
 	@Test
 	void eachCategoryIsDecidedIndependently() {
 		Long u = createUser("bsvc9");
 		Category food = category(u, "食費");
 		Category fare = category(u, "交通費");
 		Category misc = category(u, "雑費");
-		saved(u, food, 2026, Season.AUTUMN, 30000);                   // 冬：前の季節から
+		saved(u, food, 2026, Season.AUTUMN, 30000);                   // 冬：前の季節の額は使わない
 		saved(u, fare, 2026, Season.WINTER, 5000);                    // 冬：保存済み
 		// 雑費：どの季節も行なし
 
 		BudgetEditView view = service.edit(u, p(2026, Season.WINTER));
 
-		assertThat(rowOf(view, food.getId()).amount()).isEqualTo(30000);
+		assertThat(rowOf(view, food.getId()).amount()).isZero();
 		assertThat(rowOf(view, food.getId()).unset()).isTrue();
 		assertThat(rowOf(view, fare.getId()).amount()).isEqualTo(5000);
 		assertThat(rowOf(view, fare.getId()).unset()).isFalse();

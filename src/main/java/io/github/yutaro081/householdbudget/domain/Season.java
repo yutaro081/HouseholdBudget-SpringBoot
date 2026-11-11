@@ -2,7 +2,6 @@ package io.github.yutaro081.householdbudget.domain;
 
 import java.time.Month;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Optional;
 
 /**
@@ -52,15 +51,6 @@ public enum Season {
 			return Optional.empty();
 		}
 		return Arrays.stream(values()).filter(season -> season.urlName.equals(urlName)).findFirst();
-	}
-
-	/**
-	 * 同じ年の中で、この季節より前の季節（期間の順：春→夏→秋→冬）。
-	 * 例：秋なら春と夏。春なら空。冬の年は12月がある年なので、前の年の冬は含まない。
-	 * 「表示季節より前の予算」を DB から探す検索に使う（設計書 4.6）。
-	 */
-	public List<Season> earlierInYear() {
-		return Arrays.stream(values()).filter(season -> season.ordinal() < ordinal()).toList();
 	}
 
 }

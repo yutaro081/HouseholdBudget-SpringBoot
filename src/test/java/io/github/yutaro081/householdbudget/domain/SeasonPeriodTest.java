@@ -333,15 +333,6 @@ class SeasonPeriodTest {
 		}
 	}
 
-	/** 同じ年の中で、ある季節より前の季節（DB の検索に使う）。冬の年は12月がある年なので、前の年の冬は含まない */
-	@Test
-	void earlierSeasonsInTheSameYear() {
-		assertThat(Season.SPRING.earlierInYear()).isEmpty();
-		assertThat(Season.SUMMER.earlierInYear()).containsExactly(Season.SPRING);
-		assertThat(Season.AUTUMN.earlierInYear()).containsExactly(Season.SPRING, Season.SUMMER);
-		assertThat(Season.WINTER.earlierInYear()).containsExactly(Season.SPRING, Season.SUMMER, Season.AUTUMN);
-	}
-
 	// ---- URL の値からの変換（Q6-2 の A：年は半角の数字4桁だけ、季節は小文字の4つだけ） ----
 
 	@ParameterizedTest(name = "year={0} season={1} → {2}年 {3}")
