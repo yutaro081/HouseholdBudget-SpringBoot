@@ -55,7 +55,7 @@ import jakarta.persistence.EntityManager;
  * 開発用の DB につなぐが、各テストはトランザクションで包まれ、終わると取り消される（行は残らない）。
  * テストのパスワードのハッシュは、ダミーの値。
  * <p>
- * 合計の JavaScript（budget-total.js）は、まだ作らない。ここでは確かめない（あとの手順）。
+ * 合計の JavaScript（budget-total.js）の動きはここでは確かめない（Console の表。手順書 8 章）。ここでは、HTML の印と読み込みだけ確かめる。
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -1314,6 +1314,131 @@ class BudgetAutoControllerTest {
 		assertThat(ratio(sub, white)).as("白との比").isGreaterThanOrEqualTo(4.5);
 		assertThat(ratio(sub, background)).as("本文より落ちている").isLessThan(ratio(text, background));
 	}
+
+	// ================================================================
+	// 合計と「消える前の確認」の JavaScript（budget-total.js）に渡す HTML の印（設計書 2.3、4.3、issue 019 の案 C）
+	// ================================================================
+
+	private static final String SCRIPT_TAG = "<script defer src=\"/js/budget-total.js\"></script>";
+	private static final String CONFIRM_TEXT = "手で直した額は消えます。よろしいですか？";
+
+	private static int countOf(String body, String needle) {
+		return body.split(Pattern.quote(needle), -1).length - 1;
+	}
+
+	/** budget-total.js は、予算設定の画面（ふだんも、案を入れたあとも）で 1 回だけ読む */
+	@ParameterizedTest(name = "auto={0} の画面で budget-total.js を読む")
+	@ValueSource(strings = { "", "1", "2", "3" })
+	void budgetScreenLoadsTheTotalScriptOnce(String auto) throws Exception {
+		designExample();
+
+		String body = winter(auto.isEmpty() ? null : auto);
+
+		assertThat(countOf(body, "/js/budget-total.js")).isEqualTo(1);
+		assertThat(body).contains(SCRIPT_TAG);
+	}
+
+	/** ほかの画面では読まない（この画面だけ） */
+	@ParameterizedTest(name = "{0} では budget-total.js を読まない")
+	@ValueSource(strings = { "/", "/transactions", "/transactions/new", "/comparison", "/categories" })
+	void otherScreensDoNotLoadTheTotalScript(String path) throws Exception {
+		designExample();
+
+		String body = mockMvc.perform(get(path).with(login)).andReturn().getResponse().getContentAsString();
+
+		assertThat(body).doesNotContain("budget-total.js");
+	}
+
+	/** 予算額の入力欄すべてに印 data-budget-amount（科目の数だけ）。保存のための name はそのまま */
+	@ParameterizedTest(name = "auto={0} の予算額の欄に印がある")
+	@ValueSource(strings = { "", "1" })
+	void everyAmountInputIsMarked(String auto) throws Exception {
+		designExample();
+
+		String body = winter(auto.isEmpty() ? null : auto);
+
+		Matcher inputs = Pattern.compile("<input[^>]*name=\"rows\\[\\d+\\]\\.amount\"[^>]*>").matcher(body);
+		int n = 0;
+		while (inputs.find()) {
+			n++;
+			assertThat(inputs.group()).contains("data-budget-amount");
+		}
+		assertThat(n).as("科目は 6 つ").isEqualTo(6);
+		assertThat(countOf(body, "data-budget-amount")).isEqualTo(6);
+	}
+
+	/** 合計の数字の入れ物に data-budget-total。固定の 2 つの文にも、それぞれ印。2 つとも hidden のまま */
+	@Test
+	void totalAndTheTwoFixedSentencesAreMarked() throws Exception {
+		designExample();
+
+		String body = winter(null);
+
+		assertThat(countOf(body, "data-budget-total")).isEqualTo(1);
+		assertThat(body).containsPattern("(?s)<strong[^>]*\\bdata-budget-total\\b[^>]*>\\s*5,000\\s*</strong>");
+		assertThat(body).containsPattern("(?s)<(?=[^>]*\\bhidden\\b)[^>]*\\bdata-budget-not-number\\b[^>]*>\\s*数字でない欄があります\\s*</");
+		assertThat(body).containsPattern("(?s)<(?=[^>]*\\bhidden\\b)[^>]*\\bdata-budget-empty\\b[^>]*>\\s*空の欄があります\\s*</");
+		assertThat(countOf(body, "data-budget-not-number")).isEqualTo(1);
+		assertThat(countOf(body, "data-budget-empty")).isEqualTo(1);
+	}
+
+	/** 確認の印は「自動予算」ボタンだけ（ふだんの画面）。文は固定で、HTML に書いてある */
+	@Test
+	void onlyTheAutoButtonAsksForConfirmationOnThePlainScreen() throws Exception {
+		designExample();
+
+		String body = winter(null);
+
+		assertThat(countOf(body, "data-budget-confirm")).isEqualTo(1);
+		assertThat(autoButtonTag(body)).contains("data-budget-confirm=\"" + CONFIRM_TEXT + "\"");
+	}
+
+	/** 案を入れたあと：「自動予算」ボタンと切りかえの 1〜3 の、合わせて 4 つだけ。保存・前後の季節・年季節の選びには付けない */
+	@ParameterizedTest(name = "auto={0} の画面の確認の印は 4 つ")
+	@ValueSource(strings = { "1", "2", "3" })
+	void autoButtonAndTheThreeChoicesAskForConfirmation(String auto) throws Exception {
+		designExample();
+
+		String body = winter(auto);
+
+		assertThat(countOf(body, "data-budget-confirm")).isEqualTo(4);
+		assertThat(autoButtonTag(body)).contains("data-budget-confirm=\"" + CONFIRM_TEXT + "\"");
+		for (int n = 1; n <= 3; n++) {
+			assertThat(choiceTag(body, n)).as("切りかえ " + n).contains("data-budget-confirm=\"" + CONFIRM_TEXT + "\"");
+		}
+		Matcher others = Pattern.compile("<(?:button|form|select|a)[^>]*data-budget-confirm[^>]*>").matcher(body);
+		int onLinks = 0;
+		while (others.find()) {
+			assertThat(others.group()).as("確認が付くのは <a> のリンクだけ").startsWith("<a ");
+			onLinks++;
+		}
+		assertThat(onLinks).isEqualTo(4);
+	}
+
+	/** 確認の文は messages.properties から出る固定の文で、JavaScript のファイルには書かない */
+	@Test
+	void confirmSentenceComesFromMessagesNotFromTheScript() throws Exception {
+		String script = java.nio.file.Files.readString(java.nio.file.Path.of("src", "main", "resources", "static", "js", "budget-total.js"));
+
+		assertThat(script).doesNotContain("手で直した額は消えます");
+	}
+
+	/** 入力エラーで表示し直した画面でも、印と読み込みは同じ（合計は「—」で、JavaScript が開いたときに計算する） */
+	@Test
+	void markersAlsoExistOnTheRedisplayedScreenAfterAnInputError() throws Exception {
+		Category food = category("食費");
+		flush();
+
+		String body = mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/budgets")
+				.param("year", "2026").param("season", "winter").param("rows[0].categoryId", String.valueOf(food.getId()))
+				.param("rows[0].amount", "abc").with(login).with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()))
+				.andReturn().getResponse().getContentAsString();
+
+		assertThat(body).contains(SCRIPT_TAG);
+		assertThat(body).contains("data-budget-amount").contains("data-budget-total");
+		assertThat(body).containsPattern("(?s)<strong[^>]*\\bdata-budget-total\\b[^>]*>\\s*—\\s*</strong>");
+	}
+
 
 	// ================================================================
 	// XSS（設計書 7.5）。科目名は th:text で出す

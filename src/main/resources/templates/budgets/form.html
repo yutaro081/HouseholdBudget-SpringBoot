@@ -29,7 +29,7 @@
          「保存」ボタンは上にだけ置く（下にはない）。表を囲むフォームの外にあるので、form 属性で同じフォームを送る（CSRF のトークンはフォームの中）。
          ふだんの画面では、この行の右端。案を入れたあと（選ぶリンクがあるとき）は、選ぶリンクの行の右端 */-->
     <div class="auto-budget-action" th:if="${hasRows and (budgetView.autoAvailable or !saveInChoices)}">
-        <a class="btn auto-budget-button" th:if="${budgetView.autoAvailable}"
+        <a class="btn auto-budget-button" th:if="${budgetView.autoAvailable}" th:attr="data-budget-confirm=#{budget.auto.confirm}"
            th:href="@{/budgets(year=${budgetView.period.year}, season=${budgetView.period.season.urlName}, auto=1)}"><th:block th:replace="~{fragments/icons :: icon('sparkle', 20, 2)}"></th:block><span th:text="#{budget.auto.button}">自動予算</span></a>
         <span class="auto-budget-note" th:if="${budgetView.autoAvailable}" th:text="#{budget.auto.note}">手で直した額は、ボタンを押すと消えます。</span>
         <button type="submit" form="budget-form" class="btn btn-primary budget-save" th:unless="${saveInChoices}">保存</button>
@@ -67,7 +67,7 @@
         <div class="btn-group" role="group" aria-label="案の割合の切りかえ">
             <a th:each="n : ${ {1, 2, 3} }" class="btn btn-outline-secondary"
                th:href="@{/budgets(year=${budgetView.period.year}, season=${budgetView.period.season.urlName}, auto=${n})}"
-               th:attr="aria-current=${auto.choice.ordinal() + 1 == n} ? 'true' : null"
+               th:attr="aria-current=${auto.choice.ordinal() + 1 == n} ? 'true' : null, data-budget-confirm=#{budget.auto.confirm}"
                th:text="#{|budget.auto.choice.${n}|}">1. これで OK</a>
         </div>
         <button type="submit" form="budget-form" class="btn btn-primary budget-save">保存</button>
@@ -127,14 +127,14 @@
                 </td>
                 <td class="budget-amount">
                     <input type="hidden" th:name="|rows[${stat.index}].categoryId|" th:value="${row.categoryId}">
-                    <input class="form-control" type="text" inputmode="numeric" th:field="*{rows[__${stat.index}__].amount}">
+                    <input class="form-control" type="text" inputmode="numeric" data-budget-amount th:field="*{rows[__${stat.index}__].amount}">
                     <div class="field-error" th:each="message : ${#fields.errors('rows[__${stat.index}__].amount')}"
                          th:text="${message}">エラー</div>
                 </td>
             </tr>
             </tbody>
             <!--/* 合計の行（ふだんの画面にも出す）。予算額の合計は、開いたときの欄の値の足し算（JavaScript が無効のときの表示）。
-                 入力エラーで表示し直したときは「—」。固定の2つの文は、ふだんは hidden（合計の JavaScript は、あとの手順） */-->
+                 入力エラーで表示し直したときは「—」。固定の2つの文は、ふだんは hidden（budget-total.js が、数字でない欄・空の欄があるときだけ見せる） */-->
             <tfoot>
             <tr>
                 <th scope="row">合計</th>
@@ -149,9 +149,9 @@
                 </td>
                 <td th:if="${auto != null}"></td>
                 <td>
-                    <strong class="budget-total budget-sum" th:text="${budgetView.total != null} ? ${#numbers.formatInteger(budgetView.total, 1, 'COMMA')} : '—'">186,000</strong>
-                    <div class="small text-danger" hidden th:text="#{budget.total.notNumber}">数字でない欄があります</div>
-                    <div class="small text-danger" hidden th:text="#{budget.total.empty}">空の欄があります</div>
+                    <strong class="budget-total budget-sum" data-budget-total th:text="${budgetView.total != null} ? ${#numbers.formatInteger(budgetView.total, 1, 'COMMA')} : '—'">186,000</strong>
+                    <div class="small text-danger" hidden data-budget-not-number th:text="#{budget.total.notNumber}">数字でない欄があります</div>
+                    <div class="small text-danger" hidden data-budget-empty th:text="#{budget.total.empty}">空の欄があります</div>
                 </td>
             </tr>
             </tfoot>
@@ -160,5 +160,6 @@
         <p class="budget-hint"><small th:text="#{budget.amount.hint}">0〜3,000,000 の整数</small></p>
     </form>
 </main>
+<script defer th:src="@{/js/budget-total.js}"></script>
 </body>
 </html>

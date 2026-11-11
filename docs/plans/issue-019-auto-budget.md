@@ -355,6 +355,67 @@ SELECT ROW_COUNT();   -- 83
 
 - **案 A：Console に貼るケース表**〔issue 009 と同じ。あなたが行う〕：手順書にケースの表と貼る文を付ける〔実装のとき〕。ケース〔例〕：全部数字、空の欄〔合計に入れず、「空の欄があります」〕、全角の数字〔半角に直して足す〕、`abc`〔合計に入れず、「数字でない欄があります」〕、`1,000`、マイナス、小数、16 進、前後の空白、途中の空白、10 桁、4,000,000〔範囲は判断せず、足す〕、数字でない欄と空の欄の両方、すべて空、欄 1 つ。
 - **案 C：MockMvc で HTML の印**〔5 章の表の最後の行〕。
+
+**Console での確かめ方**〔合計と「消える前の確認」。あなたが行う。issue 009 と同じ形〕
+
+1. アプリを起動する（`.\mvnw spring-boot:run`）。ブラウザで `demo` でログインして、`http://localhost:8080/budgets?year=2026&season=winter` を開く。
+2. `F12` で開発者ツールを開き、**「Console」タブ**を選ぶ。
+3. 次を貼り付けて `Enter`〔Chrome は、初めて貼り付けるとき `allow pasting` と打つよう求める。この文は、画面の中の計算を呼ぶだけで、通信はしない〕。期待の値は、手で計算した。
+
+```js
+const sumCases = [
+  // [欄の文字の並び, 期待の合計, 数字でない欄があるか, 空の欄があるか]
+  [['1000', '2000', '3000'], '6,000', false, false],
+  [['1000', '', '3000'], '4,000', false, true],
+  [['１０００', '２０００'], '3,000', false, false],
+  [['０１２', '1'], '13', false, false],
+  [['1000', 'abc'], '1,000', true, false],
+  [['1,000', '500'], '500', true, false],
+  [['-5', '100'], '100', true, false],
+  [['1.5', '100'], '100', true, false],
+  [['0x10', '100'], '100', true, false],
+  [['10円', '5'], '5', true, false],
+  [[' 1000 ', '500'], '1,500', false, false],
+  [['10 00', '500'], '500', true, false],
+  [['123456789', '1'], '123,456,790', false, false],
+  [['1234567890', '1'], '1', true, false],
+  [['0000000001', '2'], '3', false, false],
+  [['4000000', '1'], '4,000,001', false, false],
+  [['999999', '1'], '1,000,000', false, false],
+  [['abc', '', '100'], '100', true, true],
+  [['', '', ''], '0', false, true],
+  [['5000'], '5,000', false, false],
+  [['0', '0'], '0', false, false],
+];
+const changeCases = [
+  // [開いたときの並び, 今の並び, 期待]
+  [['0', '0'], ['0', '0'], false],
+  [['0', '0'], ['0', '1'], true],
+  [['', ''], ['', ''], false],
+  [['1000'], ['１０００'], true],
+  [['0'], [' 0'], true],
+];
+let ng = 0;
+for (const [texts, total, notNumber, empty] of sumCases) {
+  const r = BudgetTotal.sumAmounts(texts);
+  const shown = BudgetTotal.formatTotal(r.total);
+  const ok = shown === total && r.hasNotNumber === notNumber && r.hasEmpty === empty;
+  if (!ok) ng++;
+  console.log(ok ? 'OK' : 'NG', JSON.stringify(texts), '→', shown, r.hasNotNumber, r.hasEmpty, '（期待', total, notNumber, empty, '）');
+}
+for (const [a, b, expected] of changeCases) {
+  const actual = BudgetTotal.anyChanged(a, b);
+  const ok = actual === expected;
+  if (!ok) ng++;
+  console.log(ok ? 'OK' : 'NG', 'anyChanged', JSON.stringify(a), JSON.stringify(b), '→', actual, '（期待', expected, '）');
+}
+const all = sumCases.length + changeCases.length;
+console.log(ng === 0 ? '全部 OK（' + all + ' 件）' : ng + ' 件 NG');
+```
+
+4. 最後の行が **「全部 OK（26 件）」**〔合計 21 件、変わったかの判定 5 件〕になれば、計算は表のとおり。`NG` の行があれば、その行を教えてください。
+5. `BudgetTotal` が「not defined」と出るときは、`budget-total.js` が読み込まれていない。`Network` タブで `/js/budget-total.js` が 200 で返っているか見る。
+6. 続けて、画面の動きを見る：欄を書き換えると合計が変わる／`abc` で「数字でない欄があります」／欄を空にすると「空の欄があります」／直すと文が消える。下の 11 番の確認も同じ画面で行う。
 - **ブラウザであなたが確かめる**〔`demo` で〕：
   1. `/budgets?year=2026&season=winter` を開く → 8 科目すべて 0 円〔「（この季節は未設定）」の印〕。ボタンの横に「手で直した額は消えます」の一言。
   2. 「自動予算」を押す → 4.3 の表のとおり〔合計 141,000 円〕。3 行の文と、5 列の表と、合計の行。DB の行は増えない〔保存していない〕。
@@ -404,4 +465,5 @@ SELECT ROW_COUNT();   -- 83
 - 2026年11月11日：ブラウザで見て、①3 行目の文とその付記をなくす〔`AutoBudgetView` の `proposalTotal`・`someFromPrevious`・`allFromPrevious` を消す〕、②選ぶ欄を 3 つくっつけた切りかえボタンにする〔選んだものは薄いターコイズ〕、③表を整える〔数字の列の見出しを右寄せ、根拠を短く、未設定は「—」、参考の列を灰色に、合計の行を大きく〕を決めた。要件定義書 4.3 と設計書 2.3・4.7・5.14 を先に直した。
 - 2026年11月11日：「自動予算」ボタンを、Bootstrap の青から、アプリのターコイズ〔枠 2px、文字 #0B6E6B の太字、少し大きく〕に変え、メニューと同じ線のアイコン `sparkle` を左に置く〔`fragments/icons.html` は 12 個 → 13 個。絵文字は使わない、`aria-hidden`〕。設計書 2.3・アイコンの項を先に直した。
 - 2026年11月11日：ブラウザで見て、表をそろえた〔予算額の入力欄の右端を見出し・合計の数字の右端に、見出しはすべて同じ大きさと太さ、合計の行の数字は同じ色・大きさ・太さ〕。参考の 3 列は文字の大きさを本文と同じに戻し、色は `#56625F`〔背景 `#F6F8F8` との比 5.96、白との比 6.35〕。設計書 2.3 を先に直した。
+- 2026年11月11日：合計の JavaScript と「消える前の確認」を作った。`static/js/budget-total.js`〔約 110 行。`window.BudgetTotal` に `sumAmounts`・`formatTotal`・`anyChanged` を出す〕、`budgets/form.html`〔欄の `data-budget-amount`、合計の `data-budget-total`、固定の 2 文の `data-budget-not-number`・`data-budget-empty`、確認の対象のリンク 4 つの `data-budget-confirm`、`<script defer>`〕、`messages.properties`〔`budget.auto.confirm`〕。確認の文は HTML に書き、JavaScript は読むだけ。テスト 27 件を先に書いた〔22 件が失敗、5 件〔ほかの画面で読まない〕は今の動きを守るもので通った〕。Console のケース表は 8 章に書いた〔26 件。Node がないので、私は動かしていない。期待値は手で計算した〕。ブラウザでの確認〔8 章の Console と 11 番〕は、あなたが行う。issue 021 の `alert-warning` は 4 か所で正しい〔数え直した。5 つ目に見えたのは `bootstrap.min.css`〕。
 - 2026年11月11日：他の画面に Bootstrap の青が残っていないか調べた〔1 か所だけ：取引の複写のお知らせ `alert-info`〕。設計書の色の表に 1 行足し、`.alert-info` を白の地・左 4px のターコイズの線・本文の色にした。黄・緑・赤の `alert` は、別の issue〔[021](../issues/021-お知らせの色をそろえる.md)〕に回した。
