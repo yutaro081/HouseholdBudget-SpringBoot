@@ -58,7 +58,11 @@ class AuthLayoutTest {
 			String main = main(page(path));
 
 			assertThat(main).as(path).contains("季節ごとの家計簿", LEAD,
-					"自分のデータは、自分だけが見られます", "科目・取引先・支払方法は、自由に追加できます");
+					"このペースだと季節の終わりにいくらになるか、見込みが分かります",
+					"過去の実績から、予算の案を自動で作れます",
+					"自分のデータは、自分だけが見られます");
+			assertThat(main).as(path + "：差しかえた古いチェックは出さない").doesNotContain("科目・取引先・支払方法は、自由に追加できます");
+			assertThat(main).as(path + "：画面にない言葉「着地見込み」は使わない").doesNotContain("着地見込み");
 			assertThat(main).as(path + "：チップ").contains("<span class=\"auth-chip\">季節ごとの家計簿</span>");
 			assertThat(main).as(path + "：大きな見出しは h1。改行で 2 行")
 					.contains("<h1 class=\"auth-title\">予算と実績を、<br>3 か月ごとにふり返る。</h1>");
@@ -67,7 +71,7 @@ class AuthLayoutTest {
 	}
 
 	@Test
-	void theIntroductionHasTwoCheckIcons() throws Exception {
+	void theIntroductionHasThreeCheckIconsAndTheOwnDataLineComesLast() throws Exception {
 		for (String path : List.of("/login", "/register")) {
 			String intro = intro(page(path));
 			Matcher m = SVG.matcher(intro);
@@ -76,9 +80,14 @@ class AuthLayoutTest {
 				n++;
 				assertThat(m.group()).as(path).contains("M5 12l5 5 9-10", "stroke-width=\"2.6\"", "aria-hidden=\"true\"");
 			}
-			assertThat(n).as(path + "：チェックの印は 2 つ").isEqualTo(2);
-			assertThat(intro).as(path).containsPattern(
-					Pattern.compile("<span class=\"auth-check\"><svg[^>]*>.*?</svg></span>自分のデータは、自分だけが見られます", Pattern.DOTALL));
+			assertThat(n).as(path + "：チェックの印は 3 つ").isEqualTo(3);
+			for (String line : List.of("このペースだと季節の終わりにいくらになるか、見込みが分かります", "過去の実績から、予算の案を自動で作れます",
+					"自分のデータは、自分だけが見られます")) {
+				assertThat(intro).as(path + "：" + line).containsPattern(
+						Pattern.compile("<span class=\"auth-check\"><svg[^>]*>.*?</svg></span>" + line, Pattern.DOTALL));
+			}
+			assertThat(intro.indexOf("見込みが分かります")).as(path + "：1 つ目").isLessThan(intro.indexOf("予算の案を自動で作れます"));
+			assertThat(intro.indexOf("予算の案を自動で作れます")).as(path + "：2 つ目").isLessThan(intro.indexOf("自分のデータは、自分だけが見られます"));
 		}
 	}
 
