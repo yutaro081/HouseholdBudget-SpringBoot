@@ -163,6 +163,16 @@ class ComparisonControllerTest {
 		assertThat(body).contains("href=\"/comparison?year=2027&amp;season=spring\">次の季節");
 	}
 
+	/** issue 020：本体の幅は 1120px（table-wide） */
+	@Test
+	void mainIsTableWideSo1120px() throws Exception {
+		Owner a = createOwner("ctrlcmp6");
+
+		String body = open(a, null, null);
+
+		assertThat(body).contains("<main class=\"container table-wide\"");
+	}
+
 	/** 「戻る」で覚えていた画面を開き直す JavaScript（別ファイル。設計書 7.10）を、ログイン中の画面も読む */
 	@Test
 	void loadsTheBackReloadScriptAsAnExternalFile() throws Exception {

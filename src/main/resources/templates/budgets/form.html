@@ -4,7 +4,7 @@
 <body>
 <header th:replace="~{fragments/common :: header('budgets')}"></header>
 <!--/* auto：自動予算の中身（押していないときは null）。untilToday：直前の季節が今日を含むときだけ「（11/11 まで）」 */-->
-<main class="container"
+<main class="container table-wide"
       th:with="auto=${budgetView.auto},
                seasonName=#{|season.${budgetView.period.season.urlName}|},
                hasRows=${!#lists.isEmpty(budgetView.rows)},

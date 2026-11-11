@@ -115,6 +115,20 @@ class LayoutStyleSheetTest {
 		assertThat(inner).contains("max-width: 1120px", "margin: 0 auto", "flex-wrap: wrap");
 	}
 
+	/** issue 020：ヘッダーの中身に左右 12px の余白（本文の .container の余白と端を合わせる）。帯そのものの左右の余白は 0 */
+	@Test
+	void theHeaderContentHas12pxOnTheSidesToLineUpWithTheMainAndTheBandHasNone() throws Exception {
+		assertThat(rule(css(), ".app-header-inner")).contains("padding: 0 12px");
+		assertThat(rule(css(), ".app-header")).contains("padding: 8px 0");
+	}
+
+	/** issue 020：予算設定・予実比較の本体の幅は 1120px。ほかの画面は 960px のまま */
+	@Test
+	void theTableWideMainIs1120pxAndTheDefaultStaysAt960px() throws Exception {
+		assertThat(rule(css(), "main.table-wide")).contains("max-width: 1120px");
+		assertThat(rule(css(), "main.container")).contains("max-width: 960px");
+	}
+
 	@Test
 	void theLogoSquareIs34pxWithTheButtonGroundNotTheBaseTeal() throws Exception {
 		String logo = rule(css(), ".brand-logo");

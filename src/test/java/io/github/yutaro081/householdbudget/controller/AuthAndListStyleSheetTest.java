@@ -79,6 +79,17 @@ class AuthAndListStyleSheetTest {
 		assertThat(main).contains("flex: 1 1 auto", "display: flex", "flex-direction: column", "justify-content: center");
 	}
 
+	/** issue 020：縦の真ん中のしくみはそのままで、下にだけ余白を足して上へ押し上げる（高さ 768px 以下では足さない。768px 未満の幅では足さない） */
+	@Test
+	void from768pxTheAuthMainGetsExtraBottomPaddingThatGrowsWithTheScreenHeight() throws Exception {
+		String css = css();
+
+		String block = mediaBlocks(css, "(min-width: 768px)").stream().filter(b -> b.contains("body:has(> main.auth-main)")).findFirst().orElse("");
+		block = block.replaceAll("(?m)^\s+", "");
+		assertThat(rule(block, "body:has(> main.auth-main) main.auth-main")).contains("padding-bottom: calc(var(--hb-space-7) + max(0px, (100vh - 768px) * 0.5))", "justify-content: center");
+		assertThat(rule(css, "main.auth-main")).as("768px 未満は今のまま").doesNotContain("vh").contains("padding-bottom: var(--hb-space-7)");
+	}
+
 	/** せまいとき（768px 未満。カードが上に来る）は今のまま上から並べる：縦の中央にする規則を、768px 以上の外には書かない */
 	@Test
 	void belowTheTwoColumnWidthTheAuthMainStaysAtTheTop() throws Exception {

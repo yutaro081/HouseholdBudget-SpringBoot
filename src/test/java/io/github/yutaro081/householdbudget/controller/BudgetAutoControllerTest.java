@@ -334,6 +334,15 @@ class BudgetAutoControllerTest {
 		mockMvc.perform(request(year, season, "1")).andExpect(status().isNotFound());
 	}
 
+	/** issue 020：本体の幅は 1120px（table-wide） */
+	@Test
+	void mainIsTableWideSo1120px() throws Exception {
+		category("食費");
+		flush();
+
+		assertThat(page("2026", "winter", null)).contains("<main class=\"container table-wide\"");
+	}
+
 	/** auto だけで、年・季節がなければ、今の季節（2026 年 秋）。200 で案が入る */
 	@Test
 	void autoWithoutSeasonUsesTheCurrentSeason() throws Exception {
