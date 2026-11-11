@@ -1180,6 +1180,11 @@ dl.detail dd {
     border-top: 1px solid var(--hb-line);
 }
 
+/* 今週の科目のひとこと（issue 020）：今週の進み具合の注記の下の 1 文。本文の色（赤・青は意味の色なので使わない） */
+.top-week-pick {
+    margin: var(--hb-space-3) 0 0;
+}
+
 .top-weeks .top-meter {
     height: 10px;
     margin: var(--hb-space-2) 0 0;

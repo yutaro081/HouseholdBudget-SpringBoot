@@ -145,6 +145,8 @@
                     </li>
                 </ul>
                 <p class="legend">赤：週の予算を超過／青：週の予算の1/3以下／💮：週の予算内（1/3を超え、予算以下）／点線：今日／実線：予算</p>
+                <!--/* 今週の科目のひとこと（issue 020。要件4.5、設計書 5.15）：今週いちばん進んでいる科目の、季節の見込み。選び方と見込みは Service が決めた値（weekPick）。出さないときは null。科目名は th:text（th:utext は使わない。7.5）。赤・青は使わない */-->
+                <p class="top-week-pick" th:if="${top.weekPick != null}" th:text="#{top.weekPick(${top.weekPick.categoryName}, ${top.weekPick.forecastAmount}, ${top.weekPick.forecastPercent})}">今週いちばん進んでいる食費は、季節では約 58,000円（予算の 90%）の見込みです。</p>
             </section>
 
         </div>
