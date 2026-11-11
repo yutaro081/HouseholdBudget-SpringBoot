@@ -391,7 +391,7 @@ class BudgetControllerTest {
 				.andExpect(status().isOk()).andExpect(view().name("budgets/form")).andReturn());
 
 		assertThat(body).contains("name=\"rows[0].amount\" value=\"30000\"", "name=\"rows[1].amount\" value=\"0\"");
-		assertThat(body).doesNotContain("（この季節は未設定）");
+		assertThat(body).doesNotContain("未保存");
 		assertThat(body).contains("name=\"rows[0].categoryId\" value=\"" + a.food().getId() + "\"",
 				"name=\"rows[1].categoryId\" value=\"" + a.fare().getId() + "\"");
 	}
@@ -402,7 +402,7 @@ class BudgetControllerTest {
 		String body = body(mockMvc.perform(get("/budgets").param("year", "2026").param("season", "winter").with(asA)).andReturn());
 
 		assertThat(body).contains("name=\"rows[0].amount\" value=\"0\"", "name=\"rows[1].amount\" value=\"0\"");
-		assertThat(count(body, "（この季節は未設定）")).isEqualTo(2);
+		assertThat(count(body, "未保存")).isEqualTo(2);
 	}
 
 	@Test
@@ -410,7 +410,7 @@ class BudgetControllerTest {
 		String body = body(mockMvc.perform(get("/budgets").param("year", "2026").param("season", "summer").with(asA)).andReturn());
 
 		assertThat(body).contains("name=\"rows[0].amount\" value=\"0\"", "name=\"rows[1].amount\" value=\"0\"");
-		assertThat(count(body, "（この季節は未設定）")).isEqualTo(2);
+		assertThat(count(body, "未保存")).isEqualTo(2);
 	}
 
 	@Test
@@ -428,7 +428,7 @@ class BudgetControllerTest {
 	void pageHasMenuTitleFormAndNoCommasOrYenInInputs() throws Exception {
 		String body = body(mockMvc.perform(get("/budgets").param("year", "2026").param("season", "autumn").with(asA)).andReturn());
 
-		MenuAssertions.assertCurrentItem(body, "/budgets", "予算");   // メニューの「予算」（今開いている項目。issue 015、017）
+		MenuAssertions.assertCurrentItem(body, "/budgets", "予算設定");   // メニューの「予算設定」（今開いている項目。issue 015、017）
 		assertThat(body).contains("予算設定", "保存");
 		assertThat(body).as("保存ボタンがある（0件のテストが否定で確かめる文字列と同じ。Bootstrap のクラスが付いても成り立つ形）").contains(">保存</button>");
 		assertThat(body).contains("name=\"_csrf\"");
@@ -511,11 +511,11 @@ class BudgetControllerTest {
 	@Test
 	void marksDisappearAfterSavingAndSavingAgainDoesNotAddRows() throws Exception {
 		String before = body(mockMvc.perform(get("/budgets").param("year", "2026").param("season", "winter").with(asA)).andReturn());
-		assertThat(before).contains("（この季節は未設定）");
+		assertThat(before).contains("未保存");
 
 		mockMvc.perform(save("2026", "winter", a.food().getId(), 30000, a.fare().getId(), 0).with(asA)).andExpect(status().is3xxRedirection());
 		String after = body(mockMvc.perform(get("/budgets").param("year", "2026").param("season", "winter").with(asA)).andReturn());
-		assertThat(after).doesNotContain("（この季節は未設定）");
+		assertThat(after).doesNotContain("未保存");
 		assertThat(after).contains("name=\"rows[0].amount\" value=\"30000\"");
 
 		mockMvc.perform(save("2026", "winter", a.food().getId(), 31000, a.fare().getId(), 10).with(asA)).andExpect(status().is3xxRedirection());
@@ -658,8 +658,8 @@ class BudgetControllerTest {
 		assertThat(body).contains("予算額は整数で入力してください", "予算額は0円以上3,000,000円以下で入力してください");
 		assertThat(count(body, "class=\"field-error\"")).isEqualTo(2);
 		assertThat(body.indexOf("交通費")).isLessThan(body.indexOf("食費"));
-		assertThat(count(body, "（この季節は未設定）")).isEqualTo(1);             // 未設定なのは食費だけ
-		assertThat(body.indexOf("食費")).isLessThan(body.indexOf("（この季節は未設定）"));
+		assertThat(count(body, "未保存")).isEqualTo(1);             // 未設定なのは食費だけ
+		assertThat(body.indexOf("食費")).isLessThan(body.indexOf("未保存"));
 		assertThat(body).contains("name=\"rows[0].categoryId\" value=\"" + a.fare().getId() + "\"",
 				"name=\"rows[1].categoryId\" value=\"" + a.food().getId() + "\"");
 		assertThat(seasonOf(a, 2026, Season.WINTER)).hasSize(1);                  // 保存されていない（交通費の4000だけ）

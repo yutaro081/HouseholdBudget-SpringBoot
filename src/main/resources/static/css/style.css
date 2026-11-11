@@ -475,13 +475,9 @@ dl.detail dd {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
+    justify-content: center;
     gap: 8px;
     margin: 0 0 16px;
-}
-
-.season-hint {
-    color: var(--hb-text-sub);
-    font-size: var(--hb-font-size-small);
 }
 
 /* 予算設定の表：予算額の入力欄 */
@@ -490,11 +486,28 @@ dl.detail dd {
     text-align: right;
 }
 
-/* 「（この季節は未設定）」の印（設計書 2.3、Q26） */
+/* 「未保存」の小さなチップ（設計書 2.3、Q26。issue 019 で、「（この季節は未設定）」から変えた）。薄いターコイズは小さな印に使う */
 .unset-mark {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--hb-teal-pale);
+    color: var(--hb-teal-text);
+    font-size: var(--hb-font-size-small);
+    line-height: 1.5;
+}
+
+/* hidden の要素は、ほかのクラスの display に打ち消されずに、必ず隠す（合計の下の固定の文。ブラウザで見つかった不具合） */
+[hidden] {
+    display: none !important;
+}
+
+/* 表の下の、入力の範囲の一言 */
+.budget-hint {
+    margin: -8px 0 12px;
     color: var(--hb-text-sub);
     font-size: var(--hb-font-size-small);
-    margin-left: 6px;
 }
 
 /*
@@ -1200,8 +1213,23 @@ main.list-wide {
     font-size: var(--hb-font-size-small);
 }
 
-.auto-budget-choices a {
-    margin-right: 16px;
+/* 選ぶリンク 3 つと保存ボタンの行：保存ボタンは右端。リンクとは間をあける（押し間違えない） */
+.auto-budget-choices {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 32px;
+    margin: 12px 0;
+}
+
+.auto-budget-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+}
+
+.budget-save {
+    margin-left: auto;
 }
 
 .auto-budget-summary p {

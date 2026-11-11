@@ -95,7 +95,7 @@ class HeaderMarkupTest {
 		assertThat(nav.find()).isTrue();
 		String items = nav.group(1);
 
-		for (String label : List.of("トップ", "取引一覧", "科目", "取引先", "支払方法", "予算", "予実比較")) {
+		for (String label : List.of("トップ", "取引一覧", "科目", "取引先", "支払方法", "予算設定", "予実比較")) {
 			assertThat(items).as(label).containsPattern(Pattern.compile("<a [^>]*><svg[^>]*>.*?</svg>" + label + "</a>", Pattern.DOTALL));
 		}
 		assertThat(svgs(items)).as("メニューのアイコンは 7 つ").hasSize(7);

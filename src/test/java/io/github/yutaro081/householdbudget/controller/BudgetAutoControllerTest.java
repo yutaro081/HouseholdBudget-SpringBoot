@@ -386,14 +386,15 @@ class BudgetAutoControllerTest {
 
 		assertThat(headerCells(body)).hasSize(2);
 		assertThat(headerCells(body).get(0)).isEqualTo("科目");
+		assertThat(headerCells(body).get(1)).isEqualTo("予算額（円）");
 		assertThat(text).doesNotContain("自動予算は");
 		assertThat(text).doesNotContain("直前の季節（");
 		assertThat(text).doesNotContain("1. これで OK");
 		assertThat(text).doesNotContain("案の根拠");
 		assertThat(amountInputOf(body, "食費")).isEqualTo("0");
 		assertThat(amountInputOf(body, "娯楽")).isEqualTo("5000");
-		assertThat(rowOf(body, "食費").get(0)).contains("（この季節は未設定）");
-		assertThat(rowOf(body, "娯楽").get(0)).doesNotContain("（この季節は未設定）");
+		assertThat(rowOf(body, "食費").get(0)).contains("未保存");
+		assertThat(rowOf(body, "娯楽").get(0)).doesNotContain("未保存");
 	}
 
 	/** ふだんの画面にも、合計の行（保存済み 5,000 円＋0 円×5）と、ふだんは隠した 2 つの固定の文 */
@@ -479,6 +480,8 @@ class BudgetAutoControllerTest {
 
 		assertThat(plain(body)).contains("案を作れる材料がありません");
 		assertThat(amountInputOf(body, "食費")).isEqualTo("7000");
+		assertThat(headerCells(body).get(1)).as("直前の季節がないときの見出し").isEqualTo("直前の季節の予算");
+		assertThat(headerCells(body).get(2)).isEqualTo("直前の季節の実績");
 	}
 
 	/** 科目が 0 件のときは、ボタンも一言も出さない（表も保存ボタンもない画面なので） */
@@ -635,10 +638,10 @@ class BudgetAutoControllerTest {
 
 		assertThat(header).hasSize(5);
 		assertThat(header.get(0)).isEqualTo("科目");
-		assertThat(header.get(1)).isEqualTo("直前の季節の予算");
-		assertThat(header.get(2)).isEqualTo("直前の季節の実績");
-		assertThat(header.get(3)).isEqualTo("案の根拠");
-		assertThat(header.get(4)).startsWith("予算額");
+		assertThat(header.get(1)).isEqualTo("2026 年 秋の予算");
+		assertThat(header.get(2)).isEqualTo("2026 年 秋の実績（11/11 まで）");   // 今日を含む季節だけ、日付を見出しに 1 回
+		assertThat(header.get(3)).isEqualTo("案の根拠（過去 3 年の冬）");
+		assertThat(header.get(4)).isEqualTo("予算額（円）");
 	}
 
 	/** 科目の行は、すべて 5 つのセル（合計の行も）。科目の登録順 */
@@ -650,7 +653,7 @@ class BudgetAutoControllerTest {
 
 		assertThat(rows).hasSize(7);
 		assertThat(rows).allSatisfy(cells -> assertThat(cells).hasSize(5));
-		assertThat(rows.stream().map(cells -> cells.get(0).replace("（この季節は未設定）", "").trim()).toList())
+		assertThat(rows.stream().map(cells -> cells.get(0).replace("未保存", "").trim()).toList())
 				.containsExactly("食費", "交通費", "雑費", "医療費", "日用品", "娯楽", "合計");
 	}
 
@@ -661,13 +664,12 @@ class BudgetAutoControllerTest {
 
 		String body = winter("1");
 
-		assertRow(body, "食費", "95,000", "49,200（11/11 まで）", "約 62,200", "2023〜2025 年の冬の中央値 90,000 円（3 年）", "99000");
-		assertRow(body, "交通費", "40,000", "5,600（11/11 まで）", "約 7,100", "2023〜2025 年の冬の中央値 38,000 円（3 年）", "42000");
-		assertRow(body, "雑費", "30,000", "22,000（11/11 まで）", "約 27,900", "2023〜2025 年の冬の中央値 24,000 円（3 年）", "27000");
-		assertRow(body, "医療費", "未設定", "3,600（11/11 まで）", "約 4,600",
-				"2026 年 秋のペース 4,600 円（過去の冬の実績がないため）", "5000");
-		assertRow(body, "日用品", "8,000", "0（11/11 まで）", null, "2026 年 秋の予算 8,000 円（実績がないため）", "8000");
-		assertRow(body, "娯楽", "未設定", "0（11/11 まで）", null, "材料なし（今の値のまま）", "5000");
+		assertRow(body, "食費", "95,000", "49,200", "ペース 約 62,200", "中央値 90,000 円（3 年）", "99000");
+		assertRow(body, "交通費", "40,000", "5,600", "ペース 約 7,100", "中央値 38,000 円（3 年）", "42000");
+		assertRow(body, "雑費", "30,000", "22,000", "ペース 約 27,900", "中央値 24,000 円（3 年）", "27000");
+		assertRow(body, "医療費", "未設定", "3,600", "ペース 約 4,600", "秋のペース 4,600 円", "5000");
+		assertRow(body, "日用品", "8,000", "0", null, "秋の予算 8,000 円", "8000");
+		assertRow(body, "娯楽", "未設定", "0", null, "材料なし（今の値のまま）", "5000");
 	}
 
 	private void assertRow(String body, String name, String previousBudget, String actual, String pace, String basis,
@@ -677,8 +679,9 @@ class BudgetAutoControllerTest {
 		if (pace == null) {
 			assertThat(cells.get(2)).as(name + " 直前の実績").isEqualTo(actual);
 		} else {
-			assertThat(cells.get(2)).as(name + " 直前の実績").startsWith(actual).endsWith("このペースなら " + pace);
+			assertThat(cells.get(2)).as(name + " 直前の実績").startsWith(actual).endsWith(pace);
 		}
+		assertThat(cells.get(2)).as(name + " 日付は各行に出さない（見出しに 1 回だけ）").doesNotContain("11/11").doesNotContain("まで");
 		assertThat(cells.get(3)).as(name + " 根拠").isEqualTo(basis);
 		assertThat(amountInputOf(body, name)).as(name + " 入力欄").isEqualTo(input);
 	}
@@ -690,7 +693,7 @@ class BudgetAutoControllerTest {
 
 		String body = winter("1");
 
-		assertThat(body).containsPattern("(?s)<small[^>]*>\\s*このペースなら 約 62,200\\s*</small>");
+		assertThat(body).containsPattern("(?s)<small[^>]*>\\s*ペース 約 62,200\\s*</small>");
 	}
 
 	/** 合計の行：直前の予算の合計（設定済みの科目だけ）、実績の合計とそのペース（合計から出す。科目の足し算とは 100 円ちがう）、案の合計 */
@@ -701,7 +704,7 @@ class BudgetAutoControllerTest {
 		List<String> total = rowOf(winter("1"), "合計");
 
 		assertThat(total.get(1)).isEqualTo("173,000");
-		assertThat(total.get(2)).startsWith("80,400（11/11 まで）").endsWith("このペースなら 約 101,700");
+		assertThat(total.get(2)).startsWith("80,400").endsWith("ペース 約 101,700").doesNotContain("11/11");
 		assertThat(total.get(4)).contains("186,000");
 	}
 
@@ -717,7 +720,7 @@ class BudgetAutoControllerTest {
 		List<String> row = rowOf(body, "食費");
 		assertThat(row.get(1)).isEqualTo("未設定");
 		assertThat(row.get(2)).isEqualTo("15,200");
-		assertThat(row.get(3)).isEqualTo("2026 年 夏の実績 15,200 円（過去の秋の実績がないため）");
+		assertThat(row.get(3)).isEqualTo("夏の実績 15,200 円");
 		List<String> total = rowOf(body, "合計");
 		assertThat(total.get(1)).isEqualTo("未設定");
 		assertThat(total.get(2)).isEqualTo("15,200");
@@ -732,7 +735,7 @@ class BudgetAutoControllerTest {
 		spend(food, p(2025, Season.WINTER), 23_000);
 		flush();
 
-		assertThat(rowOf(winter("1"), "食費").get(3)).isEqualTo("2024〜2025 年の冬の平均 21,500 円（2 年）");
+		assertThat(rowOf(winter("1"), "食費").get(3)).isEqualTo("平均 21,500 円（2 年）");
 	}
 
 	/** 1 つなら「去年の冬」〔その年が 1 年前〕。年が飛ぶときは「2023・2025 年の冬の平均」 */
@@ -741,11 +744,11 @@ class BudgetAutoControllerTest {
 		Category food = category("食費");
 		spend(food, p(2025, Season.WINTER), 22_050);
 		flush();
-		assertThat(rowOf(winter("1"), "食費").get(3)).isEqualTo("去年の冬 22,050 円");
+		assertThat(rowOf(winter("1"), "食費").get(3)).isEqualTo("去年 22,050 円");
 
 		spend(food, p(2023, Season.WINTER), 20_000);
 		flush();
-		assertThat(rowOf(winter("1"), "食費").get(3)).isEqualTo("2023・2025 年の冬の平均 21,025 円（2 年）");
+		assertThat(rowOf(winter("1"), "食費").get(3)).isEqualTo("平均 21,025 円（2023・2025 年）");
 	}
 
 	// ================================================================
@@ -795,6 +798,206 @@ class BudgetAutoControllerTest {
 		assertThat(body).containsPattern("(?s)auto=1\"[^>]*>\\s*1\\. これで OK\\s*</a>");
 		assertThat(body).containsPattern("(?s)auto=2\"[^>]*>\\s*2\\. 節約したい（さらに 10% 減らす）\\s*</a>");
 		assertThat(body).containsPattern("(?s)auto=3\"[^>]*>\\s*3\\. 上乗せしたい（さらに 10% 増やす）\\s*</a>");
+	}
+
+	// ================================================================
+	// ブラウザで見つかった直し（hidden、チップ、並び、表の下の小さな一言）
+	// ================================================================
+
+	/** hidden の文は、display を指定するクラス（d-block など）を持たない。持つと hidden が打ち消され、ふだんから赤字で出る */
+	@ParameterizedTest(name = "auto={0} でも、hidden の文に display のクラスを付けない")
+	@ValueSource(strings = { "", "1" })
+	void hiddenWarningsHaveNoDisplayClass(String auto) throws Exception {
+		designExample();
+
+		String body = winter(auto.isEmpty() ? null : auto);
+
+		Matcher tags = Pattern.compile("<[a-z]+(?:\\s[^>]*)?\\shidden(?=[\\s>/=])[^>]*>").matcher(body);
+		int n = 0;
+		while (tags.find()) {
+			n++;
+			assertThat(tags.group()).as("hidden の要素").doesNotContainPattern("\\bd-(block|flex|inline|inline-block|inline-flex|grid|table|table-cell|table-row)\\b");
+		}
+		assertThat(n).as("hidden の要素は 2 つ").isEqualTo(2);
+	}
+
+	/** 自作の CSS に、[hidden] を display: none !important にする規則がある（クラスで打ち消されないように） */
+	@Test
+	void styleSheetKeepsHiddenHidden() throws Exception {
+		String css = new String(new org.springframework.core.io.ClassPathResource("static/css/style.css").getContentAsByteArray(),
+				java.nio.charset.StandardCharsets.UTF_8);
+
+		assertThat(css).containsPattern("(?s)\\[hidden\\][^{]*\\{[^}]*display:\\s*none\\s*!important");
+	}
+
+	/** 「未保存」は小さなチップ（ふだんの画面にも出す）。保存済みの行には出さない。古い言い方は残さない */
+	@Test
+	void unsavedChip() throws Exception {
+		designExample();
+
+		String body = winter(null);
+
+		assertThat(count(body, "未保存")).isEqualTo(5);   // 保存済みの娯楽以外の 5 科目
+		assertThat(body).containsPattern("<span class=\"[^\"]*unset-mark[^\"]*\">\\s*未保存\\s*</span>");
+		assertThat(body).doesNotContain("この季節は未設定");
+		assertThat(rowOf(body, "娯楽").get(0)).doesNotContain("未保存");
+	}
+
+	private static int count(String text, String part) {
+		int n = 0;
+		for (int i = text.indexOf(part); i >= 0; i = text.indexOf(part, i + part.length())) {
+			n++;
+		}
+		return n;
+	}
+
+	/** 「0〜3,000,000 の整数」は、見出しではなく、表の下に小さく（ふだんの画面にも、案を入れたあとにも） */
+	@ParameterizedTest(name = "auto={0}：入力の範囲は表の下に小さく")
+	@ValueSource(strings = { "", "1" })
+	void amountRangeHintIsBelowTheTable(String auto) throws Exception {
+		designExample();
+
+		String body = winter(auto.isEmpty() ? null : auto);
+
+		assertThat(headerCells(body).get(headerCells(body).size() - 1)).doesNotContain("3000000").doesNotContain("0〜");
+		int table = body.indexOf("</table>");
+		assertThat(table).isPositive();
+		assertThat(body.indexOf("0〜3,000,000 の整数")).isGreaterThan(table);
+		assertThat(body).containsPattern("(?s)<small[^>]*>[^<]*0〜3,000,000 の整数");
+		assertThat(body.indexOf("0〜3,000,000 の整数")).as("表の下（保存は上にある）").isLessThan(body.indexOf("</form>", table));
+	}
+
+	/** 並びは、ボタン（と一言）→ 上の 3 行の文 → 選ぶリンク 3 つ → 表 */
+	@Test
+	void orderIsButtonThenThreeLinesThenChoicesThenTable() throws Exception {
+		designExample();
+
+		String body = winter("1");
+
+		int button = body.indexOf("手で直した額は");
+		int line1 = body.indexOf("直前の季節（2026 年 秋）は");
+		int line3 = body.indexOf("自動予算は");
+		int choices = body.indexOf("1. これで OK");
+		int table = body.indexOf("budget-table");
+		assertThat(button).isPositive();
+		assertThat(button).isLessThan(line1);
+		assertThat(line1).isLessThan(line3);
+		assertThat(line3).isLessThan(choices);
+		assertThat(choices).isLessThan(table);
+	}
+
+	/** 「ペース」は実績の下に 1 行で（折り返さない目印の nowrap。改行 <br> を入れない） */
+	@Test
+	void paceIsOneLine() throws Exception {
+		designExample();
+
+		String body = winter("1");
+
+		assertThat(body).containsPattern("(?s)<small[^>]*nowrap[^>]*>\\s*ペース 約 62,200\\s*</small>");
+	}
+
+	// ================================================================
+	// 「保存」ボタンは上だけ（設計書 2.3）。表を囲むフォームの外から、form 属性で同じフォームを送る
+	// ================================================================
+
+	private static final Pattern SAVE_BUTTON = Pattern.compile("(?s)<button[^>]*>\\s*保存\\s*</button>");
+
+	private static String saveButtonTag(String body) {
+		Matcher m = SAVE_BUTTON.matcher(body);
+		assertThat(m.find()).as("保存ボタンがある").isTrue();
+		String tag = m.group();
+		assertThat(m.find()).as("保存ボタンは1つだけ（表の下にはない）").isFalse();
+		return tag;
+	}
+
+	/** 保存ボタンは 1 つで、表より前（上）。表を囲むフォームの外にあり、form 属性でそのフォームを指す。塗りのボタン */
+	@ParameterizedTest(name = "auto={0}：保存ボタンは上に 1 つ、同じフォームを送る")
+	@ValueSource(strings = { "", "1", "2", "3" })
+	void saveButtonIsOnlyAtTheTopAndSubmitsTheSameForm(String auto) throws Exception {
+		designExample();
+
+		String body = winter(auto.isEmpty() ? null : auto);
+		String tag = saveButtonTag(body);
+
+		Matcher formTag = Pattern.compile("<form[^>]*\\bid=\"([^\"]+)\"[^>]*method=\"post\"[^>]*>|<form[^>]*method=\"post\"[^>]*\\bid=\"([^\"]+)\"[^>]*>").matcher(body);
+		assertThat(formTag.find()).as("保存のフォーム（POST）に id がある").isTrue();
+		String formId = formTag.group(1) != null ? formTag.group(1) : formTag.group(2);
+		assertThat(tag).contains("type=\"submit\"").contains("form=\"" + formId + "\"").contains("btn-primary");
+		assertThat(body.indexOf(tag)).as("表より前").isLessThan(body.indexOf("budget-table"));
+		assertThat(body.indexOf(tag)).as("フォームの外（フォームより前）").isLessThan(body.indexOf(formTag.group()));
+		assertThat(body.substring(body.indexOf("</table>"))).as("表の下に保存ボタンはない").doesNotContain(">保存</button>");
+		// CSRF のトークンは、保存のフォームの中にあり、上のボタンからも付く（同じフォームを送るため）
+		String formBody = body.substring(body.indexOf(formTag.group()), body.indexOf("</form>", body.indexOf(formTag.group())));
+		assertThat(formBody).contains("name=\"_csrf\"");
+		assertThat(formBody).as("入力欄はそのフォームの中").contains("rows[0].amount");
+	}
+
+	/** ふだんの画面：保存ボタンは「自動予算」ボタンと同じ行（間に行の終わりがない）の、そのあと（右端）。リンクの行はない */
+	@Test
+	void saveButtonIsOnTheSameRowAsTheAutoButtonOnTheRight() throws Exception {
+		designExample();
+
+		String body = winter(null);
+		String save = saveButtonTag(body);
+		String button = autoButtonTag(body);
+
+		int from = body.indexOf(button);
+		int to = body.indexOf(save);
+		assertThat(to).isGreaterThan(from);
+		assertThat(body.substring(from, to)).as("同じ行（同じ入れ物の中）").doesNotContain("</div>");
+		assertThat(save).as("右端").contains("budget-save");
+	}
+
+	/** 案を入れたあと：保存ボタンは、1〜3 のリンクと同じ行の右端。リンクのあと。塗りのボタン。リンクとは間をあける（CSS） */
+	@Test
+	void saveButtonIsOnTheSameRowAsTheChoiceLinksOnTheRight() throws Exception {
+		designExample();
+
+		String body = winter("2");
+		String save = saveButtonTag(body);
+
+		int lastLink = body.indexOf("3. 上乗せしたい");
+		int to = body.indexOf(save);
+		assertThat(to).as("3 つめのリンクのあと").isGreaterThan(lastLink);
+		assertThat(body.substring(lastLink, to)).as("同じ行（同じ入れ物の中）").doesNotContain("</div>").doesNotContain("</p>");
+		assertThat(save).contains("btn-primary").contains("budget-save");
+		assertThat(autoButtonTag(body)).isNotNull();
+		assertThat(body.indexOf(autoButtonTag(body))).as("「自動予算」ボタンの行とは別の行").isLessThan(body.indexOf("直前の季節（"));
+	}
+
+	/** 自動予算のボタンを出さない画面（2000 年）や、材料がなくて選ぶリンクがない画面でも、保存ボタンは上に 1 つある */
+	@Test
+	void saveButtonStillExistsWithoutTheAutoButtonOrTheChoiceLinks() throws Exception {
+		Category food = category("食費");
+		budget(food, p(2000, Season.SPRING), 7_000);
+		flush();
+
+		String noButton = page("2000", "spring", null);
+		saveButtonTag(noButton);
+		assertThat(autoButtonTag(noButton)).isNull();
+		assertThat(noButton.indexOf(">保存</button>")).isLessThan(noButton.indexOf("budget-table"));
+
+		String noMaterial = page("2000", "spring", "1");
+		saveButtonTag(noMaterial);
+		assertThat(noMaterial.indexOf(">保存</button>")).isLessThan(noMaterial.indexOf("budget-table"));
+	}
+
+	/** 科目が 0 件のときは、保存ボタンもフォームも出さない（今までどおり） */
+	@Test
+	void noSaveButtonWithoutCategories() throws Exception {
+		String body = winter(null);
+
+		assertThat(body).doesNotContain(">保存</button>").doesNotContain("action=\"/budgets?");   // ログアウトも POST なので、保存の URL で見分ける
+	}
+
+	/** 保存ボタンを右端に寄せ、リンクと間をあける規則が、自作の CSS にある */
+	@Test
+	void styleSheetPutsTheSaveButtonOnTheRight() throws Exception {
+		String css = new String(new org.springframework.core.io.ClassPathResource("static/css/style.css").getContentAsByteArray(),
+				java.nio.charset.StandardCharsets.UTF_8);
+
+		assertThat(css).containsPattern("(?s)\\.budget-save\\s*\\{[^}]*margin-left:\\s*auto");
+		assertThat(css).containsPattern("(?s)\\.auto-budget-choices\\s*\\{[^}]*gap:");
 	}
 
 	// ================================================================
