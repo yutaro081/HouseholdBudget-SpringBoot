@@ -128,6 +128,15 @@ class TopLayoutTest {
 		return c;
 	}
 
+	/**
+	 * 「記録は、ずっと昔に始めた」状態にする（issue 020）。どの計算の範囲（過去 3 年、12 季節、直前の季節）にも入らない昔の日付（2001 年 春。DB の下限は 2000-03-01）に、1 円の取引を足す。
+	 * 最初の取引の日が季節の途中だと、数え始めの日がその日になる。このテストは、季節の初日から数える前提で書いてあるので、
+	 * 最初の取引の日を、季節より前にそろえる。ほかの数字（季節の実績、記録のある年など）は変わらない。
+	 */
+	private void recordingStartedLongAgo(Owner o, Category c) {
+		spend(o, c, LocalDate.of(2001, 3, 1), 1);
+	}
+
 	private void spend(Owner o, Category c, LocalDate date, int amount) {
 		transactionRepository.save(new Transaction(o.id(), date, amount, c, null, o.vendor(), o.paymentMethod()));
 	}
@@ -218,11 +227,11 @@ class TopLayoutTest {
 		// 「残り」は補足の灰色のまま、金額だけを太字（強調）にする（issue 017 の見直し）
 		assertThat(body).contains("<p class=\"top-season-remaining\">残り <strong>45,674円</strong></p>");
 		assertThat(body).contains("予算のうち 65% を使った");
-		assertThat(body).contains("縦の線は『今日』（季節の 76%）");
+		assertThat(body).as("「今日」の名前は、棒の上（issue 020 の見直し。メーターの上の説明「縦の線は…」は、なくした）").contains("今日（76%）");
 	}
 
 	@Test
-	void whenOverTheBudgetThePercentageGoesPastOneHundredAndTheBarStopsAtOneHundred() throws Exception {
+	void whenOverTheBudgetThePercentageGoesPastOneHundredAndTheBarShowsTheRedPartPastTheBudget() throws Exception {
 		Owner a = createOwner("toplay06");
 		Category food = category(a, "食費", 30_000);
 		spend(a, food, LocalDate.of(2026, 9, 3), 36_000);
@@ -230,7 +239,8 @@ class TopLayoutTest {
 		String body = topBody(a);
 
 		assertThat(body).contains("予算のうち 120% を使った");
-		assertThat(body).contains("width: 100.0%");
+		// issue 020：予算（100％）は棒の 70％ の位置。120％ → 通常色は 70.0％ まで、赤は 70.0％ から 14.0％（棒は 100％ で止まらず、右端の約 143％ まで伸びる）
+		assertThat(body).contains("style=\"width: 70.0%\"", "style=\"left: 70.0%; width: 14.0%\"");
 	}
 
 	@Test
@@ -314,7 +324,7 @@ class TopLayoutTest {
 
 		assertThat(right).contains("<ul class=\"top-weeks");
 		assertThat(right).doesNotContain("<table");
-		assertThat(right).contains("縦の線は『今日』（週の 1 日目）");
+		assertThat(right).contains("点線は『今日』（週の 1 日目）").doesNotContain("縦の線は『今日』");
 		assertThat(right).contains("週の予算＝今日が入っている季節の予算 ÷ 13（100円単位で切り上げ）");
 		int total = right.indexOf("top-week-total");
 		assertThat(total).isGreaterThanOrEqualTo(0);
@@ -380,12 +390,14 @@ class TopLayoutTest {
 	void theLandingSentenceIsShownBelowTheMeterInsideTheSeasonCard() throws Exception {
 		Owner a = createOwner("toplay20");
 		Category food = category(a, "食費", 130_000);
+		recordingStartedLongAgo(a, food);
 		spend(a, food, SUNDAY, 84_326);       // 65％ ／ 日の進み方 76％。見込み：112,310.62… → 112,400（予算の 86％）
 
 		String body = topBody(a);
 
-		assertThat(seasonCard(body)).contains("季節は 76% 過ぎて、予算は 65% 使いました。このペースだと、季節の終わりには約 112,400 円（予算の 86%）の見込みです。");
-		assertThat(body.indexOf("このペースだと")).isGreaterThan(body.indexOf("縦の線は『今日』"));
+		// issue 020 の見直し：文は 2 行に分かれ、「約 ○円（予算の ○%）」の書き方が変わった（タグを除いた文字で確かめる）
+		assertThat(seasonCard(body).replaceAll("<[^>]+>", "")).contains("季節は 76% 過ぎて、予算は 65% 使いました。このペースだと、季節の終わりには 約 112,400円（予算の 86%）の見込みです。");
+		assertThat(body.indexOf("このペースだと")).isGreaterThan(body.indexOf("top-meter-today-label"));
 		assertThat(body.indexOf("このペースだと")).isLessThan(body.indexOf("top-columns"));
 	}
 
@@ -509,15 +521,16 @@ class TopLayoutTest {
 	void theLandingSentenceShowsTheAmountAndThePercentOfTheBudgetEvenAbove100Percent() throws Exception {
 		Owner a = createOwner("toplay21");
 		Category food = category(a, "食費", 100_000);
+		recordingStartedLongAgo(a, food);
 
 		spend(a, food, SUNDAY, 76_000);
-		assertThat(seasonCard(topBody(a))).contains("季節は 76% 過ぎて、予算は 76% 使いました。このペースだと、季節の終わりには約 100,300 円（予算の 100%）の見込みです。");
+		assertThat(seasonCard(topBody(a)).replaceAll("<[^>]+>", "")).contains("季節は 76% 過ぎて、予算は 76% 使いました。このペースだと、季節の終わりには 約 100,300円（予算の 100%）の見込みです。");
 
 		spend(a, food, SUNDAY, 14_000);       // 合計 90,000
-		assertThat(seasonCard(topBody(a))).contains("季節は 76% 過ぎて、予算は 90% 使いました。このペースだと、季節の終わりには約 117,700 円（予算の 118%）の見込みです。");
+		assertThat(seasonCard(topBody(a)).replaceAll("<[^>]+>", "")).contains("季節は 76% 過ぎて、予算は 90% 使いました。このペースだと、季節の終わりには 約 117,700円（予算の 118%）の見込みです。");
 
 		spend(a, food, SUNDAY, 30_000);       // 合計 120,000
-		assertThat(seasonCard(topBody(a))).contains("季節は 76% 過ぎて、予算は 120% 使いました。このペースだと、季節の終わりには約 154,900 円（予算の 155%）の見込みです。");
+		assertThat(seasonCard(topBody(a)).replaceAll("<[^>]+>", "")).contains("季節は 76% 過ぎて、予算は 120% 使いました。このペースだと、季節の終わりには 約 154,900円（予算の 155%）の見込みです。");
 	}
 
 	/** 5 ポイントの判定（ゆっくりめ・ほぼ予定どおり・速め）は、なくした（issue 018）。戻っていないこと */
@@ -554,10 +567,10 @@ class TopLayoutTest {
 
 		String card = seasonCard(topBody(a));
 		java.util.regex.Matcher used = java.util.regex.Pattern.compile("予算のうち ([0-9]+)% を使った").matcher(card);
-		java.util.regex.Matcher elapsed = java.util.regex.Pattern.compile("季節の ([0-9]+)%").matcher(card);
+		java.util.regex.Matcher elapsed = java.util.regex.Pattern.compile("今日（([0-9]+)%）").matcher(card);
 		java.util.regex.Matcher sentence = java.util.regex.Pattern
-				.compile("季節は ([0-9]+)% 過ぎて、予算は ([0-9]+)% 使いました。このペースだと、季節の終わりには約 ([0-9,]+) 円（予算の ([0-9]+)%）の見込みです。")
-				.matcher(card);
+				.compile("季節は ([0-9]+)% 過ぎて、予算は ([0-9]+)% 使いました。このペースだと、季節の終わりには 約 ([0-9,]+)円（予算の ([0-9]+)%）の見込みです。")
+				.matcher(card.replaceAll("<[^>]+>", ""));
 
 		assertThat(used.find()).isTrue();
 		assertThat(elapsed.find()).isTrue();
@@ -574,11 +587,13 @@ class TopLayoutTest {
 	void theSentenceHasNoColorClassAndNoAlertWords() throws Exception {
 		Owner a = createOwner("toplay25");
 		Category food = category(a, "食費", 100_000);
+		recordingStartedLongAgo(a, food);
 		spend(a, food, SUNDAY, 90_000);
 
 		String body = topBody(a);
 
-		assertThat(body).containsPattern("<p class=\"top-season-pace\">季節は 76% 過ぎて、予算は 90% 使いました。このペースだと、季節の終わりには約 117,700 円（予算の 118%）の見込みです。</p>");
+		assertThat(body).contains("<p class=\"top-season-pace\">");
+		assertThat(body.replaceAll("<[^>]+>", "")).contains("季節は 76% 過ぎて、予算は 90% 使いました。このペースだと、季節の終わりには 約 117,700円（予算の 118%）の見込みです。");
 		assertThat(body).doesNotContain("このままだと", "超えそう", "着地", "上回ります");   // 上回ります〔予実比較の 1 行〕は、トップには出さない（Q018-2 の b）
 	}
 

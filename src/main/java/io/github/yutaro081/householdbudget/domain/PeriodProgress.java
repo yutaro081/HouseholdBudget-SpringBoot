@@ -72,18 +72,4 @@ public final class PeriodProgress {
 		return dayNumber * FULL / totalDays;
 	}
 
-	/**
-	 * 棒の長さ（1000分率）＝ 実績 × 1000 ÷ 予算（切り捨て）。100％（1000）で止める。
-	 * 予算が未設定（null）なら 0（棒は出さない）。予算が0円なら、実績があれば 1000、なければ 0。
-	 */
-	public static int barPermille(Long budget, long actual) {
-		if (budget == null) {
-			return 0;
-		}
-		if (budget == 0) {
-			return actual > 0 ? FULL : 0;
-		}
-		return (int) Math.min(FULL, actual * FULL / budget);
-	}
-
 }

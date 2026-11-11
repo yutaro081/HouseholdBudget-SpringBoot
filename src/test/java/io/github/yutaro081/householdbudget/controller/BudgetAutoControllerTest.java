@@ -285,6 +285,17 @@ class BudgetAutoControllerTest {
 		throw new AssertionError("行がない：" + label);
 	}
 
+	/** 科目名（または「合計」）で始まる行の HTML（&lt;tr&gt; の中身）。印（クラス）の場所を調べるために使う */
+	private static String rowHtml(String html, String label) {
+		Matcher rowMatcher = Pattern.compile("(?s)<tr[^>]*>(.*?)</tr>").matcher(budgetTable(html));
+		while (rowMatcher.find()) {
+			if (plain(rowMatcher.group(1)).startsWith(label)) {
+				return rowMatcher.group(1);
+			}
+		}
+		throw new AssertionError("行がない：" + label);
+	}
+
 	/** 「自動予算」ボタン（auto=1 への <a>）の開始タグ。なければ null */
 	private static String autoButtonTag(String html) {
 		Matcher m = Pattern.compile("(?s)(<a[^>]*href=\"" + Pattern.quote(BUTTON_HREF) + "\"[^>]*>)(?:(?!</a>).)*自動予算(?:(?!</a>).)*</a>")
@@ -332,6 +343,15 @@ class BudgetAutoControllerTest {
 	@CsvSource(value = { "1999|winter", "2101|winter", "2026|monsoon", "abc|winter", "2026|", "|winter" }, delimiter = '|')
 	void badSeasonWithValidAutoIs404(String year, String season) throws Exception {
 		mockMvc.perform(request(year, season, "1")).andExpect(status().isNotFound());
+	}
+
+	/** issue 020：本体の幅は 1280px（table-wide） */
+	@Test
+	void mainIsTableWideSo1280px() throws Exception {
+		category("食費");
+		flush();
+
+		assertThat(page("2026", "winter", null)).contains("<main class=\"container table-wide\"");
 	}
 
 	/** auto だけで、年・季節がなければ、今の季節（2026 年 秋）。200 で案が入る */
@@ -480,8 +500,8 @@ class BudgetAutoControllerTest {
 
 		assertThat(plain(body)).contains("案を作れる材料がありません");
 		assertThat(amountInputOf(body, "食費")).isEqualTo("7000");
-		assertThat(headerCells(body).get(1)).as("直前の季節がないときの見出し").isEqualTo("直前の季節の予算");
-		assertThat(headerCells(body).get(2)).isEqualTo("直前の季節の実績");
+		assertThat(headerCells(body).get(4)).as("直前の季節がないときの見出し").isEqualTo("直前の季節の予算");
+		assertThat(headerCells(body).get(3)).isEqualTo("直前の季節の実績");
 	}
 
 	/** 科目が 0 件のときは、ボタンも一言も出さない（表も保存ボタンもない画面なので） */
@@ -528,7 +548,7 @@ class BudgetAutoControllerTest {
 
 		assertThat(text).doesNotContain("をもとにした自動予算は").doesNotContain("自動予算は");
 		assertThat(text).doesNotContain("一部の科目は").doesNotContain("すべての科目が").doesNotContain("直前の季節をもとにしています");
-		assertThat(rowOf(body, "合計").get(4)).as("合計は合計の行で分かる").contains(auto.equals("1") ? "186,000" : (auto.equals("2") ? "170,000" : "205,000"));
+		assertThat(rowOf(body, "合計").get(2)).as("合計は合計の行で分かる").contains(auto.equals("1") ? "186,000" : (auto.equals("2") ? "170,000" : "205,000"));
 	}
 
 
@@ -558,7 +578,7 @@ class BudgetAutoControllerTest {
 		assertThat(text).contains(sentence);
 		assertThat(text).contains("※ 過去の冬の額は、だいたい 2 年前の水準です。");
 		assertThat(text).doesNotContain("自動予算は");
-		assertThat(rowOf(winter("1"), "合計").get(4)).contains(total);
+		assertThat(rowOf(winter("1"), "合計").get(2)).contains(total);
 		assertThat(text).contains("直前の季節（2026 年 秋）は予算 未設定・実績 0 円（11/11 まで）でした。");
 	}
 
@@ -633,7 +653,7 @@ class BudgetAutoControllerTest {
 		assertThat(amountInputOf(body, "食費")).isEqualTo("7000");
 		assertThat(amountInputOf(body, "交通費")).isEqualTo("0");
 		assertThat(choiceTag(body, 2)).isNull();
-		assertThat(rowOf(body, "食費").get(3)).isEqualTo("材料なし");
+		assertThat(rowOf(body, "食費").get(1)).isEqualTo("材料なし");
 	}
 
 	// ================================================================
@@ -649,10 +669,157 @@ class BudgetAutoControllerTest {
 
 		assertThat(header).hasSize(5);
 		assertThat(header.get(0)).isEqualTo("科目");
-		assertThat(header.get(1)).isEqualTo("2026 年 秋の予算");
-		assertThat(header.get(2)).isEqualTo("2026 年 秋の実績（11/11 まで）");   // 今日を含む季節だけ、日付を見出しに 1 回
-		assertThat(header.get(3)).isEqualTo("根拠（過去 3 年の冬の中央値）");
-		assertThat(header.get(4)).isEqualTo("予算額（円）");
+		assertThat(header.get(4)).isEqualTo("秋の予算");
+		assertThat(header.get(3)).isEqualTo("秋の実績（11/11 まで）");   // 今日を含む季節だけ、日付を見出しに 1 回
+		assertThat(header.get(1)).isEqualTo("根拠（過去 3 年の冬の中央値）");
+		assertThat(header.get(2)).isEqualTo("予算額（円）");
+	}
+
+	/**
+	 * issue 020：列の並びは「科目／根拠／予算額／前の季節の実績／前の季節の予算」。決める列（根拠・予算額）を科目のすぐ右に、参考の列を右に置く。
+	 * 合計の行も同じ並び（合計／空／予算額の合計／実績の合計／予算の合計）。ふだんの画面（2 列）は、今のまま
+	 */
+	@Test
+	void columnsAreInTheDecidedOrderAndTheTotalRowFollowsIt() throws Exception {
+		designExample();
+
+		String body = winter("1");
+		assertThat(headerCells(body)).containsExactly("科目", "根拠（過去 3 年の冬の中央値）", "予算額（円）", "秋の実績（11/11 まで）", "秋の予算");
+		List<String> food = rowOf(body, "食費");
+		assertThat(food.get(1)).as("根拠は、科目のすぐ右").isEqualTo("90,000");
+		assertThat(food.get(2)).as("予算額の列は、入力欄だけ（文字はない）").isEmpty();
+		List<String> total = rowOf(body, "合計");
+		assertThat(total.get(1)).as("根拠の列の合計は空").isEmpty();
+		assertThat(total.get(2)).as("予算額の合計").contains("186,000");
+		assertThat(total.get(3)).as("実績の合計").startsWith("80,400");
+		assertThat(total.get(4)).as("予算の合計").isEqualTo("173,000");
+		assertThat(headerCells(winter(null))).as("ふだんの画面は 2 列のまま").containsExactly("科目", "予算額（円）");
+	}
+
+	/** issue 020：参考の列を灰色にしていた印（budget-ref）は、なくした。本文と同じ濃さで読める */
+	@Test
+	void theReferenceColumnsHaveNoMutedClassAnyMore() throws Exception {
+		designExample();
+
+		assertThat(winter("1")).doesNotContain("budget-ref");
+	}
+
+	// ---- issue 020：案のもとにした数字に、ターコイズの下線（auto-source）。どの数字かは Service が決める ----
+
+	/** ① 中央値の行：根拠の列の数字だけ（印は 1 か所） */
+	@Test
+	void ruleOneUnderlinesTheBasisCell() throws Exception {
+		designExample();
+
+		String row = rowHtml(winter("1"), "食費");
+
+		assertThat(countOf(row, "auto-source")).isEqualTo(1);
+		assertThat(row).containsPattern("(?s)<td class=\"num budget-basis auto-source-cell\"[^>]*>");
+	}
+
+	/** ② 前の季節のペースの行：前の季節の実績の下の「ペース 約 …」 */
+	@Test
+	void ruleTwoUnderlinesThePaceNote() throws Exception {
+		designExample();
+
+		String row = rowHtml(winter("1"), "医療費");
+
+		assertThat(countOf(row, "auto-source")).isEqualTo(1);
+		assertThat(row).as("下線は、「ペース 約 …」の文字だけ（同じ行の右になっても、今までどおり引く。「/」には引かない）")
+				.contains("<small class=\"auto-budget-note\"> / <span class=\"auto-source\">ペース 約 4,600</span></small>");
+	}
+
+	/** issue 020：「ペース 約 …」は、実績の下の 2 行目ではなく、同じ行の右に小さく（「5,600 / ペース 約 7,100」。予実比較の見込みの「7,900 / 25,000」と同じ書き方）。合計の行も同じ形 */
+	@Test
+	void thePaceNoteIsOnTheSameLineAsTheActual() throws Exception {
+		designExample();
+
+		String body = winter("1");
+
+		assertThat(rowOf(body, "医療費").get(3)).isEqualTo("3,600 / ペース 約 4,600");
+		assertThat(rowOf(body, "食費").get(3)).startsWith("49,200 / ペース 約");
+		assertThat(rowOf(body, "合計").get(3)).isEqualTo("80,400 / ペース 約 101,700");
+		assertThat(rowHtml(body, "医療費")).contains("<span>3,600</span><small class=\"auto-budget-note\"> / <span class=\"auto-source\">");
+		assertThat(rowHtml(body, "合計")).contains("<small class=\"auto-budget-note\"> / <span>ペース 約 101,700</span></small>");
+		assertThat(budgetTable(body)).as("2 行目にしない（行を高くする d-block は、使わない）").doesNotContain("d-block");
+	}
+
+	/** 右の 2 列（前の季節の実績・前の季節の予算）は、同じ幅にする印（budget-prev）。見出しも、科目の行も、合計の行も */
+	@Test
+	void theTwoRightColumnsShareTheSameWidthClass() throws Exception {
+		designExample();
+
+		String body = winter("1");
+		List<String> th = thTags(body);
+
+		for (int i : new int[] { 3, 4 }) {
+			assertThat(th.get(i)).as("見出し " + i).contains("budget-prev");
+		}
+		for (int i : new int[] { 0, 1, 2 }) {
+			assertThat(th.get(i)).as("見出し " + i).doesNotContain("budget-prev");
+		}
+		assertThat(countOf(rowHtml(body, "食費"), "budget-prev")).isEqualTo(2);
+		assertThat(countOf(rowHtml(body, "合計"), "budget-prev")).isEqualTo(2);
+	}
+
+	/** ② 前の季節が終わっているとき：前の季節の実績の数字 */
+	@Test
+	void ruleTwoOfAFinishedSeasonUnderlinesThePreviousActual() throws Exception {
+		Category food = category("食費");
+		spend(food, p(2026, Season.SUMMER), 15_200);
+		flush();
+
+		String row = rowHtml(page("2026", "autumn", "1"), "食費");
+
+		assertThat(countOf(row, "auto-source")).isEqualTo(1);
+		assertThat(row).contains("<span class=\"auto-source\">15,200</span>");
+	}
+
+	/** ③ 前の季節の予算の行：前の季節の予算の列の数字 */
+	@Test
+	void ruleThreeUnderlinesThePreviousBudget() throws Exception {
+		designExample();
+
+		String row = rowHtml(winter("1"), "日用品");
+
+		assertThat(countOf(row, "auto-source")).isEqualTo(1);
+		assertThat(row).contains("<span class=\"auto-source\">8,000</span>");
+	}
+
+	/** ④ 材料なしの行：引かない */
+	@Test
+	void ruleFourHasNoUnderline() throws Exception {
+		designExample();
+
+		assertThat(rowHtml(winter("1"), "娯楽")).doesNotContain("auto-source");
+	}
+
+	/** 合計の行には引かない。「自動予算」を押す前は、どこにも引かず、注記も出さない */
+	@Test
+	void noUnderlineBeforeTheButtonAndNotOnTheTotalRow() throws Exception {
+		designExample();
+
+		assertThat(rowHtml(winter("1"), "合計")).doesNotContain("auto-source");
+		String plain = winter(null);
+		assertThat(plain).doesNotContain("auto-source").doesNotContain("ターコイズの下線");
+	}
+
+	/** 表の下の注記：自動予算を押したあと（材料があるとき）だけ */
+	@Test
+	void theLegendExplainsTheUnderlineOnlyWhenThereIsAnythingUnderlined() throws Exception {
+		designExample();
+
+		assertThat(winter("1")).contains("ターコイズの下線：案のもとにした数字");
+	}
+
+	@Test
+	void noLegendAndNoUnderlineWhenThereIsNoMaterial() throws Exception {
+		category("食費");
+		flush();
+
+		String body = winter("1");
+
+		assertThat(body).doesNotContain("ターコイズの下線").doesNotContain("auto-source");
 	}
 
 	/** 科目の行は、すべて 5 つのセル（合計の行も）。科目の登録順 */
@@ -686,26 +853,27 @@ class BudgetAutoControllerTest {
 	private void assertRow(String body, String name, String previousBudget, String actual, String pace, String basis,
 			String input) {
 		List<String> cells = rowOf(body, name);
-		assertThat(cells.get(1)).as(name + " 直前の予算").isEqualTo(previousBudget);
+		assertThat(cells.get(4)).as(name + " 直前の予算").isEqualTo(previousBudget);
 		if (pace == null) {
-			assertThat(cells.get(2)).as(name + " 直前の実績").isEqualTo(actual);
+			assertThat(cells.get(3)).as(name + " 直前の実績").isEqualTo(actual);
 		} else {
-			assertThat(cells.get(2)).as(name + " 直前の実績").startsWith(actual).endsWith(pace);
+			assertThat(cells.get(3)).as(name + " 直前の実績").startsWith(actual).endsWith(pace);
 		}
-		assertThat(cells.get(2)).as(name + " 日付は各行に出さない（見出しに 1 回だけ）").doesNotContain("11/11").doesNotContain("まで");
-		assertThat(cells.get(3)).as(name + " 根拠").isEqualTo(basis);
+		assertThat(cells.get(3)).as(name + " 日付は各行に出さない（見出しに 1 回だけ）").doesNotContain("11/11").doesNotContain("まで");
+		assertThat(cells.get(1)).as(name + " 根拠").isEqualTo(basis);
 		assertThat(amountInputOf(body, name)).as(name + " 入力欄").isEqualTo(input);
 	}
 
-	/** 「このペースなら」は、実績の下に小さく出す（small） */
+	/** 「このペースなら」は、実績の右（同じ行）に小さく出す（small。issue 020） */
 	@Test
 	void paceIsSmall() throws Exception {
 		designExample();
 
 		String body = winter("1");
 
-		assertThat(body).containsPattern("(?s)<small[^>]*>\\s*ペース 約 62,200\\s*</small>");
+		assertThat(body).containsPattern("(?s)<small[^>]*>\\s*/\\s*<span[^>]*>ペース 約 62,200</span>\\s*</small>");
 	}
+
 
 	/** 合計の行：直前の予算の合計（設定済みの科目だけ）、実績の合計とそのペース（合計から出す。科目の足し算とは 100 円ちがう）、案の合計 */
 	@Test
@@ -714,9 +882,9 @@ class BudgetAutoControllerTest {
 
 		List<String> total = rowOf(winter("1"), "合計");
 
-		assertThat(total.get(1)).isEqualTo("173,000");
-		assertThat(total.get(2)).startsWith("80,400").endsWith("ペース 約 101,700").doesNotContain("11/11");
-		assertThat(total.get(4)).contains("186,000");
+		assertThat(total.get(4)).isEqualTo("173,000");
+		assertThat(total.get(3)).startsWith("80,400").endsWith("ペース 約 101,700").doesNotContain("11/11");
+		assertThat(total.get(2)).contains("186,000");
 	}
 
 	/** 直前の季節が終わっているとき：「まで」も「このペースなら」も付けない。根拠は「実績」。予算が 1 つもなければ合計は「未設定」 */
@@ -729,13 +897,13 @@ class BudgetAutoControllerTest {
 		String body = page("2026", "autumn", "1");
 
 		List<String> row = rowOf(body, "食費");
-		assertThat(row.get(1)).isEqualTo("—");
-		assertThat(row.get(2)).isEqualTo("15,200");
-		assertThat(row.get(3)).isEqualTo("夏の実績 15,200");
+		assertThat(row.get(4)).isEqualTo("—");
+		assertThat(row.get(3)).isEqualTo("15,200");
+		assertThat(row.get(1)).isEqualTo("夏の実績 15,200");
 		List<String> total = rowOf(body, "合計");
-		assertThat(total.get(1)).isEqualTo("—");
-		assertThat(total.get(2)).isEqualTo("15,200");
-		assertThat(total.get(4)).contains("16,000");
+		assertThat(total.get(4)).isEqualTo("—");
+		assertThat(total.get(3)).isEqualTo("15,200");
+		assertThat(total.get(2)).contains("16,000");
 	}
 
 	/** 記録のある年が 2 つなら「平均」 */
@@ -746,7 +914,7 @@ class BudgetAutoControllerTest {
 		spend(food, p(2025, Season.WINTER), 23_000);
 		flush();
 
-		assertThat(rowOf(winter("1"), "食費").get(3)).isEqualTo("平均 21,500（2 年）");
+		assertThat(rowOf(winter("1"), "食費").get(1)).isEqualTo("平均 21,500（2 年）");
 	}
 
 	/** 1 つなら「去年の冬」〔その年が 1 年前〕。年が飛ぶときは「2023・2025 年の冬の平均」 */
@@ -755,11 +923,11 @@ class BudgetAutoControllerTest {
 		Category food = category("食費");
 		spend(food, p(2025, Season.WINTER), 22_050);
 		flush();
-		assertThat(rowOf(winter("1"), "食費").get(3)).isEqualTo("去年 22,050");
+		assertThat(rowOf(winter("1"), "食費").get(1)).isEqualTo("去年 22,050");
 
 		spend(food, p(2023, Season.WINTER), 20_000);
 		flush();
-		assertThat(rowOf(winter("1"), "食費").get(3)).isEqualTo("平均 21,025（2023・2025 年）");
+		assertThat(rowOf(winter("1"), "食費").get(1)).isEqualTo("平均 21,025（2023・2025 年）");
 	}
 
 	// ================================================================
@@ -785,7 +953,7 @@ class BudgetAutoControllerTest {
 		assertThat(amountInputOf(body, "医療費")).isEqualTo(medical);
 		assertThat(amountInputOf(body, "日用品")).isEqualTo(supplies);
 		assertThat(amountInputOf(body, "娯楽")).isEqualTo(fun);
-		assertThat(rowOf(body, "合計").get(4)).contains(total);
+		assertThat(rowOf(body, "合計").get(2)).contains(total);
 
 		for (int n = 1; n <= 3; n++) {
 			String tag = choiceTag(body, n);
@@ -896,15 +1064,17 @@ class BudgetAutoControllerTest {
 		assertThat(choices).isLessThan(table);
 	}
 
-	/** 「ペース」は実績の下に 1 行で（折り返さない目印の nowrap。改行 <br> を入れない） */
+	/** 「ペース」は実績と同じ 1 行に（issue 020：実績の下の 2 行目から、同じ行の右に移した）。折り返さない目印は、セルの nowrap（CSS の budget-prev）。改行 <br> を入れない */
 	@Test
 	void paceIsOneLine() throws Exception {
 		designExample();
 
 		String body = winter("1");
 
-		assertThat(body).containsPattern("(?s)<small[^>]*nowrap[^>]*>\\s*ペース 約 62,200\\s*</small>");
+		assertThat(body).contains("<small class=\"auto-budget-note\"> / <span>ペース 約 62,200</span></small>");
+		assertThat(budgetTable(body)).doesNotContain("<br");
 	}
+
 
 	// ================================================================
 	// 「保存」ボタンは上だけ（設計書 2.3）。表を囲むフォームの外から、form 属性で同じフォームを送る
@@ -1100,7 +1270,7 @@ class BudgetAutoControllerTest {
 		assertThat(plain.get(1)).as("ふだんの画面の予算額も").contains("num");
 	}
 
-	/** 根拠の列：見出しもセルも右寄せ（num）で、実績の列との間をあける印（budget-basis）。他の列には付けない */
+	/** 根拠の列（科目の右の 2 番目。issue 020 で並びを変えた）：見出しもセルも右寄せ（num）で、幅を狭くする印（budget-basis）。他の列には付けない */
 	@Test
 	void basisColumnIsRightAlignedWithRoomOnTheLeft() throws Exception {
 		designExample();
@@ -1108,21 +1278,24 @@ class BudgetAutoControllerTest {
 		String body = winter("1");
 		List<String> th = thTags(body);
 		List<String> td = tdTags(body, "食費");
-		assertThat(th.get(3)).contains("num").contains("budget-basis");
-		assertThat(td.get(3)).contains("num").contains("budget-basis");
-		for (int i : new int[] { 0, 1, 2, 4 }) {
+		assertThat(th.get(1)).contains("num").contains("budget-basis");
+		assertThat(td.get(1)).contains("num").contains("budget-basis");
+		for (int i : new int[] { 0, 2, 3, 4 }) {
 			assertThat(th.get(i)).as("見出し " + i).doesNotContain("budget-basis");
 			assertThat(td.get(i)).as("セル " + i).doesNotContain("budget-basis");
 		}
 	}
 
-	/** 自作の CSS：根拠のセルの左の余白を広げる（実績の列との間をあける） */
+	/**
+	 * 自作の CSS：根拠のセルの左の余白は 1rem（実績の列の数字とくっつかない最小限。issue 020 の見直しで、2.5rem から狭めた）。
+	 * 値まで確かめる（余白が書いてあるだけでは、狭めても、広げても通ってしまう）。
+	 */
 	@Test
-	void styleSheetWidensTheGapBeforeTheBasisColumn() throws Exception {
-		String css = new String(new org.springframework.core.io.ClassPathResource("static/css/style.css").getContentAsByteArray(),
-				java.nio.charset.StandardCharsets.UTF_8);
+	void styleSheetKeepsTheLeftPaddingOfTheBasisColumnAt1rem() throws Exception {
+		String rules = String.join(" ", rulesWith(styleSheet(), ".budget-basis"));
 
-		assertThat(css).containsPattern("(?s)\\.budget-basis[^{]*\\{[^}]*padding-left:\\s*[0-9.]+(rem|px)");
+		assertThat(rules).containsPattern("padding-left:\\s*1rem\\s*;");
+		assertThat(rules).doesNotContainPattern("padding-left:\\s*+(?!1rem\\s*;)");
 	}
 
 	/** 3 年分そろった中央値は数字だけ（「（3 年）」を付けない）。2 年・1 年・飛ぶ年・ペース・予算・材料なしは今までの言葉 */
@@ -1133,29 +1306,26 @@ class BudgetAutoControllerTest {
 		String text = plain(winter("1"));
 
 		assertThat(text).doesNotContain("（3 年）");
-		assertThat(rowOf(winter("1"), "食費").get(3)).isEqualTo("90,000");
-		assertThat(rowOf(winter("1"), "医療費").get(3)).isEqualTo("秋のペース 4,600");
-		assertThat(rowOf(winter("1"), "日用品").get(3)).isEqualTo("秋の予算 8,000");
-		assertThat(rowOf(winter("1"), "娯楽").get(3)).isEqualTo("材料なし");
+		assertThat(rowOf(winter("1"), "食費").get(1)).isEqualTo("90,000");
+		assertThat(rowOf(winter("1"), "医療費").get(1)).isEqualTo("秋のペース 4,600");
+		assertThat(rowOf(winter("1"), "日用品").get(1)).isEqualTo("秋の予算 8,000");
+		assertThat(rowOf(winter("1"), "娯楽").get(1)).isEqualTo("材料なし");
 	}
 
-	/** 参考の 3 列（直前の季節の予算・実績・根拠）は budget-ref（灰色で小さい）。予算額の列は budget-amount（目立たせる） */
+	/** issue 020：参考の列（根拠・前の季節の実績・予算）を灰色にする印（budget-ref）は、なくした（本文と同じ濃さで読める）。予算額の列だけ budget-amount（目立たせる） */
 	@Test
-	void referenceColumnsAreMutedAndTheAmountColumnStandsOut() throws Exception {
+	void noColumnIsMutedAndOnlyTheAmountColumnStandsOut() throws Exception {
 		designExample();
 
 		String body = winter("1");
 		List<String> th = thTags(body);
 		List<String> td = tdTags(body, "食費");
-		for (int i : new int[] { 1, 2, 3 }) {
-			assertThat(th.get(i)).as("見出し " + i).contains("budget-ref");
-			assertThat(td.get(i)).as("セル " + i).contains("budget-ref");
+		for (int i : new int[] { 0, 1, 3, 4 }) {
+			assertThat(th.get(i)).as("見出し " + i).doesNotContain("budget-ref").doesNotContain("budget-amount");
+			assertThat(td.get(i)).as("セル " + i).doesNotContain("budget-ref").doesNotContain("budget-amount");
 		}
-		assertThat(th.get(0)).doesNotContain("budget-ref");
-		assertThat(td.get(0)).doesNotContain("budget-ref");
-		assertThat(th.get(4)).contains("budget-amount");
-		assertThat(td.get(4)).contains("budget-amount");
-		assertThat(th.get(4)).doesNotContain("budget-ref");
+		assertThat(th.get(2)).contains("budget-amount");
+		assertThat(td.get(2)).contains("budget-amount");
 	}
 
 	/** 前の季節の予算が未設定のセルは、薄い灰色の「—」（budget-dash）。設定済みのセルには付けない */
@@ -1182,13 +1352,13 @@ class BudgetAutoControllerTest {
 		assertThat(body).doesNotContain("未設定</td>");
 	}
 
-	/** 自作の CSS：参考の列は灰色で小さい、予算額の列は太い、「—」は薄い灰色、合計の行は 1.25rem で上の線が太い */
+	/** 自作の CSS：表のセルは本文の色（灰色にしない。issue 020）、予算額の列は太い、「—」は薄い灰色、合計の行は 1.25rem で上の線が太い */
 	@Test
 	void styleSheetStylesTheTable() throws Exception {
 		String css = new String(new org.springframework.core.io.ClassPathResource("static/css/style.css").getContentAsByteArray(),
 				java.nio.charset.StandardCharsets.UTF_8);
 
-		assertThat(css).containsPattern("(?s)\\.budget-ref[^{]*\\{[^}]*color:\\s*var\\(--hb-text-sub\\)");
+		assertThat(css).containsPattern("(?s)\\.budget-table tbody td[^{]*\\{[^}]*color:\\s*var\\(--hb-text\\)");
 		assertThat(css).containsPattern("(?s)\\.budget-amount[^{]*\\{[^}]*font-weight:\\s*700");
 		assertThat(css).containsPattern("(?s)\\.budget-dash\\s*\\{[^}]*color:\\s*#");
 		assertThat(css).containsPattern("(?s)tfoot[^{]*\\{[^}]*font-size:\\s*1\\.25rem");
@@ -1202,7 +1372,7 @@ class BudgetAutoControllerTest {
 		spend(food, p(2026, Season.SUMMER), 15_200);
 		flush();
 
-		assertThat(headerCells(page("2026", "autumn", "1")).get(3)).isEqualTo("根拠（過去 3 年の秋の中央値）");
+		assertThat(headerCells(page("2026", "autumn", "1")).get(1)).isEqualTo("根拠（過去 3 年の秋の中央値）");
 	}
 
 	// ================================================================
@@ -1311,7 +1481,7 @@ class BudgetAutoControllerTest {
 		while (sums.find()) {
 			numbers.add(sums.group(2));
 		}
-		assertThat(numbers).as("直前の予算・実績・予算額の合計の 3 つが、同じクラス").containsExactly("173,000", "80,400", "186,000");
+		assertThat(numbers).as("予算額・直前の実績・直前の予算の合計の 3 つが、同じクラス（見出しと同じ並び）").containsExactly("186,000", "80,400", "173,000");
 
 		String sum = String.join(" ", rulesWith(styleSheet(), ".budget-sum"));
 		assertThat(sum).containsPattern("color:\\s*var\\(--hb-text\\)").containsPattern("font-size:\\s*1\\.25rem").containsPattern("font-weight:\\s*700");
@@ -1338,16 +1508,16 @@ class BudgetAutoControllerTest {
 		return m.group(1);
 	}
 
-	/** 参考の 3 列の色：補足の文字の色（#56625F）。背景（#F6F8F8）・白との明るさの比が 4.5 以上。本文より少しだけ落ちている */
+	/** 補足の文字の色（#56625F）：今は「ペース 約 …」の補足だけが使う（issue 020 で、参考の 3 列は本文の色に戻した）。背景（#F6F8F8）・白との明るさの比が 4.5 以上。本文より少しだけ落ちている */
 	@Test
-	void referenceColumnsColorIsDimmerThanTheBodyButStillReadable() throws Exception {
+	void thePaceNoteColorIsDimmerThanTheBodyButStillReadable() throws Exception {
 		String css = styleSheet();
 		String sub = variable(css, "hb-text-sub");
 		String text = variable(css, "hb-text");
 		String background = variable(css, "hb-bg");
 		String white = variable(css, "hb-input-bg");
 
-		assertThat(String.join(" ", rulesWith(css, ".budget-ref"))).containsPattern("color:\\s*var\\(--hb-text-sub\\)");
+		assertThat(String.join(" ", rulesWith(css, ".auto-budget-note"))).containsPattern("color:\\s*var\\(--hb-text-sub\\)");
 		assertThat(sub.toUpperCase()).isEqualTo("#56625F");
 		assertThat(ratio(sub, background)).as("背景との比").isGreaterThanOrEqualTo(4.5).isBetween(5.9, 6.0);
 		assertThat(ratio(sub, white)).as("白との比").isGreaterThanOrEqualTo(4.5);

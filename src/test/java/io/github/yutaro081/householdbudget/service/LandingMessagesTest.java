@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
  */
 class LandingMessagesTest {
 
-	private static final List<String> KEYS = List.of("top.landing", "comparison.landing", "comparison.landing.over", "comparison.landing.note");
+	private static final List<String> KEYS = List.of("top.landing.line1", "top.landing.line2.before", "top.landing.big.before", "top.landing.percent", "top.landing.big.after", "top.landing.line2.after", "comparison.landing.over", "comparison.landing.note", "comparison.card.title", "comparison.card.amount", "comparison.card.budget", "comparison.card.actual", "comparison.card.counting");
 
 	private static Properties messages() throws Exception {
 		Properties properties = new Properties();
@@ -33,11 +33,21 @@ class LandingMessagesTest {
 	void sentencesAreExactlyTheDecidedOnes() throws Exception {
 		Properties p = messages();
 
-		// {0}＝季節の％、{1}＝予算の％（どちらもメーターと同じ値）、{2}＝見込みの額（100 円単位）、{3}＝見込みの、予算に対する％
-		assertThat(p.getProperty("top.landing"))
-				.isEqualTo("季節は {0}% 過ぎて、予算は {1}% 使いました。このペースだと、季節の終わりには約 {2} 円（予算の {3}%）の見込みです。");
-		// {0}＝見込みの額、{1}＝合計の予算
-		assertThat(p.getProperty("comparison.landing")).isEqualTo("このペースだと、季節の終わりには、合計で約 {0} 円（予算 {1} 円）の見込みです。");
+		// issue 020 の見直し：文は 2 行に分け、2 行目は部分に分けた（「約 ○円（予算の ○%）」だけ大きく、「予算の ○%」は超えるときだけ赤）。
+		// {0}＝季節の％、{1}＝予算の％（どちらもメーターと同じ値）。見込みの額は 100 円単位。「予算の ○%」は、見込みの、予算に対する％
+		assertThat(p.getProperty("top.landing")).as("1 つの文は、なくした").isNull();
+		assertThat(p.getProperty("top.landing.line1")).isEqualTo("季節は {0}% 過ぎて、予算は {1}% 使いました。");
+		assertThat(p.getProperty("top.landing.line2.before")).isEqualTo("このペースだと、季節の終わりには");
+		assertThat(p.getProperty("top.landing.big.before")).isEqualTo("約 {0}円（");
+		assertThat(p.getProperty("top.landing.percent")).isEqualTo("予算の {0}%");
+		assertThat(p.getProperty("top.landing.big.after")).isEqualTo("）");
+		assertThat(p.getProperty("top.landing.line2.after")).isEqualTo("の見込みです。");
+		// issue 020：予実比較の 1 行の文（comparison.landing）は、要約カードに置きかえて、なくした。{0}＝見込みの額、{1}＝合計の予算
+		assertThat(p.getProperty("comparison.landing")).as("1 行の文は、なくした").isNull();
+		assertThat(p.getProperty("comparison.card.amount")).isEqualTo("約 {0}円");
+		assertThat(p.getProperty("comparison.card.budget")).isEqualTo("予算 {0}円");
+		assertThat(p.getProperty("comparison.card.actual")).isEqualTo("実績 {0}円（{1}%）");
+		assertThat(p.getProperty("comparison.card.counting")).isEqualTo("{0}/{1} に記録を始めたので、その日から数えています。");
 		assertThat(p.getProperty("comparison.landing.over")).isEqualTo("見込みは、予算を上回ります。");
 		assertThat(p.getProperty("comparison.landing.note")).isEqualTo("月ごとにまとめて払うものは、払う日で見込みが上下します。");
 	}
@@ -52,9 +62,10 @@ class LandingMessagesTest {
 	@Test
 	void theLandingSentencesNeedTheWordsForAForecastAndNoWordsForAnAlert() throws Exception {
 		Properties p = messages();
-		for (String key : List.of("top.landing", "comparison.landing")) {
-			assertThat(p.getProperty(key)).as(key).contains("このペースだと", "見込み", "約");
-		}
+		assertThat(p.getProperty("top.landing.line2.before")).contains("このペースだと");
+		assertThat(p.getProperty("top.landing.line2.after")).contains("見込み");
+		assertThat(p.getProperty("top.landing.big.before")).contains("約");
+		assertThat(p.getProperty("comparison.card.title")).contains("見込み");
 		assertThat(p.getProperty("comparison.landing.note")).contains("見込み");
 
 		List<String> evaluation = List.of("使いすぎ", "使い過ぎ", "無駄", "節約", "控え", "気をつけ", "がんばって", "！", "!", "しましょう", "してください");

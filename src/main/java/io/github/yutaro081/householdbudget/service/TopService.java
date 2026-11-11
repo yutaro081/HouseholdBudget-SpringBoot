@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,15 +15,19 @@ import io.github.yutaro081.householdbudget.domain.BudgetColor;
 import io.github.yutaro081.householdbudget.domain.BudgetColorJudge;
 import io.github.yutaro081.householdbudget.domain.GraphComment;
 import io.github.yutaro081.householdbudget.domain.LandingForecast;
+import io.github.yutaro081.householdbudget.domain.MeterScale;
 import io.github.yutaro081.householdbudget.domain.PeriodProgress;
 import io.github.yutaro081.householdbudget.domain.PieSlices;
 import io.github.yutaro081.householdbudget.domain.SeasonPeriod;
 import io.github.yutaro081.householdbudget.domain.WeekPeriod;
+import io.github.yutaro081.householdbudget.domain.WeekPick;
 import io.github.yutaro081.householdbudget.domain.WeeklyAmount;
 import io.github.yutaro081.householdbudget.dto.CategoryActual;
+import io.github.yutaro081.householdbudget.dto.ComparisonResult;
 import io.github.yutaro081.householdbudget.dto.ComparisonRow;
 import io.github.yutaro081.householdbudget.dto.HitokotoView;
 import io.github.yutaro081.householdbudget.dto.TopView;
+import io.github.yutaro081.householdbudget.dto.WeekPickView;
 import io.github.yutaro081.householdbudget.dto.WeekRow;
 import io.github.yutaro081.householdbudget.entity.Budget;
 import io.github.yutaro081.householdbudget.entity.Category;
@@ -63,9 +68,11 @@ public class TopService {
 	public TopView top(Long userId, LocalDate today) {
 		SeasonPeriod season = SeasonPeriod.from(today);
 		WeekPeriod week = WeekPeriod.containing(today);
+		int weekElapsedPermille = PeriodProgress.weekElapsedPermille(week.dayNumber(today));   // 「今日」の線の位置の元（メーターの縮尺は MeterScale）
 
 		// 季節のメーター：予実比較の合計行（予算は設定済みの科目の合計、実績は全科目の合計）
-		ComparisonRow seasonTotal = comparisonService.compare(userId, season).total();
+		ComparisonResult seasonComparison = comparisonService.compare(userId, season);
+		ComparisonRow seasonTotal = seasonComparison.total();
 
 		List<Category> categories = categoryService.list(userId);
 
@@ -93,7 +100,7 @@ public class TopService {
 					? Long.valueOf(seasonBudgetOf.get(category.getId())) : null;
 			Long weeklyBudget = WeeklyAmount.weeklyBudget(seasonBudget);
 			long actual = WeeklyAmount.roundUpActual(weekActualOf.getOrDefault(category.getId(), 0L));
-			WeekRow weekRow = row(category.getName(), weeklyBudget, actual);
+			WeekRow weekRow = row(category.getName(), weeklyBudget, actual, weekElapsedPermille);
 			rows.add(weekRow);
 			// 円グラフの一覧の判定は、「今週の進み具合」の同じ科目の行と同じ（issue 017 の見直し）。「その他」にまとめた行は、PieSlices が判定なしにする
 			pieEntries.add(new PieSlices.Entry(category.getName(), actual, weekRow.color(), weekRow.withinBudget()));
@@ -105,7 +112,7 @@ public class TopService {
 				anyBudget = true;
 			}
 		}
-		WeekRow total = row(null, anyBudget ? Long.valueOf(totalBudget) : null, totalActual);
+		WeekRow total = row(null, anyBudget ? Long.valueOf(totalBudget) : null, totalActual, weekElapsedPermille);
 
 		List<PieSlices.Slice> slices = PieSlices.of(pieEntries);
 		long pieTotal = slices.stream().mapToLong(PieSlices.Slice::amount).sum();
@@ -117,21 +124,48 @@ public class TopService {
 		// 見込みの一文（issue 018）：事実の文〔季節の％と使った割合。四捨五入した整数〕と、着地見込み〔予実比較の合計行と同じ値から、同じ式で〕。予算が未設定・0円なら出さない
 		Integer usedPercent = PeriodProgress.usedPercent(seasonTotal.budget(), seasonTotal.actual());
 		int elapsedPercent = PeriodProgress.seasonElapsedPercent(season, today);
-		Optional<LandingForecast.Result> landing = LandingForecast.of(seasonTotal.budget(), seasonTotal.actual(), season, today);
+		// 数え始めの日は、検索を 1 回だけにして、着地見込みと今週の科目のひとことの両方に渡す
+		LocalDate countFrom = comparisonService.countingStart(userId, season, today);
+		Optional<LandingForecast.Result> landing = LandingForecast.of(seasonTotal.budget(), seasonTotal.actual(), season, today,
+				countFrom);
+
+		WeekPickView weekPick = weekPick(rows, seasonComparison, season, today, countFrom);
 
 		return new TopView(season, seasonTotal.budget(), seasonTotal.actual(), seasonTotal.difference(),
-				PeriodProgress.barPermille(seasonTotal.budget(), seasonTotal.actual()),
-				PeriodProgress.seasonElapsedPermille(season, today),
-				week.start(), week.endDate(), PeriodProgress.weekElapsedPermille(week.dayNumber(today)),
+				MeterScale.of(seasonTotal.budget(), seasonTotal.actual(), PeriodProgress.seasonElapsedPermille(season, today)),
+				week.start(), week.endDate(),
 				!categories.isEmpty(), slices, pieTotal, PieSlices.cssStops(slices), rows, total, hitokoto,
 				today, season.startDate().getMonthValue(), season.endDateExclusive().minusDays(1).getMonthValue(),
 				PeriodProgress.seasonDaysLeft(season, today), usedPercent, elapsedPercent, week.dayNumber(today),
 				landing.map(LandingForecast.Result::amount).orElse(null),
-				landing.map(LandingForecast.Result::percentOfBudget).orElse(null));
+				landing.map(LandingForecast.Result::percentOfBudget).orElse(null),
+				landing.map(LandingForecast.Result::overBudget).orElse(false), weekPick);
+	}
+
+	/**
+	 * 今週の科目のひとこと（issue 020。設計書 5.15）：今週いちばん進んでいる科目（WeekPick）の、季節の見込み。
+	 * 見込みは、予実比較の同じ科目の行の予算・実績から、予実比較と同じ式（LandingForecast）で求める。
+	 * 科目が選ばれないとき、選んだ科目の季節の見込みが出ないときは、null（文を出さない）。
+	 */
+	private static WeekPickView weekPick(List<WeekRow> rows, ComparisonResult seasonComparison, SeasonPeriod season,
+			LocalDate today, LocalDate countFrom) {
+		List<WeekPick.Candidate> candidates = rows.stream()
+				.map(r -> new WeekPick.Candidate(r.categoryName(), r.budget(), r.actual())).toList();
+		OptionalInt picked = WeekPick.choose(candidates);
+		if (picked.isEmpty()) {
+			return null;
+		}
+		String name = rows.get(picked.getAsInt()).categoryName();
+		Optional<ComparisonRow> seasonRow = seasonComparison.rows().stream().filter(r -> name.equals(r.categoryName())).findFirst();
+		if (seasonRow.isEmpty()) {
+			return null;
+		}
+		return LandingForecast.of(seasonRow.get().budget(), seasonRow.get().actual(), season, today, countFrom)
+				.map(f -> new WeekPickView(name, f.amount(), f.percentOfBudget(), f.overBudget())).orElse(null);
 	}
 
 	/** 週の予算（未設定なら null）と、切り上げた実績から、1行（科目の行も合計の行も同じ）を作る。 */
-	private static WeekRow row(String name, Long weeklyBudget, long actual) {
+	private static WeekRow row(String name, Long weeklyBudget, long actual, int weekElapsedPermille) {
 		Long difference = weeklyBudget == null ? null : weeklyBudget - actual;
 		BudgetColor color = BudgetColorJudge.judge(weeklyBudget, actual);
 		boolean within = BudgetColorJudge.isWithinBudget(weeklyBudget, actual);
@@ -149,7 +183,7 @@ public class TopService {
 			statusKey = "top.status.within";
 		}
 		return new WeekRow(name, weeklyBudget, actual, difference, color, within,
-				PeriodProgress.barPermille(weeklyBudget, actual), statusKey, statusAmount);
+				MeterScale.of(weeklyBudget, actual, weekElapsedPermille), statusKey, statusAmount);
 	}
 
 }

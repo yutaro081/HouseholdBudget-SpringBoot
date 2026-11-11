@@ -85,6 +85,15 @@ class TopServiceTest {
 		budgetRepository.save(new Budget(o.id(), c, period.year(), period.season(), amount));
 	}
 
+	/**
+	 * 「記録は、ずっと昔に始めた」状態にする（issue 020）。どの計算の範囲（過去 3 年、12 季節、直前の季節）にも入らない昔の日付（2001 年 春。DB の下限は 2000-03-01）に、1 円の取引を足す。
+	 * 最初の取引の日が季節の途中だと、数え始めの日がその日になる。このテストは、季節の初日から数える前提で書いてあるので、
+	 * 最初の取引の日を、季節より前にそろえる。ほかの数字（季節の実績、記録のある年など）は変わらない。
+	 */
+	private void recordingStartedLongAgo(Owner o, Category c) {
+		spend(o, c, LocalDate.of(2001, 3, 1), 1);
+	}
+
 	private void spend(Owner o, Category c, LocalDate date, int amount) {
 		transactionRepository.save(new Transaction(o.id(), date, amount, c, null, o.vendor(), o.paymentMethod()));
 	}
@@ -239,7 +248,7 @@ class TopServiceTest {
 		assertThat(unsetRow.budget()).isNull();
 		assertThat(unsetRow.difference()).isNull();
 		assertThat(unsetRow.color()).isEqualTo(BudgetColor.NONE);
-		assertThat(unsetRow.barPermille()).isZero();
+		assertThat(unsetRow.meter().normalPermille()).isZero();
 		assertThat(view.total().budget()).isEqualTo(2_400L);   // 設定済みの科目だけ
 		assertThat(view.total().actual()).isEqualTo(200L);     // 実績は全科目
 	}
@@ -275,13 +284,14 @@ class TopServiceTest {
 		assertThat(view.seasonBudget()).isEqualTo(comparison.total().budget()).isEqualTo(90_000L);
 		assertThat(view.seasonActual()).isEqualTo(comparison.total().actual()).isEqualTo(19_134L);   // 切り上げない
 		assertThat(view.seasonRemaining()).isEqualTo(comparison.total().difference()).isEqualTo(70_866L);
-		assertThat(view.seasonBarPermille()).isEqualTo(212);   // 19,134 ÷ 90,000
-		assertThat(view.seasonTodayPermille()).isEqualTo(758); // 91 日のうち 69 日目
-		assertThat(view.weekTodayPermille()).isEqualTo(142);   // 日曜は 1/7
+		// issue 020：予算（100％）は棒の 70％（700）の位置。縮尺は MeterScale
+		assertThat(view.seasonMeter().normalPermille()).isEqualTo(148);   // 19,134 ÷ 90,000 × 0.7（212 × 0.7）
+		assertThat(view.seasonMeter().todayPermille()).isEqualTo(530);    // 91 日のうち 69 日目（758）× 0.7
+		assertThat(view.total().meter().todayPermille()).isEqualTo(99);   // 日曜は 1/7（142）× 0.7
 	}
 
 	@Test
-	void overBudgetSeasonKeepsTheBarAtFullAndTheRemainingNegative() {
+	void overBudgetSeasonFillsTheBarWithTheRedPartAndTheRemainingIsNegative() {
 		Owner a = createOwner("toptest10");
 		Category food = category(a, "食費");
 		budget(a, food, AUTUMN_2026, 1_000);
@@ -289,7 +299,9 @@ class TopServiceTest {
 
 		TopView view = top(a, SUNDAY);
 
-		assertThat(view.seasonBarPermille()).isEqualTo(1000);
+		assertThat(view.seasonMeter().normalPermille()).as("予算（100％）までは通常色").isEqualTo(700);
+		assertThat(view.seasonMeter().overPermille()).as("150％ → 1050 → 右端で止まる。赤は 300").isEqualTo(300);
+		assertThat(view.seasonMeter().overflowPercent()).isEqualTo(50);
 		assertThat(view.seasonRemaining()).isEqualTo(-500L);
 	}
 
@@ -298,8 +310,8 @@ class TopServiceTest {
 		Owner a = createOwner("toptest11");
 		category(a, "食費");
 
-		assertThat(top(a, LocalDate.of(2026, 11, 8)).weekTodayPermille()).isEqualTo(142);
-		assertThat(top(a, LocalDate.of(2026, 11, 14)).weekTodayPermille()).isEqualTo(1000);
+		assertThat(top(a, LocalDate.of(2026, 11, 8)).total().meter().todayPermille()).isEqualTo(99);     // 1/7（142）× 0.7
+		assertThat(top(a, LocalDate.of(2026, 11, 14)).total().meter().todayPermille()).isEqualTo(700);  // 7/7（1000）× 0.7
 	}
 
 	// ---- 0 件 ----
@@ -467,7 +479,8 @@ class TopServiceTest {
 
 		spend(a, food, LocalDate.of(2026, 9, 4), 26_000);
 		assertThat(top(a, SUNDAY).seasonUsedPercent()).isEqualTo(120);        // 36,000 / 30,000
-		assertThat(top(a, SUNDAY).seasonBarPermille()).isEqualTo(1000);       // 棒は 100% で止まる
+		assertThat(top(a, SUNDAY).seasonMeter().normalPermille()).isEqualTo(700);    // 120％：通常色は予算（70％）まで
+		assertThat(top(a, SUNDAY).seasonMeter().overPermille()).isEqualTo(140);      // 赤は 840 − 700
 	}
 
 	@Test
@@ -537,6 +550,7 @@ class TopServiceTest {
 	void landingFollowsTheSeasonTotal(int spent, long amount, int percent) {
 		Owner a = createOwner("toptest" + (300 + spent / 1000));
 		Category food = category(a, "食費");
+		recordingStartedLongAgo(a, food);
 		budget(a, food, AUTUMN_2026, 100_000);
 		if (spent > 0) {
 			spend(a, food, LocalDate.of(2026, 9, 3), spent);
@@ -554,6 +568,7 @@ class TopServiceTest {
 	void landingUsesTheSameTotalsAsTheComparisonTotalRow() {
 		Owner a = createOwner("toptest40");
 		Category food = category(a, "食費");
+		recordingStartedLongAgo(a, food);
 		Category transport = category(a, "交通費");
 		Category unset = category(a, "予算なし科目");
 		budget(a, food, AUTUMN_2026, 40_000);
@@ -603,6 +618,7 @@ class TopServiceTest {
 		Owner a = createOwner("toptest41");
 		Owner b = createOwner("toptest42");
 		Category foodA = category(a, "食費");
+		recordingStartedLongAgo(a, foodA);
 		budget(a, foodA, AUTUMN_2026, 100_000);
 		spend(a, foodA, SUNDAY, 76_000);
 		Category foodB = category(b, "食費");
@@ -620,6 +636,7 @@ class TopServiceTest {
 	void manyLargeTransactionsAreCalculatedExactly() {
 		Owner a = createOwner("toptest43");
 		Category food = category(a, "食費");
+		recordingStartedLongAgo(a, food);
 		budget(a, food, AUTUMN_2026, 3_000_000);
 		for (int i = 0; i < 500; i++) {
 			spend(a, food, LocalDate.of(2026, 10, 1).plusDays(i % 30), 1_000_000);

@@ -71,9 +71,9 @@ class ColorSchemeStyleSheetTest {
 		assertThat(rule(css, ".comparison-table tr.row-within")).as("💮 の行の背景は、薄いアプリコットの変数")
 				.contains("--bs-table-bg: var(--hb-apricot)");
 		assertThat(css.toLowerCase()).as("前の薄い緑（#e3f8e9）が、どこにも残っていない").doesNotContain("e3f8e9");
-		// 赤・青は意味の色で、今のまま
-		assertThat(rule(css, ".comparison-table tr.row-over td")).containsIgnoringCase("#c62828");
-		assertThat(rule(css, ".comparison-table tr.row-low td")).containsIgnoringCase("#1565c0");
+		// 赤・青は意味の色で、色の値は今のまま。issue 020 で、付ける場所は行の文字全体から差額のセルだけになった
+		assertThat(rule(css, ".comparison-table td.diff-over")).containsIgnoringCase("#c62828");
+		assertThat(rule(css, ".comparison-table td.diff-low")).containsIgnoringCase("#1565c0");
 	}
 
 	@Test
