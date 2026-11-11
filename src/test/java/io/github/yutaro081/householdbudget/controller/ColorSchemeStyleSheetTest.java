@@ -77,6 +77,38 @@ class ColorSchemeStyleSheetTest {
 		assertThat(css.toLowerCase()).as("行の色に薄いターコイズの値を直接書かない").doesNotContain("--bs-table-hover-bg: #e1f3f2");
 	}
 
+	/** 行にマウスを載せたときの色（#EEF3F3）の上で、文字が読めること：本文・リンク・補足の文字との明るさの比が 4.5 以上（issue 024。設計書 2.3 の色の表の値） */
+	@Test
+	void theRowHoverColorKeepsTheTextReadable() throws Exception {
+		String css = css("/css/style.css");
+		String hover = variable(css, "hb-row-hover");
+
+		assertThat(ratio(variable(css, "hb-text"), hover)).as("本文の色").isGreaterThanOrEqualTo(4.5).isBetween(12.1, 12.3);
+		assertThat(ratio(variable(css, "hb-teal-text"), hover)).as("リンクの文字").isGreaterThanOrEqualTo(4.5).isBetween(5.4, 5.5);
+		assertThat(ratio(variable(css, "hb-text-sub"), hover)).as("補足の文字（日付・支払方法・摘要）").isGreaterThanOrEqualTo(4.5).isBetween(5.6, 5.7);
+	}
+
+	private static String variable(String css, String name) {
+		Matcher m = Pattern.compile("--" + Pattern.quote(name) + ":\s*(#[0-9A-Fa-f]{6})").matcher(css);
+		assertThat(m.find()).as("--" + name).isTrue();
+		return m.group(1);
+	}
+
+	private static double luminance(String hex) {
+		double[] c = new double[3];
+		for (int i = 0; i < 3; i++) {
+			double v = Integer.parseInt(hex.substring(1 + i * 2, 3 + i * 2), 16) / 255.0;
+			c[i] = v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+		}
+		return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+	}
+
+	private static double ratio(String a, String b) {
+		double la = luminance(a);
+		double lb = luminance(b);
+		return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+	}
+
 	@Test
 	void withinBudgetRowBackgroundIsApricotAndTheOldGreenIsGone() throws Exception {
 		String css = css("/css/style.css");
