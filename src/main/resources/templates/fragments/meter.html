@@ -12,7 +12,7 @@
 <div class="top-meter-box">
     <div class="top-meter" aria-hidden="true">
         <div class="top-meter-bar" th:style="|width: ${m.normalPermille / 10}.${m.normalPermille % 10}%|"></div>
-        <div class="top-meter-bar top-meter-over" th:if="${m.over}" th:style="|left: ${m.budgetPermille / 10}.${m.budgetPermille % 10}%; width: ${m.overPermille / 10}.${m.overPermille % 10}%|"></div>
+        <div class="top-meter-bar top-meter-over" th:if="${m.over}" th:style="|left: ${m.overStartPermille / 10}.${m.overStartPermille % 10}%; width: ${m.overPermille / 10}.${m.overPermille % 10}%|"></div>
         <div class="top-meter-budget" th:style="|left: ${m.budgetPermille / 10}.${m.budgetPermille % 10}%|"></div>
         <div class="top-meter-today" th:style="|left: ${m.todayPermille / 10}.${m.todayPermille % 10}%|"></div>
     </div>

@@ -39,6 +39,12 @@ class MeterScaleTest {
 		assertThat(m.overPermille()).isEqualTo(over);
 	}
 
+	/** 予算があるときの赤は、予算の位置（70％）から始まる */
+	@Test
+	void theRedPartStartsAtTheBudgetPositionWhenThereIsABudget() {
+		assertThat(MeterScale.of(2_400L, 3_000, 0).overStartPermille()).isEqualTo(700);
+	}
+
 	@Test
 	void overIsTrueOnlyWhenTheActualExceedsTheBudget() {
 		assertThat(MeterScale.of(2_400L, 2_400, 0).over()).isFalse();
@@ -76,17 +82,18 @@ class MeterScaleTest {
 		assertThat(m.overflowPercent()).isNull();
 	}
 
-	/** 予算 0 円：実績がなければ空。あれば、70％ まで通常色、残りを赤（割合が決められないので「+○%」は出さない） */
+	/** 予算 0 円：実績がなければ空。あれば、使った分は全部が予算超えなので、棒の全体（左端から右端まで）を赤にする（割合が決められないので「+○%」は出さない） */
 	@Test
-	void aZeroBudgetFillsTheBarWithTheRedPartWhenThereIsSpending() {
+	void aZeroBudgetMakesTheWholeBarRedWhenThereIsSpending() {
 		Meter none = MeterScale.of(0L, 0, 0);
 		Meter some = MeterScale.of(0L, 500, 0);
 
 		assertThat(none.normalPermille()).isZero();
 		assertThat(none.overPermille()).isZero();
 		assertThat(none.over()).isFalse();
-		assertThat(some.normalPermille()).isEqualTo(700);
-		assertThat(some.overPermille()).isEqualTo(300);
+		assertThat(some.normalPermille()).as("通常色の部分はない").isZero();
+		assertThat(some.overStartPermille()).as("赤は左端から").isZero();
+		assertThat(some.overPermille()).as("右端まで").isEqualTo(1000);
 		assertThat(some.over()).isTrue();
 		assertThat(some.overflowPercent()).isNull();
 	}

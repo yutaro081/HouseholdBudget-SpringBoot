@@ -183,6 +183,19 @@ class MeterMarkupTest {
 		assertThat(card).contains("<span class=\"top-meter-excess\"></span>");
 	}
 
+	/** 予算 0 円で使った：使った分は全部が予算超え。棒の全体（左端から右端まで）が赤。通常色の部分は長さ 0。「+○%」は出ない */
+	@Test
+	void aZeroBudgetWithSpendingMakesTheWholeBarRed() throws Exception {
+		Category food = category("食費", 0);
+		spend(food, 500);
+
+		String card = seasonCard(page("/"));
+
+		assertThat(card).contains("class=\"top-meter-bar\" style=\"width: 0.0%\"");
+		assertThat(card).contains("class=\"top-meter-bar top-meter-over\" style=\"left: 0.0%; width: 100.0%\"");
+		assertThat(card).contains("<span class=\"top-meter-excess\"></span>");
+	}
+
 	/** 予算 10,000・実績 20,000（200％ → 1400 で右端に止まる）：赤は 70.0％ から 30.0％（右端まで）。棒の右に「+100%」 */
 	@Test
 	void theBarStopsAtTheRightEndAndShowsThePercentOverTheBudget() throws Exception {
