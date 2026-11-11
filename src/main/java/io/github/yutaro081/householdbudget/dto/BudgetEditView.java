@@ -14,8 +14,24 @@ import io.github.yutaro081.householdbudget.domain.SeasonPeriod;
  * @param previous 前の季節。範囲の端（2000年春）では null（リンクを出さない、設計書 2.4、B15）
  * @param next     次の季節。範囲の端（2100年冬）では null
  * @param rows     科目ごとの行
+ * @param autoAvailable 「自動予算」ボタンと一言を出すか（issue 019）。過去の同じ季節が範囲（2000年春）より前しかないとき、
+ *                      科目が 0 件のときは false
+ * @param total    開いたときの予算額の合計（欄の最初の値の足し算。JavaScript が無効のときの表示、設計書 2.3）。
+ *                 入力エラーで表示し直すときは null（画面は「—」）
+ * @param auto     自動予算の中身。「自動予算」を押していないときは null
  */
-public record BudgetEditView(SeasonPeriod period, SeasonPeriod previous, SeasonPeriod next, List<Row> rows) {
+public record BudgetEditView(SeasonPeriod period, SeasonPeriod previous, SeasonPeriod next, List<Row> rows,
+		boolean autoAvailable, Long total, AutoBudgetView auto) {
+
+	/** 自動予算の項目がない形（BudgetService が作る。ボタンの有無などは Controller が足す）。 */
+	public BudgetEditView(SeasonPeriod period, SeasonPeriod previous, SeasonPeriod next, List<Row> rows) {
+		this(period, previous, next, rows, false, null, null);
+	}
+
+	/** 自動予算の項目だけを足した新しい表示データ。 */
+	public BudgetEditView withAuto(boolean autoAvailable, Long total, AutoBudgetView auto) {
+		return new BudgetEditView(period, previous, next, rows, autoAvailable, total, auto);
+	}
 
 	/**
 	 * 1科目分の行。

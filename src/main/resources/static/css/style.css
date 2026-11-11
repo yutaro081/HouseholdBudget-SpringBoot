@@ -1185,3 +1185,30 @@ main.list-wide {
     color: var(--hb-text-sub);
     font-size: var(--hb-font-size-small);
 }
+
+/* 予算設定の「自動予算」（設計書 2.3、issue 019）：ボタンと一言、選ぶリンク、最初の文、表の数字 */
+.auto-budget-action {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    margin: 12px 0;
+}
+
+.auto-budget-note {
+    color: var(--hb-text-sub);
+    font-size: var(--hb-font-size-small);
+}
+
+.auto-budget-choices a {
+    margin-right: 16px;
+}
+
+.auto-budget-summary p {
+    margin-bottom: 4px;
+}
+
+.budget-table td.num,
+.budget-table tfoot td:last-child {
+    text-align: right;
+}
