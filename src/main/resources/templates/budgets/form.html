@@ -89,10 +89,10 @@
                 <th>科目</th>
                 <th class="num budget-basis" th:if="${auto != null}" th:text="#{budget.auto.head.basis(${seasonName})}">根拠（過去 3 年の冬の中央値）</th>
                 <th class="num budget-amount">予算額（円）</th>
-                <th class="num" th:if="${auto != null}"
-                    th:text="${auto.previousSeason != null} ? (#{budget.auto.head.actual(${'' + auto.previousSeason.year}, #{|season.${auto.previousSeason.season.urlName}|})} + ${untilToday}) : #{budget.auto.head.actual.none}">2026 年 秋の実績（11/11 まで）</th>
-                <th class="num" th:if="${auto != null}"
-                    th:text="${auto.previousSeason != null} ? #{budget.auto.head.budget(${'' + auto.previousSeason.year}, #{|season.${auto.previousSeason.season.urlName}|})} : #{budget.auto.head.budget.none}">2026 年 秋の予算</th>
+                <th class="num budget-prev" th:if="${auto != null}"
+                    th:text="${auto.previousSeason != null} ? (#{budget.auto.head.actual(#{|season.${auto.previousSeason.season.urlName}|})} + ${untilToday}) : #{budget.auto.head.actual.none}">秋の実績（11/11 まで）</th>
+                <th class="num budget-prev" th:if="${auto != null}"
+                    th:text="${auto.previousSeason != null} ? #{budget.auto.head.budget(#{|season.${auto.previousSeason.season.urlName}|})} : #{budget.auto.head.budget.none}">秋の予算</th>
             </tr>
             </thead>
             <tbody>
@@ -122,12 +122,10 @@
                     <div class="field-error" th:each="message : ${#fields.errors('rows[__${stat.index}__].amount')}"
                          th:text="${message}">エラー</div>
                 </td>
-                <td class="num" th:if="${arow != null}">
-                    <span th:classappend="${arow.source.name() == 'PREVIOUS_ACTUAL'} ? 'auto-source'" th:text="${#numbers.formatInteger(arow.previousActual, 1, 'COMMA')}">49,200</span>
-                    <small class="d-block text-nowrap auto-budget-note" th:if="${arow.paceAmount != null}" th:classappend="${arow.source.name() == 'PACE_NOTE'} ? 'auto-source'"
-                           th:text="#{budget.auto.pace(${#numbers.formatInteger(arow.paceAmount, 1, 'COMMA')})}">ペース 約 62,200</small>
+                <td class="num budget-prev" th:if="${arow != null}">
+                    <span th:classappend="${arow.source.name() == 'PREVIOUS_ACTUAL'} ? 'auto-source'" th:text="${#numbers.formatInteger(arow.previousActual, 1, 'COMMA')}">49,200</span><small class="auto-budget-note" th:if="${arow.paceAmount != null}"> / <span th:classappend="${arow.source.name() == 'PACE_NOTE'} ? 'auto-source'" th:text="#{budget.auto.pace(${#numbers.formatInteger(arow.paceAmount, 1, 'COMMA')})}">ペース 約 62,200</span></small>
                 </td>
-                <td class="num" th:if="${arow != null}">
+                <td class="num budget-prev" th:if="${arow != null}">
                     <span th:if="${arow.previousBudget != null}" th:classappend="${arow.source.name() == 'PREVIOUS_BUDGET'} ? 'auto-source'" th:text="${#numbers.formatInteger(arow.previousBudget, 1, 'COMMA')}">95,000</span>
                     <span class="budget-dash" th:unless="${arow.previousBudget != null}">—</span>
                 </td>
@@ -144,12 +142,11 @@
                     <div class="small text-danger" hidden data-budget-not-number th:text="#{budget.total.notNumber}">数字でない欄があります</div>
                     <div class="small text-danger" hidden data-budget-empty th:text="#{budget.total.empty}">空の欄があります</div>
                 </td>
-                <td class="num" th:if="${auto != null}">
+                <td class="num budget-prev" th:if="${auto != null}">
                     <span class="budget-sum" th:text="${#numbers.formatInteger(auto.previousActualTotal, 1, 'COMMA')}">80,400</span>
-                    <small class="d-block text-nowrap auto-budget-note" th:if="${auto.previousPaceTotal != null}"
-                           th:text="#{budget.auto.pace(${#numbers.formatInteger(auto.previousPaceTotal, 1, 'COMMA')})}">ペース 約 101,700</small>
+                    <small class="auto-budget-note" th:if="${auto.previousPaceTotal != null}"> / <span th:text="#{budget.auto.pace(${#numbers.formatInteger(auto.previousPaceTotal, 1, 'COMMA')})}">ペース 約 101,700</span></small>
                 </td>
-                <td class="num" th:if="${auto != null}">
+                <td class="num budget-prev" th:if="${auto != null}">
                     <span class="budget-sum" th:if="${auto.previousBudgetTotal != null}" th:text="${#numbers.formatInteger(auto.previousBudgetTotal, 1, 'COMMA')}">173,000</span>
                     <span class="budget-dash" th:unless="${auto.previousBudgetTotal != null}">—</span>
                 </td>

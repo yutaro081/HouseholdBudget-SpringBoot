@@ -1609,10 +1609,14 @@ main.list-wide {
     font-weight: 700;
 }
 
-/* 「ペース 約 …」は行いっぱいの block（d-block）なので、下線が文字の幅だけになるよう、中身の幅にして、右に寄せる */
-.budget-table small.auto-source {
-    width: fit-content;
-    margin-left: auto;
+/* 右の 2 列（前の季節の実績・前の季節の予算）は、同じ幅（18%）。「5,600 / ペース 約 7,100」（ペースは同じ行の右に小さく）が 1 行に収まるよう、折り返さない（issue 020） */
+.budget-table th.budget-prev {
+    width: 18%;
+}
+
+.budget-table td.budget-prev {
+    width: 18%;
+    white-space: nowrap;
 }
 
 .budget-table td.auto-source-cell > span {

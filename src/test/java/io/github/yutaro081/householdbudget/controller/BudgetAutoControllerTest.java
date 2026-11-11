@@ -669,8 +669,8 @@ class BudgetAutoControllerTest {
 
 		assertThat(header).hasSize(5);
 		assertThat(header.get(0)).isEqualTo("科目");
-		assertThat(header.get(4)).isEqualTo("2026 年 秋の予算");
-		assertThat(header.get(3)).isEqualTo("2026 年 秋の実績（11/11 まで）");   // 今日を含む季節だけ、日付を見出しに 1 回
+		assertThat(header.get(4)).isEqualTo("秋の予算");
+		assertThat(header.get(3)).isEqualTo("秋の実績（11/11 まで）");   // 今日を含む季節だけ、日付を見出しに 1 回
 		assertThat(header.get(1)).isEqualTo("根拠（過去 3 年の冬の中央値）");
 		assertThat(header.get(2)).isEqualTo("予算額（円）");
 	}
@@ -684,7 +684,7 @@ class BudgetAutoControllerTest {
 		designExample();
 
 		String body = winter("1");
-		assertThat(headerCells(body)).containsExactly("科目", "根拠（過去 3 年の冬の中央値）", "予算額（円）", "2026 年 秋の実績（11/11 まで）", "2026 年 秋の予算");
+		assertThat(headerCells(body)).containsExactly("科目", "根拠（過去 3 年の冬の中央値）", "予算額（円）", "秋の実績（11/11 まで）", "秋の予算");
 		List<String> food = rowOf(body, "食費");
 		assertThat(food.get(1)).as("根拠は、科目のすぐ右").isEqualTo("90,000");
 		assertThat(food.get(2)).as("予算額の列は、入力欄だけ（文字はない）").isEmpty();
@@ -725,7 +725,41 @@ class BudgetAutoControllerTest {
 		String row = rowHtml(winter("1"), "医療費");
 
 		assertThat(countOf(row, "auto-source")).isEqualTo(1);
-		assertThat(row).containsPattern("(?s)<small class=\"d-block text-nowrap auto-budget-note auto-source\"[^>]*>ペース 約");
+		assertThat(row).as("下線は、「ペース 約 …」の文字だけ（同じ行の右になっても、今までどおり引く。「/」には引かない）")
+				.contains("<small class=\"auto-budget-note\"> / <span class=\"auto-source\">ペース 約 4,600</span></small>");
+	}
+
+	/** issue 020：「ペース 約 …」は、実績の下の 2 行目ではなく、同じ行の右に小さく（「5,600 / ペース 約 7,100」。予実比較の見込みの「7,900 / 25,000」と同じ書き方）。合計の行も同じ形 */
+	@Test
+	void thePaceNoteIsOnTheSameLineAsTheActual() throws Exception {
+		designExample();
+
+		String body = winter("1");
+
+		assertThat(rowOf(body, "医療費").get(3)).isEqualTo("3,600 / ペース 約 4,600");
+		assertThat(rowOf(body, "食費").get(3)).startsWith("49,200 / ペース 約");
+		assertThat(rowOf(body, "合計").get(3)).isEqualTo("80,400 / ペース 約 101,700");
+		assertThat(rowHtml(body, "医療費")).contains("<span>3,600</span><small class=\"auto-budget-note\"> / <span class=\"auto-source\">");
+		assertThat(rowHtml(body, "合計")).contains("<small class=\"auto-budget-note\"> / <span>ペース 約 101,700</span></small>");
+		assertThat(budgetTable(body)).as("2 行目にしない（行を高くする d-block は、使わない）").doesNotContain("d-block");
+	}
+
+	/** 右の 2 列（前の季節の実績・前の季節の予算）は、同じ幅にする印（budget-prev）。見出しも、科目の行も、合計の行も */
+	@Test
+	void theTwoRightColumnsShareTheSameWidthClass() throws Exception {
+		designExample();
+
+		String body = winter("1");
+		List<String> th = thTags(body);
+
+		for (int i : new int[] { 3, 4 }) {
+			assertThat(th.get(i)).as("見出し " + i).contains("budget-prev");
+		}
+		for (int i : new int[] { 0, 1, 2 }) {
+			assertThat(th.get(i)).as("見出し " + i).doesNotContain("budget-prev");
+		}
+		assertThat(countOf(rowHtml(body, "食費"), "budget-prev")).isEqualTo(2);
+		assertThat(countOf(rowHtml(body, "合計"), "budget-prev")).isEqualTo(2);
 	}
 
 	/** ② 前の季節が終わっているとき：前の季節の実績の数字 */
@@ -830,15 +864,16 @@ class BudgetAutoControllerTest {
 		assertThat(amountInputOf(body, name)).as(name + " 入力欄").isEqualTo(input);
 	}
 
-	/** 「このペースなら」は、実績の下に小さく出す（small） */
+	/** 「このペースなら」は、実績の右（同じ行）に小さく出す（small。issue 020） */
 	@Test
 	void paceIsSmall() throws Exception {
 		designExample();
 
 		String body = winter("1");
 
-		assertThat(body).containsPattern("(?s)<small[^>]*>\\s*ペース 約 62,200\\s*</small>");
+		assertThat(body).containsPattern("(?s)<small[^>]*>\\s*/\\s*<span[^>]*>ペース 約 62,200</span>\\s*</small>");
 	}
+
 
 	/** 合計の行：直前の予算の合計（設定済みの科目だけ）、実績の合計とそのペース（合計から出す。科目の足し算とは 100 円ちがう）、案の合計 */
 	@Test
@@ -1029,15 +1064,17 @@ class BudgetAutoControllerTest {
 		assertThat(choices).isLessThan(table);
 	}
 
-	/** 「ペース」は実績の下に 1 行で（折り返さない目印の nowrap。改行 <br> を入れない） */
+	/** 「ペース」は実績と同じ 1 行に（issue 020：実績の下の 2 行目から、同じ行の右に移した）。折り返さない目印は、セルの nowrap（CSS の budget-prev）。改行 <br> を入れない */
 	@Test
 	void paceIsOneLine() throws Exception {
 		designExample();
 
 		String body = winter("1");
 
-		assertThat(body).containsPattern("(?s)<small[^>]*nowrap[^>]*>\\s*ペース 約 62,200\\s*</small>");
+		assertThat(body).contains("<small class=\"auto-budget-note\"> / <span>ペース 約 62,200</span></small>");
+		assertThat(budgetTable(body)).doesNotContain("<br");
 	}
+
 
 	// ================================================================
 	// 「保存」ボタンは上だけ（設計書 2.3）。表を囲むフォームの外から、form 属性で同じフォームを送る

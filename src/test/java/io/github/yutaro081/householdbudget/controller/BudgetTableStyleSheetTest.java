@@ -83,10 +83,14 @@ class BudgetTableStyleSheetTest {
 		assertThat(css).contains("--hb-teal: #0E9594");
 	}
 
-	/** 「ペース 約 …」は行いっぱいの block なので、下線が文字の幅だけになるよう、中身の幅にして右に寄せる */
+	/** 右の 2 列（前の季節の実績・前の季節の予算）は、同じ幅（18%）。「5,600 / ペース 約 7,100」が 1 行に収まるよう、折り返さない */
 	@Test
-	void theUnderlineOfThePaceNoteIsOnlyAsWideAsItsText() throws Exception {
-		assertThat(rule(css(), ".budget-table small.auto-source")).contains("width: fit-content", "margin-left: auto");
+	void theTwoRightColumnsHaveTheSameWidthAndDoNotWrap() throws Exception {
+		String css = css();
+
+		assertThat(rule(css, ".budget-table th.budget-prev")).contains("width: 18%");
+		assertThat(rule(css, ".budget-table td.budget-prev")).contains("width: 18%", "white-space: nowrap");
+		assertThat(css).as("「ペース」を 2 行目に置いていた時の規則（行いっぱいの block の下線の幅）は、なくした").doesNotContain("small.auto-source");
 	}
 
 	/** 予算額の列は、今の 2px の枠と太字のまま */
