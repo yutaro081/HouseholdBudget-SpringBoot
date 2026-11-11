@@ -218,7 +218,7 @@ class ComparisonLandingTest {
 		String top = page("/");
 
 		assertThat(comparison).contains(OVER);
-		assertThat(top).contains("このペースだと、季節の終わりには約 91,100 円（予算の 100%）の見込みです。");
+		assertThat(top.replaceAll("<[^>]+>", "")).contains("このペースだと、季節の終わりには 約 91,100円（予算の 100%）の見込みです。");
 		assertThat(top).as("トップには「上回ります」を出さない（Q018-2 の b）").doesNotContain(OVER);
 	}
 

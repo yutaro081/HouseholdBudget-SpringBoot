@@ -35,6 +35,7 @@ import io.github.yutaro081.householdbudget.domain.SeasonPeriod;
  * @param weekDayNumber       今日が今週の何日目か（日曜＝1、土曜＝7）。「点線は『今日』（週の ○ 日目）」
  * @param landingAmount      着地見込みの額（円。100 円単位。予算が未設定・0 円なら null）〔issue 018。issue 017 のペースの一言のキー `paceKey` を置きかえた〕
  * @param landingPercent     着地見込みの、予算に対する％（なければ null）
+ * @param landingOverBudget  着地見込みの額が予算を超えるか（今週のひとこと・予実比較の「見込みとの差」の赤と同じ決まり）。画面は、true のときだけ「予算の ○%」を赤にする（テンプレートでは計算しない）。見込みがなければ false
  * @param weekPick           今週の科目のひとこと（今週いちばん進んでいる科目と、その季節の見込み。出さないときは null。issue 020）
  */
 public record TopView(SeasonPeriod season, Long seasonBudget, long seasonActual, Long seasonRemaining,
@@ -42,5 +43,5 @@ public record TopView(SeasonPeriod season, Long seasonBudget, long seasonActual,
 		boolean hasCategories, List<PieSlices.Slice> slices, long pieTotal, String pieStops,
 		List<WeekRow> rows, WeekRow total, HitokotoView hitokoto, LocalDate today, int seasonFirstMonth,
 		int seasonLastMonth, int seasonDaysLeft, Integer seasonUsedPercent, int seasonElapsedPercent, int weekDayNumber,
-		Long landingAmount, Integer landingPercent, WeekPickView weekPick) {
+		Long landingAmount, Integer landingPercent, boolean landingOverBudget, WeekPickView weekPick) {
 }

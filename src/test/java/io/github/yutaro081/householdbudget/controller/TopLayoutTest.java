@@ -395,7 +395,8 @@ class TopLayoutTest {
 
 		String body = topBody(a);
 
-		assertThat(seasonCard(body)).contains("季節は 76% 過ぎて、予算は 65% 使いました。このペースだと、季節の終わりには約 112,400 円（予算の 86%）の見込みです。");
+		// issue 020 の見直し：文は 2 行に分かれ、「約 ○円（予算の ○%）」の書き方が変わった（タグを除いた文字で確かめる）
+		assertThat(seasonCard(body).replaceAll("<[^>]+>", "")).contains("季節は 76% 過ぎて、予算は 65% 使いました。このペースだと、季節の終わりには 約 112,400円（予算の 86%）の見込みです。");
 		assertThat(body.indexOf("このペースだと")).isGreaterThan(body.indexOf("top-meter-today-label"));
 		assertThat(body.indexOf("このペースだと")).isLessThan(body.indexOf("top-columns"));
 	}
@@ -523,13 +524,13 @@ class TopLayoutTest {
 		recordingStartedLongAgo(a, food);
 
 		spend(a, food, SUNDAY, 76_000);
-		assertThat(seasonCard(topBody(a))).contains("季節は 76% 過ぎて、予算は 76% 使いました。このペースだと、季節の終わりには約 100,300 円（予算の 100%）の見込みです。");
+		assertThat(seasonCard(topBody(a)).replaceAll("<[^>]+>", "")).contains("季節は 76% 過ぎて、予算は 76% 使いました。このペースだと、季節の終わりには 約 100,300円（予算の 100%）の見込みです。");
 
 		spend(a, food, SUNDAY, 14_000);       // 合計 90,000
-		assertThat(seasonCard(topBody(a))).contains("季節は 76% 過ぎて、予算は 90% 使いました。このペースだと、季節の終わりには約 117,700 円（予算の 118%）の見込みです。");
+		assertThat(seasonCard(topBody(a)).replaceAll("<[^>]+>", "")).contains("季節は 76% 過ぎて、予算は 90% 使いました。このペースだと、季節の終わりには 約 117,700円（予算の 118%）の見込みです。");
 
 		spend(a, food, SUNDAY, 30_000);       // 合計 120,000
-		assertThat(seasonCard(topBody(a))).contains("季節は 76% 過ぎて、予算は 120% 使いました。このペースだと、季節の終わりには約 154,900 円（予算の 155%）の見込みです。");
+		assertThat(seasonCard(topBody(a)).replaceAll("<[^>]+>", "")).contains("季節は 76% 過ぎて、予算は 120% 使いました。このペースだと、季節の終わりには 約 154,900円（予算の 155%）の見込みです。");
 	}
 
 	/** 5 ポイントの判定（ゆっくりめ・ほぼ予定どおり・速め）は、なくした（issue 018）。戻っていないこと */
@@ -568,8 +569,8 @@ class TopLayoutTest {
 		java.util.regex.Matcher used = java.util.regex.Pattern.compile("予算のうち ([0-9]+)% を使った").matcher(card);
 		java.util.regex.Matcher elapsed = java.util.regex.Pattern.compile("今日（([0-9]+)%）").matcher(card);
 		java.util.regex.Matcher sentence = java.util.regex.Pattern
-				.compile("季節は ([0-9]+)% 過ぎて、予算は ([0-9]+)% 使いました。このペースだと、季節の終わりには約 ([0-9,]+) 円（予算の ([0-9]+)%）の見込みです。")
-				.matcher(card);
+				.compile("季節は ([0-9]+)% 過ぎて、予算は ([0-9]+)% 使いました。このペースだと、季節の終わりには 約 ([0-9,]+)円（予算の ([0-9]+)%）の見込みです。")
+				.matcher(card.replaceAll("<[^>]+>", ""));
 
 		assertThat(used.find()).isTrue();
 		assertThat(elapsed.find()).isTrue();
@@ -591,7 +592,8 @@ class TopLayoutTest {
 
 		String body = topBody(a);
 
-		assertThat(body).containsPattern("<p class=\"top-season-pace\">季節は 76% 過ぎて、予算は 90% 使いました。このペースだと、季節の終わりには約 117,700 円（予算の 118%）の見込みです。</p>");
+		assertThat(body).contains("<p class=\"top-season-pace\">");
+		assertThat(body.replaceAll("<[^>]+>", "")).contains("季節は 76% 過ぎて、予算は 90% 使いました。このペースだと、季節の終わりには 約 117,700円（予算の 118%）の見込みです。");
 		assertThat(body).doesNotContain("このままだと", "超えそう", "着地", "上回ります");   // 上回ります〔予実比較の 1 行〕は、トップには出さない（Q018-2 の b）
 	}
 

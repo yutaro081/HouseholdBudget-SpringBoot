@@ -64,6 +64,8 @@ class TopWeekPickTest {
 	private TransactionRepository transactionRepository;
 	@Autowired
 	private EntityManager entityManager;
+	@Autowired
+	private io.github.yutaro081.householdbudget.service.TopService topService;
 
 	private Long userId;
 	private Vendor vendor;
@@ -95,6 +97,14 @@ class TopWeekPickTest {
 		spend(c, LocalDate.of(2001, 3, 1), 1);
 	}
 
+	/** 文（&lt;p class="top-week-pick"&gt; の中）を、タグを除いた文字にしたもの（文は 3 つの部分に分かれている） */
+	private static String sentenceText(String body) {
+		int start = body.indexOf("class=\"top-week-pick\"");
+		assertThat(start).as("文がある").isGreaterThanOrEqualTo(0);
+		String p = body.substring(body.indexOf('>', start) + 1, body.indexOf("</p>", start));
+		return p.replaceAll("<[^>]+>", "");
+	}
+
 	private String page(String path) throws Exception {
 		entityManager.flush();
 		entityManager.clear();
@@ -117,7 +127,7 @@ class TopWeekPickTest {
 		String body = page("/");
 
 		// 交通費の季節の見込み：（2,500 × 10,010 ＋ 65,000 × 361）÷ 8,281 ＝ 5,855.6… → 5,900。予算 65,000 円の 9％（9.08％）
-		assertThat(body).contains("今週いちばん進んでいる交通費は、季節では約 5,900円（予算の 9%）の見込みです。");
+		assertThat(sentenceText(body)).isEqualTo("今週いちばん進んでいる交通費は、季節では約 5,900円（予算の 9%）の見込みです。");
 		assertThat(body).as("食費（30％）ではない").doesNotContain(SENTENCE_START + "食費");
 	}
 
@@ -177,7 +187,7 @@ class TopWeekPickTest {
 		spend(food, SUNDAY, 12_000);
 
 		// 季節の見込み：（12,000 × 10,010 ＋ 10,000 × 361）÷ 8,281 ＝ 14,941.0… → 15,000（予算の 150％）
-		assertThat(page("/")).contains("今週いちばん進んでいる食費は、季節では約 15,000円（予算の 150%）の見込みです。");
+		assertThat(sentenceText(page("/"))).isEqualTo("今週いちばん進んでいる食費は、季節では約 15,000円（予算の 150%）の見込みです。");
 	}
 
 	/** 割合が同じなら、科目の並び順で先のもの */
@@ -246,15 +256,82 @@ class TopWeekPickTest {
 	}
 
 	@Test
-	void theSentenceHasNoColorClassAndNoAlertWords() throws Exception {
+	void theSentenceHasNoAlertWordsAndNoInlineColor() throws Exception {
 		foodAndFare();
 
 		String body = page("/");
 		int start = body.indexOf("class=\"top-week-pick\"");
 		String sentence = body.substring(start, body.indexOf("</p>", start));
 
-		assertThat(sentence).doesNotContain("week-over", "week-low", "text-danger", "alert", "color:");
+		assertThat(sentence).doesNotContain("week-low", "text-danger", "alert", "color:", "style=");
 		assertThat(sentence).doesNotContain("超えそう", "超えます", "着地", "予測");
+	}
+
+	// ---- 見せ方：「予算の ○%」の部分だけを赤にする（予算を超えるときだけ。Service が決める） ----
+
+	/** 見込みが予算を超えるとき（予算の 150％）：「予算の ○%」の部分だけが赤（top-week-pick-over）。前の文とあとの文は赤にしない */
+	@Test
+	void onlyThePercentPartIsRedWhenTheForecastExceedsTheBudget() throws Exception {
+		Category food = category("食費", 10_000);
+		recordingStartedLongAgo(food);
+		spend(food, SUNDAY, 12_000);
+
+		String body = page("/");
+
+		assertThat(body).contains("<span class=\"top-week-pick-percent top-week-pick-over\">予算の 150%</span>");
+		assertThat(count(body, "top-week-pick-over")).as("赤は、その部分だけ").isEqualTo(1);
+	}
+
+	/** 予算以下（9％）：赤にしない */
+	@Test
+	void nothingIsRedWhenTheForecastIsWithinTheBudget() throws Exception {
+		foodAndFare();
+
+		String body = page("/");
+
+		assertThat(body).contains("<span class=\"top-week-pick-percent\">予算の 9%</span>");
+		assertThat(body).doesNotContain("top-week-pick-over");
+	}
+
+	/** 見込みが予算ちょうど（100％）：予算を超えていないので、赤にしない（予実比較の「見込みとの差」が 0 円で、赤くならないのと同じ） */
+	@Test
+	void exactlyOnTheBudgetIsNotRed() throws Exception {
+		Category food = category("食費", 91_000);   // 週の予算 7,000 円
+		recordingStartedLongAgo(food);
+		spend(food, SUNDAY, 72_000);                // 季節の見込み ＝ 91,000（割り切れる）
+
+		String body = page("/");
+
+		assertThat(sentenceText(body)).contains("約 91,000円（予算の 100%）");
+		assertThat(body).doesNotContain("top-week-pick-over");
+	}
+
+	/** 赤にするかどうかは Service が決める（テンプレートでは計算しない）。予実比較の「見込みとの差」の赤と同じ決まり：見込みの額 ＞ 予算 */
+	@Test
+	void theServiceDecidesWhetherThePercentIsRed() {
+		Category food = category("食費", 10_000);
+		recordingStartedLongAgo(food);
+		spend(food, SUNDAY, 12_000);
+		entityManager.flush();
+		entityManager.clear();
+
+		assertThat(topService.top(userId, LocalDate.of(2026, 11, 11)).weekPick().overBudget()).isTrue();
+	}
+
+	@Test
+	void theServiceSaysNotOverWhenTheForecastIsWithinOrEqualToTheBudget() {
+		foodAndFare();
+		entityManager.flush();
+		entityManager.clear();
+		assertThat(topService.top(userId, LocalDate.of(2026, 11, 11)).weekPick().overBudget()).isFalse();
+	}
+
+	private static int count(String text, String part) {
+		int n = 0;
+		for (int i = text.indexOf(part); i >= 0; i = text.indexOf(part, i + part.length())) {
+			n++;
+		}
+		return n;
 	}
 
 	/** 他の人のデータは使わない */

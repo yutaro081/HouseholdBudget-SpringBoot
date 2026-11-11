@@ -55,7 +55,7 @@
                 <th:block th:replace="~{fragments/meter :: meter(${top.seasonMeter}, true, #{meter.today(${top.seasonElapsedPercent})})}"></th:block>
                 <!--/* 見込みの一文（issue 018。issue 017 のペースの一言を置きかえた）：事実の文〔季節の％と使った割合。メーターと同じ値〕と、着地見込み〔予実比較の合計と同じ値。100円単位に切り上げ〕。
                      右側の棒のすぐ下。予算が未設定・0円のときは出さない。濃いターコイズの太字（赤・青は使わない）。数字を述べるだけ */-->
-                <p class="top-season-pace" th:if="${top.landingAmount != null}" th:text="#{top.landing(${top.seasonElapsedPercent}, ${top.seasonUsedPercent}, ${top.landingAmount}, ${top.landingPercent})}">季節は 77% 過ぎて、予算は 62% 使いました。このペースだと、季節の終わりには約 142,000 円（予算の 81%）の見込みです。</p>
+                <p class="top-season-pace" th:if="${top.landingAmount != null}"><span class="top-season-pace-line" th:text="#{top.landing.line1(${top.seasonElapsedPercent}, ${top.seasonUsedPercent})}">季節は 79% 過ぎて、予算は 62% 使いました。</span><span class="top-season-pace-line"><span th:text="#{top.landing.line2.before}">このペースだと、季節の終わりには</span> <span class="top-season-pace-big"><span th:text="#{top.landing.big.before(${top.landingAmount})}">約 142,000円（</span><span class="top-season-pace-percent" th:classappend="${top.landingOverBudget} ? 'top-season-pace-over'" th:text="#{top.landing.percent(${top.landingPercent})}">予算の 81%</span><span th:text="#{top.landing.big.after}">）</span></span><span th:text="#{top.landing.line2.after}">の見込みです。</span></span></p>
             </div>
         </div>
         <p class="top-season-unset" th:if="${top.seasonBudget == null}">今の季節の予算がまだありません。<a th:href="@{/budgets}">予算の画面で設定してください</a></p>
@@ -144,11 +144,11 @@
                         <th:block th:if="${row.budget != null}"><th:block th:replace="~{fragments/meter :: meter(${row.meter}, false, null)}"></th:block></th:block>
                     </li>
                 </ul>
-                <!--/* 今週の科目のひとこと（issue 020。要件4.5、設計書 5.15）：メーターのすぐ下、注記より上。今週いちばん進んでいる科目の、季節の見込み。「きょうのひとこと」の行と同じように、左に小さなアイコンの四角（hitokoto-icon）。選び方と見込みは Service が決めた値（weekPick）。出さないときは null。科目名は th:text（th:utext は使わない。7.5）。赤・青は使わない */-->
+                <!--/* 今週の科目のひとこと（issue 020。要件4.5、設計書 5.15）：メーターのすぐ下、注記より上。今週いちばん進んでいる科目の、季節の見込み。「きょうのひとこと」の行と同じように、左に小さなアイコンの四角（hitokoto-icon）。文は 3 つの部分（前・「予算の ○%」・あと）。見込みが予算を超えるときだけ、「予算の ○%」を赤（Service が決めた weekPick.overBudget）。選び方と見込みは Service が決めた値（weekPick）。出さないときは null。科目名は th:text（th:utext は使わない。7.5）。赤・青は使わない */-->
                 <div class="top-week-pick-row hitokoto-row" th:if="${top.weekPick != null}">
                     <span class="hitokoto-icon"><th:block th:replace="~{fragments/icons :: icon('comparison', 20, 2)}"></th:block></span>
                     <div class="hitokoto-body">
-                        <p class="top-week-pick" th:text="#{top.weekPick(${top.weekPick.categoryName}, ${top.weekPick.forecastAmount}, ${top.weekPick.forecastPercent})}">今週いちばん進んでいる食費は、季節では約 58,000円（予算の 90%）の見込みです。</p>
+                        <p class="top-week-pick"><span th:text="#{top.weekPick.before(${top.weekPick.categoryName}, ${top.weekPick.forecastAmount})}">今週いちばん進んでいる食費は、季節では約 58,000円（</span><span class="top-week-pick-percent" th:classappend="${top.weekPick.overBudget} ? 'top-week-pick-over'" th:text="#{top.weekPick.percent(${top.weekPick.forecastPercent})}">予算の 90%</span><span th:text="#{top.weekPick.after}">）の見込みです。</span></p>
                     </div>
                 </div>
                 <p class="legend">赤：週の予算を超過／青：週の予算の1/3以下／💮：週の予算内（1/3を超え、予算以下）／点線：今日／実線：予算</p>

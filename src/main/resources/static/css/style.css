@@ -877,6 +877,21 @@ dl.detail dd {
     font-weight: 700;
 }
 
+/* 文を 2 行に分ける（issue 020 の見直し）：1 行目 ＝ 季節の％と使った割合、2 行目 ＝ 見込み */
+.top-season-pace-line {
+    display: block;
+}
+
+/* 2 行目の「約 ○円（予算の ○%）」の部分だけ 1.25rem（今週のひとこと 1.0625rem より、数字が大きく見える） */
+.top-season-pace-big {
+    font-size: 1.25rem;
+}
+
+/* 見込みが予算を超えるとき、「予算の ○%」だけを赤（予算超過の意味の色。今週のひとこと・予実比較の「見込みとの差」と同じ決まり。Service が決める） */
+.top-season-pace-over {
+    color: #c62828;
+}
+
 .top-season-unset {
     margin: var(--hb-space-3) 0 0;
 }
@@ -1185,9 +1200,18 @@ dl.detail dd {
     margin-top: var(--hb-space-3);
 }
 
+/* 文全体は、上の季節のカードの文（.top-season-pace）と同じ：濃いターコイズの太字。文字は 1.0625rem（issue 020） */
 .top-week-pick {
     margin: 0;
     padding-top: var(--hb-space-2);
+    color: var(--hb-teal-text);
+    font-size: 1.0625rem;
+    font-weight: 700;
+}
+
+/* 見込みが予算を超えるとき、「予算の ○%」の部分だけを赤（予算超過の意味の色。予実比較の「見込みとの差」の赤と同じ決まり） */
+.top-week-pick-over {
+    color: #c62828;
 }
 
 .top-weeks .top-meter {

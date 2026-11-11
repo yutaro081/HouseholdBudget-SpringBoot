@@ -136,7 +136,8 @@ public class TopService {
 				today, season.startDate().getMonthValue(), season.endDateExclusive().minusDays(1).getMonthValue(),
 				PeriodProgress.seasonDaysLeft(season, today), usedPercent, elapsedPercent, week.dayNumber(today),
 				landing.map(LandingForecast.Result::amount).orElse(null),
-				landing.map(LandingForecast.Result::percentOfBudget).orElse(null), weekPick);
+				landing.map(LandingForecast.Result::percentOfBudget).orElse(null),
+				landing.map(LandingForecast.Result::overBudget).orElse(false), weekPick);
 	}
 
 	/**
@@ -158,7 +159,7 @@ public class TopService {
 			return null;
 		}
 		return LandingForecast.of(seasonRow.get().budget(), seasonRow.get().actual(), season, today, countFrom)
-				.map(f -> new WeekPickView(name, f.amount(), f.percentOfBudget())).orElse(null);
+				.map(f -> new WeekPickView(name, f.amount(), f.percentOfBudget(), f.overBudget())).orElse(null);
 	}
 
 	/** 週の予算（未設定なら null）と、切り上げた実績から、1行（科目の行も合計の行も同じ）を作る。 */
