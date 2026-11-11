@@ -61,4 +61,25 @@ class BudgetTableStyleSheetTest {
 	void theAmountInputsHaveBiggerText() throws Exception {
 		assertThat(rule(css(), ".budget-table input[type=\"text\"]")).contains("font-size: 1.125rem");
 	}
+
+	/** 予算額の入力欄は、取引の登録画面の金額の欄（.amount-input）と同じ形：2px のターコイズ（#0E9594）の枠、大きめの文字、右寄せ */
+	@Test
+	void theAmountInputsLookLikeTheAmountFieldOfTheTransactionForm() throws Exception {
+		String css = css();
+		String input = rule(css, ".budget-table input[type=\"text\"]");
+
+		assertThat(css).contains("--hb-teal: #0E9594");
+		assertThat(input).contains("border: 2px solid var(--hb-teal)", "text-align: right", "font-size: 1.125rem");
+		assertThat(rule(css, ".amount-input")).as("取引の登録画面の金額の欄と、枠が同じ").contains("border: 2px solid var(--hb-teal)");
+	}
+
+	/** 基本のターコイズは枠にだけ使う決まり：入力欄の規則の中で、--hb-teal は border だけ。選んだとき（フォーカス）の枠は、フォームの入力欄と同じ */
+	@Test
+	void theBaseTealIsOnlyUsedForTheBorderAndTheFocusBorderIsLikeTheOtherInputs() throws Exception {
+		String css = css();
+		String input = rule(css, ".budget-table input[type=\"text\"]");
+
+		assertThat(input.replace("border: 2px solid var(--hb-teal);", "")).as("枠のほかに、基本のターコイズを使わない").doesNotContain("var(--hb-teal)");
+		assertThat(rule(css, ".budget-table input[type=\"text\"]:focus")).contains("border-color: var(--hb-teal-button)");
+	}
 }

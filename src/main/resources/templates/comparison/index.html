@@ -58,10 +58,10 @@
             <thead>
             <tr>
                 <th>科目</th>
-                <th class="num">予算（円）</th>
-                <th class="num">実績（円）</th>
-                <th class="num" th:if="${showForecast}">見込み（円）</th>
-                <th class="num">差額（円）</th>
+                <th class="num col-budget">予算（円）</th>
+                <th class="num col-actual">実績（円）</th>
+                <th class="num col-forecast" th:if="${showForecast}">見込み（円）</th>
+                <th class="num col-diff">差額（円）</th>
             </tr>
             </thead>
             <tbody>

@@ -268,6 +268,19 @@ class ComparisonRedesignTest {
 
 	/** 差額のセルにだけ diff-cell が付く（科目の行も合計行も）。予算・実績・見込みのセルには付かない。色のクラス（diff-over・diff-low）とは別 */
 	@Test
+	void theHeadingsHaveTheColumnClassesThatSetTheWidths() throws Exception {
+		fourCategories();
+
+		String current = thead(page("/comparison"));
+		assertThat(current).containsSubsequence("<th>科目</th>", "<th class=\"num col-budget\">予算（円）</th>", "<th class=\"num col-actual\">実績（円）</th>",
+				"<th class=\"num col-forecast\">見込み（円）</th>", "<th class=\"num col-diff\">差額（円）</th>");
+
+		String past = thead(page("/comparison?year=2026&season=summer"));
+		assertThat(past).containsSubsequence("<th>科目</th>", "<th class=\"num col-budget\">予算（円）</th>", "<th class=\"num col-actual\">実績（円）</th>", "<th class=\"num col-diff\">差額（円）</th>");
+		assertThat(past).as("過去の季節には、見込みの列がない").doesNotContain("col-forecast");
+	}
+
+	@Test
 	void onlyTheDifferenceCellsHaveTheDiffCellClass() throws Exception {
 		fourCategories();
 

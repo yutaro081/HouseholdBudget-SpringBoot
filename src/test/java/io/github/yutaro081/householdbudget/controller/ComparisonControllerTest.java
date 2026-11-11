@@ -487,7 +487,7 @@ class ComparisonControllerTest {
 
 		String head = body.substring(body.indexOf("<thead>") + "<thead>".length(), body.indexOf("</thead>"));
 		assertThat(count(head, "<th")).isEqualTo(4);
-		assertThat(head).contains("<th>科目</th>", "<th class=\"num\">予算（円）</th>", "<th class=\"num\">実績（円）</th>", "<th class=\"num\">差額（円）</th>");
+		assertThat(head).contains("<th>科目</th>", "<th class=\"num col-budget\">予算（円）</th>", "<th class=\"num col-actual\">実績（円）</th>", "<th class=\"num col-diff\">差額（円）</th>");
 		assertThat(head).doesNotContain("評価", "見込み");
 	}
 

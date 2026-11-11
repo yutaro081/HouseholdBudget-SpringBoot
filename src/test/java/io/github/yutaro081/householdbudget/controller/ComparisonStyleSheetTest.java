@@ -35,13 +35,28 @@ class ComparisonStyleSheetTest {
 		assertThat(table).as("せまい幅では、表の最小の幅で横にスクロールする").contains("min-width: 44rem");
 	}
 
+	/** 列の幅は、中身に合わせて配る：科目 16%・予算 16%・実績 16%・見込み 24%・差額 28%（チップの付く見込みと差額を広く） */
 	@Test
-	void theCategoryColumnIs18PercentAndTheNumberColumnsShareTheRestEqually() throws Exception {
+	void theColumnsAreSizedByTheirContent() throws Exception {
 		String css = css();
 
-		assertThat(rule(css, ".comparison-table th:first-child")).as("科目の列は全体の 18%（科目と予算の間の空きを減らす）").contains("width: 18%");
-		assertThat(rule(css, ".comparison-table th.num")).as("数字の列は幅を決めない（残りを等分する）").doesNotContain("width").contains("text-align: right");
+		assertThat(rule(css, ".comparison-table th:first-child")).as("科目").contains("width: 16%");
+		assertThat(rule(css, ".comparison-table th.col-budget")).as("予算").contains("width: 16%");
+		assertThat(rule(css, ".comparison-table th.col-actual")).as("実績").contains("width: 16%");
+		assertThat(rule(css, ".comparison-table th.col-forecast")).as("見込み（チップが付く）").contains("width: 24%");
+		assertThat(rule(css, ".comparison-table th.col-diff")).as("差額（チップが付く）").contains("width: 28%");
+		assertThat(rule(css, ".comparison-table th.num")).as("数字の列の共通の規則には、幅を書かない").doesNotContain("width").contains("text-align: right");
 		assertThat(rule(css, ".comparison-table td.num")).doesNotContain("width").contains("text-align: right");
+	}
+
+	/** 差額の数字は大きく（1.25rem）、見出し「差額（円）」は濃いターコイズ（#0B6E6B） */
+	@Test
+	void theDifferenceIsBigAndItsHeadingIsDarkTeal() throws Exception {
+		String css = css();
+
+		assertThat(rule(css, ".comparison-table td.diff-cell")).contains("font-weight: 700", "font-size: 1.25rem");
+		assertThat(rule(css, ".comparison-table th.col-diff")).contains("color: var(--hb-teal-text)");
+		assertThat(css).contains("--hb-teal-text: #0B6E6B");
 	}
 
 	@Test
