@@ -231,7 +231,7 @@ class TopLayoutTest {
 	}
 
 	@Test
-	void whenOverTheBudgetThePercentageGoesPastOneHundredAndTheBarStopsAtOneHundred() throws Exception {
+	void whenOverTheBudgetThePercentageGoesPastOneHundredAndTheBarShowsTheRedPartPastTheBudget() throws Exception {
 		Owner a = createOwner("toplay06");
 		Category food = category(a, "食費", 30_000);
 		spend(a, food, LocalDate.of(2026, 9, 3), 36_000);
@@ -239,7 +239,8 @@ class TopLayoutTest {
 		String body = topBody(a);
 
 		assertThat(body).contains("予算のうち 120% を使った");
-		assertThat(body).contains("width: 100.0%");
+		// issue 020：予算（100％）は棒の 70％ の位置。120％ → 通常色は 70.0％ まで、赤は 70.0％ から 14.0％（棒は 100％ で止まらず、右端の約 143％ まで伸びる）
+		assertThat(body).contains("style=\"width: 70.0%\"", "style=\"left: 70.0%; width: 14.0%\"");
 	}
 
 	@Test

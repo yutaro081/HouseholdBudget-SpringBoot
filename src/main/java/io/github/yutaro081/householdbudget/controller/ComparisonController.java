@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import io.github.yutaro081.householdbudget.domain.LandingForecast;
+import io.github.yutaro081.householdbudget.domain.MeterScale;
 import io.github.yutaro081.householdbudget.domain.PeriodProgress;
 import io.github.yutaro081.householdbudget.domain.SeasonPeriod;
 import io.github.yutaro081.householdbudget.dto.ComparisonResult;
@@ -83,8 +84,7 @@ public class ComparisonController {
 		if (landing.isPresent()) {
 			model.addAttribute("cardUsedPercent", PeriodProgress.usedPercent(comparison.total().budget(), comparison.total().actual()));
 			model.addAttribute("cardElapsedPercent", PeriodProgress.seasonElapsedPercent(period, today));
-			model.addAttribute("cardBarPermille", PeriodProgress.barPermille(comparison.total().budget(), comparison.total().actual()));
-			model.addAttribute("cardTodayPermille", PeriodProgress.seasonElapsedPermille(period, today));
+			model.addAttribute("cardMeter", MeterScale.of(comparison.total().budget(), comparison.total().actual(), PeriodProgress.seasonElapsedPermille(period, today)));
 			// 最初の取引の日から数えたとき（その日が季節の初日より後のとき）だけ、カードに知らせる
 			model.addAttribute("countingFrom", countFrom.isAfter(period.startDate()) ? countFrom : null);
 		}

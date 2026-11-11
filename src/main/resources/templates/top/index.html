@@ -52,12 +52,8 @@
                     <span th:if="${top.seasonUsedPercent != null}" th:text="|予算のうち ${top.seasonUsedPercent}% を使った|">予算のうち 65% を使った</span>
                     <span th:text="|縦の線は『今日』（季節の ${top.seasonElapsedPercent}%）|">縦の線は『今日』（季節の 72%）</span>
                 </p>
-                <div class="top-meter" aria-hidden="true">
-                    <div class="top-meter-bar" th:classappend="${top.seasonActual > top.seasonBudget} ? 'top-meter-over'" th:style="|width: ${top.seasonBarPermille / 10}.${top.seasonBarPermille % 10}%|"></div>
-                    <div class="top-meter-today" th:style="|left: ${top.seasonTodayPermille / 10}.${top.seasonTodayPermille % 10}%|"></div>
-                </div>
-                <!--/* 棒の右端（100％ ＝ 予算）の線の下の「予算」（issue 020）。線そのものは CSS（.top-meter::after） */-->
-                <p class="top-meter-budget-label">予算</p>
+                <!--/* メーター（issue 020。部品 fragments/meter。縮尺は MeterScale：予算 ＝ 棒の 70％。予算の線の下に「予算」） */-->
+                <th:block th:replace="~{fragments/meter :: meter(${top.seasonMeter}, true)}"></th:block>
                 <!--/* 見込みの一文（issue 018。issue 017 のペースの一言を置きかえた）：事実の文〔季節の％と使った割合。メーターと同じ値〕と、着地見込み〔予実比較の合計と同じ値。100円単位に切り上げ〕。
                      右側の棒のすぐ下。予算が未設定・0円のときは出さない。濃いターコイズの太字（赤・青は使わない）。数字を述べるだけ */-->
                 <p class="top-season-pace" th:if="${top.landingAmount != null}" th:text="#{top.landing(${top.seasonElapsedPercent}, ${top.seasonUsedPercent}, ${top.landingAmount}, ${top.landingPercent})}">季節は 77% 過ぎて、予算は 62% 使いました。このペースだと、季節の終わりには約 142,000 円（予算の 81%）の見込みです。</p>
@@ -132,10 +128,7 @@
                                 <span th:text="${top.total.budget != null} ? |${#numbers.formatInteger(top.total.budget, 1, 'COMMA')}円| : '未設定'">7,200円</span>
                             </span>
                         </div>
-                        <div class="top-meter" aria-hidden="true" th:if="${top.total.budget != null}">
-                            <div class="top-meter-bar" th:classappend="${top.total.color.name() == 'RED'} ? 'top-meter-over'" th:style="|width: ${top.total.barPermille / 10}.${top.total.barPermille % 10}%|"></div>
-                            <div class="top-meter-today" th:style="|left: ${top.weekTodayPermille / 10}.${top.weekTodayPermille % 10}%|"></div>
-                        </div>
+                        <th:block th:if="${top.total.budget != null}"><th:block th:replace="~{fragments/meter :: meter(${top.total.meter}, false)}"></th:block></th:block>
                     </li>
                     <li class="top-week-separator" aria-hidden="true"></li>
                     <li class="top-week-row" th:each="row : ${top.rows}"
@@ -149,10 +142,7 @@
                                 <span th:text="${row.budget != null} ? |${#numbers.formatInteger(row.budget, 1, 'COMMA')}円| : '未設定'">2,400円</span>
                             </span>
                         </div>
-                        <div class="top-meter" aria-hidden="true" th:if="${row.budget != null}">
-                            <div class="top-meter-bar" th:classappend="${row.color.name() == 'RED'} ? 'top-meter-over'" th:style="|width: ${row.barPermille / 10}.${row.barPermille % 10}%|"></div>
-                            <div class="top-meter-today" th:style="|left: ${top.weekTodayPermille / 10}.${top.weekTodayPermille % 10}%|"></div>
-                        </div>
+                        <th:block th:if="${row.budget != null}"><th:block th:replace="~{fragments/meter :: meter(${row.meter}, false)}"></th:block></th:block>
                     </li>
                 </ul>
                 <p class="legend">赤：週の予算を超過／青：週の予算の1/3以下／💮：週の予算内（1/3を超え、予算以下）</p>

@@ -46,7 +46,7 @@ import jakarta.persistence.EntityManager;
 class MeterMarkupTest {
 
 	private static final LocalDate SUNDAY = LocalDate.of(2026, 11, 8);
-	private static final String LABEL = "<p class=\"top-meter-budget-label\">予算</p>";
+	private static final String LABEL = "<p class=\"top-meter-budget-label\" style=\"margin-left: 70.0%\">予算</p>";
 	private static final String OVER_BAR = "class=\"top-meter-bar top-meter-over\"";
 
 	@Autowired
@@ -151,6 +151,95 @@ class MeterMarkupTest {
 		assertThat(card).contains(LABEL);
 		assertThat(card.indexOf(LABEL)).isGreaterThan(card.indexOf("class=\"top-meter\""));
 		assertThat(count(body, "top-meter-budget-label")).isEqualTo(1);
+	}
+
+	// ---- 縮尺：予算（100％）は棒全体の 70％ の位置。「今日」の線も同じ縮尺（issue 020） ----
+
+	/** 季節 72 日目（791 → 今日の線 553 ＝ 55.3％）。実績 3,000 ÷ 予算 130,000 → 棒 16（1.6％）。予算の線・「予算」は 70.0％ */
+	@Test
+	void theSeasonMeterPutsTheBudgetAt70PercentAndTheTodayLineOnTheSameScale() throws Exception {
+		Category food = category("食費", 130_000);
+		spend(food, 3_000);
+
+		String card = seasonCard(page("/"));
+
+		assertThat(card).contains("class=\"top-meter-bar\" style=\"width: 1.6%\"");
+		assertThat(card).contains("class=\"top-meter-budget\" style=\"left: 70.0%\"");
+		assertThat(card).contains("class=\"top-meter-today\" style=\"left: 55.3%\"");
+		assertThat(card).contains("class=\"top-meter-budget-label\" style=\"margin-left: 70.0%\">予算</p>");
+		assertThat(card).as("超えていないので、赤い部分はない").doesNotContain("top-meter-over");
+	}
+
+	/** 予算 10,000・実績 12,000（120％ → 840）：通常色は 70.0％ まで、赤は 70.0％ から 14.0％ だけ。「+○%」は出ない（棒が右端に届いていない） */
+	@Test
+	void onlyTheExceededPartIsRedAndTheOverflowPercentIsNotShownYet() throws Exception {
+		Category food = category("食費", 10_000);
+		spend(food, 12_000);
+
+		String card = seasonCard(page("/"));
+
+		assertThat(card).contains("class=\"top-meter-bar\" style=\"width: 70.0%\"");
+		assertThat(card).contains("class=\"top-meter-bar top-meter-over\" style=\"left: 70.0%; width: 14.0%\"");
+		assertThat(card).contains("<span class=\"top-meter-excess\"></span>");
+	}
+
+	/** 予算 10,000・実績 20,000（200％ → 1400 で右端に止まる）：赤は 70.0％ から 30.0％（右端まで）。棒の右に「+100%」 */
+	@Test
+	void theBarStopsAtTheRightEndAndShowsThePercentOverTheBudget() throws Exception {
+		Category food = category("食費", 10_000);
+		spend(food, 20_000);
+
+		String card = seasonCard(page("/"));
+
+		assertThat(card).contains("class=\"top-meter-bar top-meter-over\" style=\"left: 70.0%; width: 30.0%\"");
+		assertThat(card).contains("<span class=\"top-meter-excess\">+100%</span>");
+	}
+
+	/** 今週の科目ごとのメーター（合計の行も）：予算の線は 70.0％、「今日」は週の 4 日目（571 → 39.9％）。文字「予算」は付けない */
+	@Test
+	void theWeeklyMetersUseTheSameScaleAndHaveNoBudgetLabel() throws Exception {
+		Category food = category("食費", 130_000);
+		spend(food, 20_000);                      // 週の予算 10,000 円の 200％ → 右端で止まる
+
+		String body = page("/");
+		String row = weekRow(body, "食費");
+		String total = weekRow(body, "合計");
+
+		for (String r : new String[] { row, total }) {
+			assertThat(r).contains("class=\"top-meter-budget\" style=\"left: 70.0%\"");
+			assertThat(r).contains("class=\"top-meter-today\" style=\"left: 39.9%\"");
+			assertThat(r).contains("class=\"top-meter-bar top-meter-over\" style=\"left: 70.0%; width: 30.0%\"");
+			assertThat(r).contains("<span class=\"top-meter-excess\">+100%</span>");
+			assertThat(r).doesNotContain("top-meter-budget-label");
+		}
+	}
+
+	/** 予実比較のカードも、同じ縮尺 */
+	@Test
+	void theComparisonCardUsesTheSameScale() throws Exception {
+		Category food = category("食費", 10_000);
+		spend(food, 12_000);
+
+		String body = page("/comparison");
+		String card = body.substring(body.indexOf("class=\"comparison-card\""), body.indexOf("<table"));
+
+		assertThat(card).contains("class=\"top-meter-bar\" style=\"width: 70.0%\"");
+		assertThat(card).contains("class=\"top-meter-bar top-meter-over\" style=\"left: 70.0%; width: 14.0%\"");
+		assertThat(card).contains("class=\"top-meter-budget\" style=\"left: 70.0%\"");
+		assertThat(card).contains("class=\"top-meter-today\" style=\"left: 55.3%\"");
+		assertThat(card).contains("class=\"top-meter-budget-label\" style=\"margin-left: 70.0%\">予算</p>");
+	}
+
+	/** すべてのメーターが、「+○%」の場所（空でも）を持つ：縮尺がメーターによってずれない */
+	@Test
+	void everyMeterHasThePlaceForTheOverflowPercent() throws Exception {
+		Category food = category("食費", 130_000);
+		spend(food, 3_000);
+
+		String body = page("/");
+
+		assertThat(count(body, "class=\"top-meter-excess\"")).isEqualTo(count(body, "class=\"top-meter\""));
+		assertThat(count(body, "class=\"top-meter\"")).as("季節 1 つ、今週の合計 1 つ、科目 1 つ").isEqualTo(3);
 	}
 
 	// ---- 予算を超えたときだけ、棒が赤 ----

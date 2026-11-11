@@ -52,28 +52,6 @@ class PeriodProgressTest {
 		assertThat(PeriodProgress.weekElapsedPermille(dayNumber)).isEqualTo(expected);
 	}
 
-	@ParameterizedTest(name = "予算 {0}・実績 {1} → 棒 {2}")
-	@CsvSource({
-			"2400,     0,       0",
-			"2400,     800,     333",
-			"2400,     2399,    999",
-			"2400,     2400,    1000",
-			"2400,     2500,    1000",
-			"1000,     1,       1",
-			"30000,    1,       0",
-			"3000000,  1000000, 333",
-			"0,        0,       0",
-			"0,        100,     1000"
-	})
-	void barPermille(long budget, long actual, int expected) {
-		assertThat(PeriodProgress.barPermille(budget, actual)).isEqualTo(expected);
-	}
-
-	@Test
-	void unsetBudgetHasNoBar() {
-		assertThat(PeriodProgress.barPermille(null, 5000)).isZero();
-	}
-
 	// ---- issue 017：見出しの行と、季節のメーターの % ----
 
 	/** 季節の終わりまであと何日（今日を含める）。季節の最後の日は 1 */

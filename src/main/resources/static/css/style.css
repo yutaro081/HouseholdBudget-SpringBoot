@@ -903,32 +903,49 @@ dl.detail dd {
     border-radius: 0.375rem;
 }
 
-/* 予算を超えたとき（実績 ＞ 予算）の棒は、予算超過の色（赤。意味の色。issue 020）。棒の長さは 100％で止まる */
+/* 予算を超えた部分だけ、予算超過の色（赤。意味の色。issue 020）。予算の位置から始まる（left と width は style 属性。縮尺は MeterScale） */
 .top-meter-bar.top-meter-over {
     background: #c62828;
+    border-radius: 0 0.375rem 0.375rem 0;
 }
 
 /*
- * 棒の右端（100％ ＝ 予算）の短い縦線（issue 020）：濃い灰色（補足の文字の色）、幅 2px、上下に 0.125rem ずつはみ出す。
+ * 予算の縦線（issue 020）：濃い灰色（補足の文字の色）、幅 2px、上下に 0.125rem ずつはみ出す。位置（left）は style 属性（予算 ＝ 棒の 70％。縮尺は MeterScale だけで決める）。
  * 「今日」の縦線（本文の色、上下に 0.25rem ずつはみ出す）と見分けがつくよう、灰色で短くする。
- * 季節のメーター、予実比較のカード、今週の科目ごとのメーター、すべての .top-meter に付く（HTML は変えない）。
+ * 季節のメーター、予実比較のカード、今週の科目ごとのメーター、すべてのメーターに付く（部品 fragments/meter）。
  */
-.top-meter::after {
-    content: "";
+.top-meter-budget {
     position: absolute;
     top: -0.125rem;
-    right: 0;
     bottom: -0.125rem;
     width: 2px;
+    margin-left: -1px;
     background: var(--hb-text-sub);
 }
 
-/* 棒の線の下の、小さな「予算」（トップの季節のメーターと予実比較のカードだけ。今週の科目ごとのメーターには付けない） */
+/* メーターの部品：棒（左）、「+○%」（右の 3.25rem。いつもあけておく。縮尺がメーターによってずれないため）、「予算」（棒の下）をグリッドで並べる */
+.top-meter-box {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 3.25rem;
+    align-items: center;
+}
+
+/* 棒が右端で止まったとき（約 143％ を超えたとき）の「+○%」（予算を超えた割合）：棒の右の、小さな赤い文字 */
+.top-meter-excess {
+    padding-left: var(--hb-space-2);
+    color: #c62828;
+    font-size: var(--hb-font-size-small);
+    white-space: nowrap;
+}
+
+/* 棒の線の下の、小さな「予算」（トップの季節のメーターと予実比較のカードだけ）。位置（margin-left）は style 属性。線の位置を中心にそろえる */
 .top-meter-budget-label {
+    grid-column: 1;
+    width: max-content;
     margin: calc(-1 * var(--hb-space-2)) 0 0;
     color: var(--hb-text-sub);
     font-size: var(--hb-font-size-small);
-    text-align: right;
+    transform: translateX(-50%);
 }
 
 .top-meter-today {

@@ -248,7 +248,7 @@ class TopServiceTest {
 		assertThat(unsetRow.budget()).isNull();
 		assertThat(unsetRow.difference()).isNull();
 		assertThat(unsetRow.color()).isEqualTo(BudgetColor.NONE);
-		assertThat(unsetRow.barPermille()).isZero();
+		assertThat(unsetRow.meter().normalPermille()).isZero();
 		assertThat(view.total().budget()).isEqualTo(2_400L);   // 設定済みの科目だけ
 		assertThat(view.total().actual()).isEqualTo(200L);     // 実績は全科目
 	}
@@ -284,13 +284,14 @@ class TopServiceTest {
 		assertThat(view.seasonBudget()).isEqualTo(comparison.total().budget()).isEqualTo(90_000L);
 		assertThat(view.seasonActual()).isEqualTo(comparison.total().actual()).isEqualTo(19_134L);   // 切り上げない
 		assertThat(view.seasonRemaining()).isEqualTo(comparison.total().difference()).isEqualTo(70_866L);
-		assertThat(view.seasonBarPermille()).isEqualTo(212);   // 19,134 ÷ 90,000
-		assertThat(view.seasonTodayPermille()).isEqualTo(758); // 91 日のうち 69 日目
-		assertThat(view.weekTodayPermille()).isEqualTo(142);   // 日曜は 1/7
+		// issue 020：予算（100％）は棒の 70％（700）の位置。縮尺は MeterScale
+		assertThat(view.seasonMeter().normalPermille()).isEqualTo(148);   // 19,134 ÷ 90,000 × 0.7（212 × 0.7）
+		assertThat(view.seasonMeter().todayPermille()).isEqualTo(530);    // 91 日のうち 69 日目（758）× 0.7
+		assertThat(view.total().meter().todayPermille()).isEqualTo(99);   // 日曜は 1/7（142）× 0.7
 	}
 
 	@Test
-	void overBudgetSeasonKeepsTheBarAtFullAndTheRemainingNegative() {
+	void overBudgetSeasonFillsTheBarWithTheRedPartAndTheRemainingIsNegative() {
 		Owner a = createOwner("toptest10");
 		Category food = category(a, "食費");
 		budget(a, food, AUTUMN_2026, 1_000);
@@ -298,7 +299,9 @@ class TopServiceTest {
 
 		TopView view = top(a, SUNDAY);
 
-		assertThat(view.seasonBarPermille()).isEqualTo(1000);
+		assertThat(view.seasonMeter().normalPermille()).as("予算（100％）までは通常色").isEqualTo(700);
+		assertThat(view.seasonMeter().overPermille()).as("150％ → 1050 → 右端で止まる。赤は 300").isEqualTo(300);
+		assertThat(view.seasonMeter().overflowPercent()).isEqualTo(50);
 		assertThat(view.seasonRemaining()).isEqualTo(-500L);
 	}
 
@@ -307,8 +310,8 @@ class TopServiceTest {
 		Owner a = createOwner("toptest11");
 		category(a, "食費");
 
-		assertThat(top(a, LocalDate.of(2026, 11, 8)).weekTodayPermille()).isEqualTo(142);
-		assertThat(top(a, LocalDate.of(2026, 11, 14)).weekTodayPermille()).isEqualTo(1000);
+		assertThat(top(a, LocalDate.of(2026, 11, 8)).total().meter().todayPermille()).isEqualTo(99);     // 1/7（142）× 0.7
+		assertThat(top(a, LocalDate.of(2026, 11, 14)).total().meter().todayPermille()).isEqualTo(700);  // 7/7（1000）× 0.7
 	}
 
 	// ---- 0 件 ----
@@ -476,7 +479,8 @@ class TopServiceTest {
 
 		spend(a, food, LocalDate.of(2026, 9, 4), 26_000);
 		assertThat(top(a, SUNDAY).seasonUsedPercent()).isEqualTo(120);        // 36,000 / 30,000
-		assertThat(top(a, SUNDAY).seasonBarPermille()).isEqualTo(1000);       // 棒は 100% で止まる
+		assertThat(top(a, SUNDAY).seasonMeter().normalPermille()).isEqualTo(700);    // 120％：通常色は予算（70％）まで
+		assertThat(top(a, SUNDAY).seasonMeter().overPermille()).isEqualTo(140);      // 赤は 840 − 700
 	}
 
 	@Test

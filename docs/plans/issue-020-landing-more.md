@@ -185,6 +185,12 @@
 - 作った：Controller に "+B+"rowGaps"+B+"・"+B+"totalGap"+B+"〔テンプレートでは計算しない〕。
 - テスト：+21 件〔2305 → 2326。"+B+"ComparisonForecastGapTest"+B+" 14、"+B+"BudgetTableStyleSheetTest"+B+" 4、"+B+"ComparisonStyleSheetTest"+B+" 2、"+B+"BudgetAutoControllerTest"+B+" 1〕。仕様が変わった既存のテスト 10 件の期待を直した。
 
+**見直し 6〔メーターの縮尺〕**〔2026年11月11日〕
+- すべてのメーター〔トップの季節、今週の合計・科目ごと、予実比較のカード〕で、**予算〔100%〕を棒全体の 70% の位置**にした〔右端は約 143%〕。「今日」の線も同じ縮尺。予算の縦線と「予算」の文字は、70% の位置。予算を超えたときは、棒全体ではなく、**超えた部分だけ赤**。143% を超えたら、棒は右端で止まり、棒の右に小さく「+○%」〔予算を超えた割合〕。
+- **縮尺の 70% は、1 か所**：`MeterScale.BUDGET_PERMILLE`〔`domain`〕。CSS・テンプレートに 70 を書かない〔テストで確かめる〕。メーターの HTML は、部品 `fragments/meter.html` にまとめた〔3 か所の重複をなくした〕。
+- 作った：`MeterScale`〔`Meter` の値：通常色・赤・予算の位置・今日・+○%〕、`TopView.seasonMeter`、`WeekRow.meter`、予実比較の `cardMeter`。使わなくなった `PeriodProgress.barPermille`、`TopView` の棒・今日の長さの項目、`WeekRow.barPermille` は消した。
+- テスト：+36 件、−11 件〔2326 → 2351。`MeterScaleTest` 27、`MeterStyleSheetTest` +3、`MeterMarkupTest` +6。消したのは、`PeriodProgressTest` の棒の長さの 11 件〔`MeterScaleTest` に置きかえた〕〕。縮尺が変わった既存のテスト〔`TopServiceTest` 5 か所、`TopLayoutTest` 1 件〕の期待を直した。
+
 ## 0.5 決まったこと、変えたもの
 
 | # | 決めたこと | 決めた日 |

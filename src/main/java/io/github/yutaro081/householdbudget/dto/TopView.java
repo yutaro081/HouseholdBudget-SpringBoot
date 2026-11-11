@@ -3,6 +3,7 @@ package io.github.yutaro081.householdbudget.dto;
 import java.time.LocalDate;
 import java.util.List;
 
+import io.github.yutaro081.householdbudget.domain.MeterScale;
 import io.github.yutaro081.householdbudget.domain.PieSlices;
 import io.github.yutaro081.householdbudget.domain.SeasonPeriod;
 
@@ -15,11 +16,9 @@ import io.github.yutaro081.householdbudget.domain.SeasonPeriod;
  * @param seasonBudget        今の季節の予算の合計（予実比較の合計行と同じ）。全科目が未設定なら null
  * @param seasonActual        今の季節の使った額の合計（1円単位。切り上げない）
  * @param seasonRemaining     残り ＝ 予算 − 使った額（超過するとマイナス）。予算が未設定なら null
- * @param seasonBarPermille   季節の棒の長さ。予算が未設定なら 0
- * @param seasonTodayPermille 季節の「今日」の線の位置
+ * @param seasonMeter         季節のメーターの値（棒、予算の線、「今日」の線、「+○%」。縮尺は MeterScale。issue 020）
  * @param weekStart           今週の開始日（日曜）
  * @param weekEnd             今週の最後の日（土曜）
- * @param weekTodayPermille   週の「今日」の線の位置（週の何日目 ÷ 7）
  * @param hasCategories       科目が1つでもあるか。ないときは、画面は案内だけを出す
  * @param slices              円グラフの並び（使った科目だけ。7科目以上は上位5科目＋その他）。今週の取引がなければ空
  * @param pieTotal            円の真ん中に出す今週の合計（切り上げた額の和）
@@ -38,8 +37,8 @@ import io.github.yutaro081.householdbudget.domain.SeasonPeriod;
  * @param landingPercent     着地見込みの、予算に対する％（なければ null）
  */
 public record TopView(SeasonPeriod season, Long seasonBudget, long seasonActual, Long seasonRemaining,
-		int seasonBarPermille, int seasonTodayPermille, LocalDate weekStart, LocalDate weekEnd,
-		int weekTodayPermille, boolean hasCategories, List<PieSlices.Slice> slices, long pieTotal, String pieStops,
+		MeterScale.Meter seasonMeter, LocalDate weekStart, LocalDate weekEnd,
+		boolean hasCategories, List<PieSlices.Slice> slices, long pieTotal, String pieStops,
 		List<WeekRow> rows, WeekRow total, HitokotoView hitokoto, LocalDate today, int seasonFirstMonth,
 		int seasonLastMonth, int seasonDaysLeft, Integer seasonUsedPercent, int seasonElapsedPercent, int weekDayNumber,
 		Long landingAmount, Integer landingPercent) {

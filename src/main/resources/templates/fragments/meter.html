@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<!--/*
+  メーター（棒）の部品（設計書 2.3「メーターの見た目」、issue 020）。トップの季節のメーター、今週の合計・科目ごとのメーター、予実比較のカードで共有する。
+  ・m：MeterScale.Meter。長さ・位置はすべて 1000分率の整数で、「整数部.小数1桁%」にして style 属性に入れる（数字だけ。設計書 7.5）。縮尺（予算 ＝ 70％）は MeterScale だけで決める。ここには 70 を書かない。
+  ・棒：予算までは通常色、予算を超えた部分だけ赤（top-meter-over。予算の位置から始まる）。予算の縦線（top-meter-budget）と「今日」の縦線（top-meter-today）。
+  ・「+○%」（top-meter-excess）：棒が右端で止まったときだけ文字が入る。場所は、いつもあけておく（縮尺がメーターによってずれないため）。
+  ・withLabel：true のとき、予算の線の下に小さく「予算」（トップの季節のメーターと予実比較のカード）。今週の科目ごとのメーターは false（縦線だけ）。
+  ・棒は飾り（aria-hidden）。数字と文は、画面のほかの所に文字で出ている。
+*/-->
+<th:block th:fragment="meter(m, withLabel)">
+<div class="top-meter-box">
+    <div class="top-meter" aria-hidden="true">
+        <div class="top-meter-bar" th:style="|width: ${m.normalPermille / 10}.${m.normalPermille % 10}%|"></div>
+        <div class="top-meter-bar top-meter-over" th:if="${m.over}" th:style="|left: ${m.budgetPermille / 10}.${m.budgetPermille % 10}%; width: ${m.overPermille / 10}.${m.overPermille % 10}%|"></div>
+        <div class="top-meter-budget" th:style="|left: ${m.budgetPermille / 10}.${m.budgetPermille % 10}%|"></div>
+        <div class="top-meter-today" th:style="|left: ${m.todayPermille / 10}.${m.todayPermille % 10}%|"></div>
+    </div>
+    <span class="top-meter-excess" th:text="${m.overflowPercent != null} ? |+${m.overflowPercent}%|"></span>
+    <p class="top-meter-budget-label" th:if="${withLabel}" th:style="|margin-left: ${m.budgetPermille / 10}.${m.budgetPermille % 10}%|">予算</p>
+</div>
+</th:block>
+</html>
