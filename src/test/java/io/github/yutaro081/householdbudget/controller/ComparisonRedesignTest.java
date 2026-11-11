@@ -234,8 +234,55 @@ class ComparisonRedesignTest {
 		assertThat(card).as("表の上").isLessThan(body.indexOf("<table"));
 		assertThat(card).as("年と季節を選ぶ欄の下").isGreaterThan(body.indexOf("season-select"));
 		String cardText = body.substring(card, body.indexOf("<table"));
-		assertThat(cardText).contains("約 50,500円", "予算 50,000円", "class=\"top-meter\"", "予算のうち 80% を使った", "縦の線は『今日』（季節の 79%）");
+		assertThat(cardText).contains("約 50,500円", "予算 50,000円", "実績 39,900円（80%）", "class=\"top-meter\"", "予算のうち 80% を使った", "縦の線は『今日』（季節の 79%）");
 		assertThat(cardText).contains("見込みは、予算を上回ります。", "月ごとにまとめて払うものは、払う日で見込みが上下します。");
+	}
+
+	/** 上の段に大きな数字が横に 3 つ（見込み・予算・実績の順）。その下にメーター。説明のラベルはメーターのすぐ上。補足は一番下 */
+	@Test
+	void theCardHasThreeFiguresThenTheMeterWithItsLabelsAboveAndTheNotesAtTheBottom() throws Exception {
+		fourCategories();
+
+		String body = page("/comparison");
+		String card = body.substring(body.indexOf("class=\"comparison-card\""), body.indexOf("<table"));
+
+		assertThat(count(card, "class=\"comparison-card-amount\"")).as("大きな数字は 3 つ").isEqualTo(3);
+		int forecast = card.indexOf("約 50,500円");
+		int budget = card.indexOf("予算 50,000円");
+		int actual = card.indexOf("実績 39,900円（80%）");
+		int labels = card.indexOf("予算のうち 80% を使った");
+		int today = card.indexOf("縦の線は『今日』");
+		int meter = card.indexOf("class=\"top-meter\"");
+		assertThat(forecast).isGreaterThanOrEqualTo(0).isLessThan(budget);
+		assertThat(budget).isLessThan(actual);
+		assertThat(actual).as("数字の下にメーター").isLessThan(labels);
+		assertThat(labels).as("ラベルは、メーターのすぐ上（左：使った割合、右：今日）").isLessThan(today);
+		assertThat(today).isLessThan(meter);
+		assertThat(card.indexOf("見込みは、予算を上回ります。")).as("上回る文は、メーターの下").isGreaterThan(meter);
+		assertThat(card.indexOf("月ごとにまとめて払うもの")).as("補足は、一番下").isGreaterThan(card.indexOf("見込みは、予算を上回ります。"));
+	}
+
+	/** 印は、数字の左に、同じ行の小さなチップ（数字の下の 2 行目ではない） */
+	@Test
+	void theMarksAreChipsToTheLeftOfTheNumbers() throws Exception {
+		fourCategories();
+		Category extra = category("超過の科目", 1_000, Season.AUTUMN, 2026);
+		spend(extra, LocalDate.of(2026, 11, 3), 2_000);
+		Category low = category("余裕の科目", 90_000, Season.AUTUMN, 2026);
+		spend(low, LocalDate.of(2026, 11, 3), 10_000);
+
+		String body = page("/comparison");
+
+		assertThat(rowOf(body, "交通費")).contains("<small class=\"cell-mark\">予算超えの見込み</small><span>12,500</span>");
+		assertThat(rowOf(body, "超過の科目")).contains("<small class=\"cell-mark\">予算超え</small><span>-1,000</span>");
+		assertThat(rowOf(body, "余裕の科目")).contains("<small class=\"cell-mark\">使い残し</small><span>80,000</span>");
+	}
+
+	@Test
+	void theTotalRowChipIsAlsoToTheLeftOfTheForecast() throws Exception {
+		fourCategories();
+
+		assertThat(rowOf(page("/comparison"), "合計")).contains("<small class=\"cell-mark\">予算超えの見込み</small><span>50,500</span>");
 	}
 
 	@Test

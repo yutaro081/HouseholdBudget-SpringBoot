@@ -300,7 +300,7 @@ main.form-wide {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 8px 16px;
+    gap: 8px 12px;
     max-width: 1120px;
     margin: 0 auto;
     padding: 0 12px;
@@ -333,7 +333,7 @@ main.form-wide {
 
 /* メニュー：アイコン + 文字。高さ 44px、角 10px。今の項目以外は補足の文字の色。<a> にクラスは付けない（テストが確かめている） */
 .menu {
-    gap: 4px;
+    gap: 2px;
 }
 
 .menu a {
@@ -341,7 +341,7 @@ main.form-wide {
     align-items: center;
     gap: 6px;
     min-height: 44px;
-    padding: 0 12px;
+    padding: 0 8px;
     border-radius: 10px;
     color: var(--hb-text-sub);
     text-decoration: none;
@@ -515,24 +515,31 @@ dl.detail dd {
  * 予実比較の表（設計書 2.3、issue 020）：予算設定の表の見た目にそろえる。
  * 色は差額のセルだけ（赤 diff-over、青 diff-low）。意味の印（「予算超え」「使い残し」「予算超えの見込み」）は、数字の下の小さな文字（色は差額のセルから引き継ぐ。印そのものには色を付けない）。
  * <tr> のクラスは、予算内の行の row-within と、合計行の total-row だけ（row-over・row-low は、色が差額のセルだけになったのでなくした）。<tr> に Bootstrap のクラスを足さない。
- * 列の幅：表は中身に合わせ（広げない）、科目の列は名前に合う幅、数字の 4 列は同じ幅にそろえる。
+ * 列の幅：表は 100% の幅（要約カードと左右の端をそろえる）。科目の列は全体の 25%、数字の列（予算・実績・見込み・差額）は幅を決めず、残りを等分する（table-layout: fixed）。
+ * 印は、数字の左に置く同じ行の小さなチップ（どの行も同じ高さ）。
  */
 .comparison-table {
-    width: auto;
+    width: 100%;
+    min-width: 44rem;
+    table-layout: fixed;
 }
 
 .comparison-table th:first-child {
-    min-width: 8rem;
+    width: 25%;
+}
+
+/* どの行も同じ高さ（チップのある行も、ない行も）。高さは最小の値で、合計行は大きな文字の分だけ高くなる */
+.comparison-table tbody td {
+    height: 2.75rem;
 }
 
 .comparison-table th.num {
-    width: 9.5rem;
     text-align: right;
 }
 
 .comparison-table td.num {
-    width: 9.5rem;
     text-align: right;
+    white-space: nowrap;
     font-variant-numeric: tabular-nums;
 }
 
@@ -551,9 +558,16 @@ dl.detail dd {
 }
 
 .comparison-table .cell-mark {
-    display: block;
+    display: inline-block;
+    margin-right: 0.375rem;
+    padding: 0 0.375rem;
+    border: 1px solid currentColor;
+    border-radius: 999px;
     font-size: var(--hb-font-size-small);
     font-weight: 400;
+    line-height: 1.25;
+    white-space: nowrap;
+    vertical-align: middle;
 }
 
 /* 予算内の行（💮。設計書 2.3、F5）：薄いアプリコットの背景 #FFF2E5（--hb-apricot。issue 015 で、前の薄い緑から変えた。薄いターコイズ #E1F3F2 と区別できなかったため）。
@@ -597,22 +611,17 @@ dl.detail dd {
     color: var(--hb-text-sub);
 }
 
-.comparison-card-numbers {
-    margin: 0 0 var(--hb-space-2);
+/* 上の段：大きな数字を横に 3 つ（見込み・予算・実績）。せまいときは折り返す */
+.comparison-card-figures {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: var(--hb-space-2) var(--hb-space-4);
+    margin-bottom: var(--hb-space-3);
 }
 
 .comparison-card-amount {
     font-size: var(--hb-font-size-h1);
     font-weight: 700;
-}
-
-.comparison-card-budget {
-    margin-left: var(--hb-space-3);
-    color: var(--hb-text-sub);
-}
-
-.comparison-card-meter {
-    max-width: 32rem;
 }
 
 .comparison-card-labels {
@@ -623,6 +632,10 @@ dl.detail dd {
     margin: 0;
     color: var(--hb-text-sub);
     font-size: var(--hb-font-size-small);
+}
+
+.comparison-card-meter {
+    margin-bottom: var(--hb-space-2);
 }
 
 .comparison-card-over {

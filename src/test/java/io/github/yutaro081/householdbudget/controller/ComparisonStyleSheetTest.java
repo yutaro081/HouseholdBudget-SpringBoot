@@ -28,19 +28,25 @@ class ComparisonStyleSheetTest {
 	}
 
 	@Test
-	void theTableFitsItsContentAndTheCategoryColumnIsNotStretched() throws Exception {
-		String css = css();
+	void theTableIsFullWidthSoItsEdgesLineUpWithTheSummaryCard() throws Exception {
+		String table = rule(css(), ".comparison-table");
 
-		assertThat(rule(css, ".comparison-table")).as("表は広げない（1120px にしても、科目と予算の間が空きすぎない）").contains("width: auto");
-		assertThat(rule(css, ".comparison-table th:first-child")).as("科目の列は、名前に合う幅（最小 8rem）").contains("min-width: 8rem");
+		assertThat(table).contains("width: 100%", "table-layout: fixed");
+		assertThat(table).as("せまい幅では、表の最小の幅で横にスクロールする").contains("min-width: 44rem");
 	}
 
 	@Test
-	void theFourNumberColumnsHaveTheSameWidthAndAreRightAligned() throws Exception {
+	void theCategoryColumnIsAQuarterAndTheNumberColumnsShareTheRestEqually() throws Exception {
 		String css = css();
 
-		assertThat(rule(css, ".comparison-table th.num")).contains("width: 9.5rem", "text-align: right");
-		assertThat(rule(css, ".comparison-table td.num")).contains("width: 9.5rem", "text-align: right");
+		assertThat(rule(css, ".comparison-table th:first-child")).as("科目の列は全体の 4 分の 1").contains("width: 25%");
+		assertThat(rule(css, ".comparison-table th.num")).as("数字の列は幅を決めない（残りを等分する）").doesNotContain("width").contains("text-align: right");
+		assertThat(rule(css, ".comparison-table td.num")).doesNotContain("width").contains("text-align: right");
+	}
+
+	@Test
+	void everyRowHasTheSameMinimumHeightSoTheChipsDoNotMakeSomeRowsTaller() throws Exception {
+		assertThat(rule(css(), ".comparison-table tbody td")).contains("height: 2.75rem");
 	}
 
 	@Test
@@ -70,11 +76,20 @@ class ComparisonStyleSheetTest {
 	}
 
 	@Test
-	void theMarksUnderTheNumbersAreSmallAndHaveNoMeaningColor() throws Exception {
+	void theMarksAreSmallChipsOnTheSameLineAsTheNumberAndHaveNoMeaningColor() throws Exception {
 		String mark = rule(css(), ".comparison-table .cell-mark");
 
-		assertThat(mark).contains("display: block", "font-size: var(--hb-font-size-small)", "font-weight: 400");
+		assertThat(mark).contains("display: inline-block", "white-space: nowrap", "border: 1px solid currentColor", "border-radius", "font-size: var(--hb-font-size-small)", "font-weight: 400");
+		assertThat(mark).as("数字の下の 2 行目に置かない（その行だけ高くなる）").doesNotContain("display: block");
 		assertThat(mark).as("印そのものに色は付けない（色は差額のセルの文字の色を引き継ぐ）").doesNotContain("color: #c62828", "color: #1565c0");
+	}
+
+	@Test
+	void theCardPutsThreeBigNumbersInARowAndTheMeterUsesTheFullWidth() throws Exception {
+		String css = css();
+
+		assertThat(rule(css, ".comparison-card-figures")).contains("display: grid", "grid-template-columns");
+		assertThat(css).as("メーターは、カードの幅いっぱい（幅の上限をなくした）").doesNotContain("max-width: 32rem");
 	}
 
 	@Test

@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
  */
 class LandingMessagesTest {
 
-	private static final List<String> KEYS = List.of("top.landing", "comparison.landing.over", "comparison.landing.note", "comparison.card.title", "comparison.card.amount", "comparison.card.budget", "comparison.card.counting");
+	private static final List<String> KEYS = List.of("top.landing", "comparison.landing.over", "comparison.landing.note", "comparison.card.title", "comparison.card.amount", "comparison.card.budget", "comparison.card.actual", "comparison.card.counting");
 
 	private static Properties messages() throws Exception {
 		Properties properties = new Properties();
@@ -40,6 +40,7 @@ class LandingMessagesTest {
 		assertThat(p.getProperty("comparison.landing")).as("1 行の文は、なくした").isNull();
 		assertThat(p.getProperty("comparison.card.amount")).isEqualTo("約 {0}円");
 		assertThat(p.getProperty("comparison.card.budget")).isEqualTo("予算 {0}円");
+		assertThat(p.getProperty("comparison.card.actual")).isEqualTo("実績 {0}円（{1}%）");
 		assertThat(p.getProperty("comparison.card.counting")).isEqualTo("{0}/{1} に記録を始めたので、その日から数えています。");
 		assertThat(p.getProperty("comparison.landing.over")).isEqualTo("見込みは、予算を上回ります。");
 		assertThat(p.getProperty("comparison.landing.note")).isEqualTo("月ごとにまとめて払うものは、払う日で見込みが上下します。");
