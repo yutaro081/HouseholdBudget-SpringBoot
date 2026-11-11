@@ -475,13 +475,9 @@ dl.detail dd {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
+    justify-content: center;
     gap: 8px;
     margin: 0 0 16px;
-}
-
-.season-hint {
-    color: var(--hb-text-sub);
-    font-size: var(--hb-font-size-small);
 }
 
 /* 予算設定の表：予算額の入力欄 */
@@ -490,11 +486,28 @@ dl.detail dd {
     text-align: right;
 }
 
-/* 「（この季節は未設定）」の印（設計書 2.3、Q26） */
+/* 「未保存」の小さなチップ（設計書 2.3、Q26。issue 019 で、「（この季節は未設定）」から変えた）。薄いターコイズは小さな印に使う */
 .unset-mark {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--hb-teal-pale);
+    color: var(--hb-teal-text);
+    font-size: var(--hb-font-size-small);
+    line-height: 1.5;
+}
+
+/* hidden の要素は、ほかのクラスの display に打ち消されずに、必ず隠す（合計の下の固定の文。ブラウザで見つかった不具合） */
+[hidden] {
+    display: none !important;
+}
+
+/* 表の下の、入力の範囲の一言 */
+.budget-hint {
+    margin: -8px 0 12px;
     color: var(--hb-text-sub);
     font-size: var(--hb-font-size-small);
-    margin-left: 6px;
 }
 
 /*
@@ -1027,6 +1040,24 @@ main.auth-main {
     }
 }
 
+/* 2 列のとき：ヘッダーの下の残りの高さの、縦の真ん中に、紹介とカードを置く（設計書 2.3。ブラウザで見て決めた）。
+   画面の高さいっぱいを、ヘッダーと本体で分け、本体を縦に中央にそろえる。HTML は変えない。
+   せまいとき（カードが上）は、この規則を使わず、今のまま上から並べる。中身が高いときは、上から並んでスクロールする */
+@media (min-width: 768px) {
+    body:has(> main.auth-main) {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    body:has(> main.auth-main) main.auth-main {
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+}
+
 .auth-chip {
     display: inline-block;
     margin-bottom: 0.875rem;
@@ -1184,4 +1215,125 @@ main.list-wide {
 .comparison-landing .comparison-landing-note {
     color: var(--hb-text-sub);
     font-size: var(--hb-font-size-small);
+}
+
+/* 予算設定の「自動予算」（設計書 2.3、issue 019）：ボタンと一言、選ぶリンク、最初の文、表の数字 */
+.auto-budget-action {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    margin: 12px 0;
+}
+
+/* 「自動予算」ボタン：アプリのターコイズ（Bootstrap の青は、予実比較の意味の色なので使わない）。枠 2px（--hb-teal）、文字は濃いターコイズの太字、少し大きく。
+   強さの順は、保存（塗り）＞ このボタン ＞ 切りかえボタン（細い灰色の枠）。アイコンは文字の左 */
+.btn.auto-budget-button {
+    --bs-btn-color: var(--hb-teal-text);
+    --bs-btn-font-weight: 700;
+    --bs-btn-font-size: 1.0625rem;
+    --bs-btn-padding-x: 1.125rem;
+    --bs-btn-padding-y: 0.5rem;
+    --bs-btn-hover-color: var(--hb-teal-text);
+    --bs-btn-hover-bg: var(--hb-teal-pale);
+    --bs-btn-active-color: var(--hb-teal-text);
+    --bs-btn-active-bg: var(--hb-teal-pale);
+    --bs-btn-focus-shadow-rgb: 11, 127, 126;
+    border: 2px solid var(--hb-teal);   /* 基本のターコイズは border だけに使う決まり（ホバー・押したときも枠はそのまま） */
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.auto-budget-note {
+    color: var(--hb-text-sub);
+    font-size: var(--hb-font-size-small);
+}
+
+/* 選ぶリンク 3 つと保存ボタンの行：保存ボタンは右端。リンクとは間をあける（押し間違えない） */
+.auto-budget-choices {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 32px;
+    margin: 12px 0;
+}
+
+/* 切りかえボタン（btn-group）：選んでいるものは、メニューの「今の画面」と同じ薄いターコイズの地に濃い文字（太さ 700）。保存は塗り、切りかえは枠線で、見た目を変える */
+.auto-budget-choices .btn-group a[aria-current="true"] {
+    background-color: var(--hb-teal-pale);
+    color: var(--hb-teal-text);
+    font-weight: 700;
+}
+
+.budget-save {
+    margin-left: auto;
+}
+
+.auto-budget-summary p {
+    margin-bottom: 4px;
+}
+
+.budget-table td.num,
+.budget-table tfoot td:last-child {
+    text-align: right;
+}
+
+/* 予算設定の表の見た目（設計書 2.3、issue 019。ブラウザで見て決めた）。数字の列は見出しも右寄せ。
+   参考の列（直前の季節の予算・実績・根拠）は灰色で少し小さく、予算額の列は太くして目立たせる。合計の行は大きく、上の線を太く */
+.budget-table th.num {
+    text-align: right;
+}
+
+/* 表の見出しは、すべて同じ大きさ（本文と同じ）・同じ太さ */
+.budget-table thead th {
+    font-size: var(--hb-font-size-body);
+    font-weight: 700;
+}
+
+/* 参考の列：大きさは本文と同じ。色だけ補足の文字の色（#56625F。背景 #F6F8F8 との比 5.96、白との比 6.35） */
+.budget-table .budget-ref {
+    color: var(--hb-text-sub);
+}
+
+/* 根拠の列：右寄せ（クラス num）。左の実績の列の数字とくっつかないよう、左の余白を広げる */
+.budget-table .budget-basis {
+    padding-left: 2.5rem;
+}
+
+/* 予算額の列：太字で目立たせる。入力欄は、セルの右に寄せて、見出し・合計の数字の右端にそろえる */
+.budget-table td.budget-amount {
+    font-weight: 700;
+}
+
+.budget-table td.budget-amount input[type="text"] {
+    margin-left: auto;
+    font-weight: 700;
+}
+
+/* 合計の行の数字：どの列も同じ色・大きさ・太さ */
+.budget-table .budget-sum {
+    color: var(--hb-text);
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+/* 前の季節の予算が未設定のときの「—」 */
+.budget-dash {
+    color: #A7B0AE;
+}
+
+.budget-table tfoot th,
+.budget-table tfoot td {
+    font-size: 1.25rem;
+    border-top: 3px solid var(--hb-text);
+}
+
+/* 複写のお知らせの 1 行（alert-info。設計書 2.3「色の決まり」）：Bootstrap の標準の水色はやめて、白い地・左に 4px のターコイズの線・本文の色。
+   薄いターコイズは「メニューの今の項目と小さな印だけ」の決まりなので使わない。基本のターコイズは枠（border）だけ */
+.alert-info {
+    --bs-alert-color: var(--hb-text);
+    --bs-alert-bg: var(--hb-input-bg);
+    --bs-alert-border-color: var(--hb-line);
+    border-left: 4px solid var(--hb-teal);
 }

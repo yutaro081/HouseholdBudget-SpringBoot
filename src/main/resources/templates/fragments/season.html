@@ -26,7 +26,6 @@
             <span th:if="${period.season.urlName == 'winter'}"
                   th:text="|（${period.startDate.year}年${period.startDate.monthValue}月〜${period.endDateExclusive.minusMonths(1).year}年${period.endDateExclusive.minusMonths(1).monthValue}月）|">（2026年12月〜2027年2月）</span>
         </h2>
-        <a class="btn btn-outline-secondary btn-sm" th:href="@{${path}}">今の季節</a>
     </div>
     <span class="season-link next">
         <a class="btn btn-outline-secondary btn-sm" th:if="${next != null}"
@@ -45,7 +44,7 @@
                 th:value="${name}" th:text="#{|season.${name}|}" th:selected="${name == period.season.urlName}">春</option>
     </select>
     <button type="submit" class="btn btn-primary btn-sm">表示</button>
-    <span class="season-hint">冬は、12月がある年を選びます</span>
+    <a class="btn btn-outline-secondary btn-sm" th:href="@{${path}}">今の季節</a>
 </form>
 </th:block>
 </html>

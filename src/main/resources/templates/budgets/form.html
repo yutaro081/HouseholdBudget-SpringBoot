@@ -3,7 +3,14 @@
 <head th:replace="~{fragments/common :: head('予算設定')}"></head>
 <body>
 <header th:replace="~{fragments/common :: header('budgets')}"></header>
-<main class="container">
+<!--/* auto：自動予算の中身（押していないときは null）。untilToday：直前の季節が今日を含むときだけ「（11/11 まで）」 */-->
+<main class="container"
+      th:with="auto=${budgetView.auto},
+               seasonName=#{|season.${budgetView.period.season.urlName}|},
+               hasRows=${!#lists.isEmpty(budgetView.rows)},
+               saveInChoices=${budgetView.auto != null and !budgetView.auto.noMaterial},
+               untilToday=${budgetView.auto != null and budgetView.auto.previousContainsToday}
+                   ? #{budget.auto.untilToday(|${budgetView.auto.today.monthValue}/${budgetView.auto.today.dayOfMonth}|)} : ''">
     <!--/* 成功メッセージ（保存しました）の表示場所（画面の上部、設計書 2.3） */-->
     <div th:replace="~{fragments/common :: messages}"></div>
 
@@ -17,12 +24,62 @@
         <p>先に科目を追加してください。<a th:href="@{/categories}">科目の画面へ</a></p>
     </div>
 
+    <!--/* 「自動予算」ボタンと、ボタンの横の一言（設計書 2.3、issue 019）。GET のリンクで、押しても保存しない。
+         過去の同じ季節が範囲（2000年春）より前しかないとき、科目が0件のときは出さない（autoAvailable）。
+         「保存」ボタンは上にだけ置く（下にはない）。表を囲むフォームの外にあるので、form 属性で同じフォームを送る（CSRF のトークンはフォームの中）。
+         ふだんの画面では、この行の右端。案を入れたあと（選ぶリンクがあるとき）は、選ぶリンクの行の右端 */-->
+    <div class="auto-budget-action" th:if="${hasRows and (budgetView.autoAvailable or !saveInChoices)}">
+        <a class="btn auto-budget-button" th:if="${budgetView.autoAvailable}" th:attr="data-budget-confirm=#{budget.auto.confirm}"
+           th:href="@{/budgets(year=${budgetView.period.year}, season=${budgetView.period.season.urlName}, auto=1)}"><th:block th:replace="~{fragments/icons :: icon('sparkle', 20, 2)}"></th:block><span th:text="#{budget.auto.button}">自動予算</span></a>
+        <span class="auto-budget-note" th:if="${budgetView.autoAvailable}" th:text="#{budget.auto.note}">手で直した額は、ボタンを押すと消えます。</span>
+        <button type="submit" form="budget-form" class="btn btn-primary budget-save" th:unless="${saveInChoices}">保存</button>
+    </div>
+
+    <!--/* 案を入れたあとだけ：最初の文（設計書 5.14）。すべて messages.properties の固定の文。
+         利用者の入力が混ざるのは科目名だけで、th:text で出す（th:utext は使わない、設計書 7.5）。
+         年は文字にして渡す（数字のまま渡すと「2,026」になる） */-->
+    <div class="auto-budget-summary" th:if="${auto != null}">
+        <p th:if="${auto.previousSeason != null}"
+           th:text="#{budget.auto.previous(${'' + auto.previousSeason.year}, #{|season.${auto.previousSeason.season.urlName}|},
+                       ${auto.previousBudgetTotal != null} ? #{budget.auto.previous.budget(${#numbers.formatInteger(auto.previousBudgetTotal, 1, 'COMMA')})} : #{budget.auto.previous.budget.none},
+                       ${#numbers.formatInteger(auto.previousActualTotal, 1, 'COMMA')}, ${untilToday})}">直前の季節（2026 年 秋）は予算 173,000 円・実績 80,400 円（11/11 まで）でした。</p>
+        <p th:if="${auto.noMaterial}" th:text="#{budget.auto.nomaterial}">案を作れる材料がありません</p>
+        <th:block th:unless="${auto.noMaterial}">
+            <th:block th:if="${auto.hasRecordYears}">
+                <p th:switch="${auto.trendKind.name()}">
+                    <span th:case="'UP'"
+                          th:text="${auto.trendCapped} ? #{budget.auto.trend.up.capped(${seasonName}, ${'' + (auto.trendPercent - 100)})} : #{budget.auto.trend.up(${seasonName}, ${'' + (auto.trendPercent - 100)})}">ここ 3 年、出費は増える傾向です。</span>
+                    <span th:case="'DOWN'"
+                          th:text="${auto.trendCapped} ? #{budget.auto.trend.down.capped(${seasonName}, ${'' + (100 - auto.trendPercent)})} : #{budget.auto.trend.down(${seasonName}, ${'' + (100 - auto.trendPercent)})}">ここ 3 年、出費は減る傾向です。</span>
+                    <span th:case="'SAME'" th:text="#{budget.auto.trend.same}">ここ 3 年、出費はほぼ同じです。</span>
+                    <span th:case="*" th:text="#{budget.auto.trend.none}">記録が 3 年分そろっていないので、増える・減る傾向は入れていません。</span>
+                </p>
+                <p th:if="${auto.trendKind.name() == 'UP' or auto.trendKind.name() == 'DOWN'}">
+                    <small class="auto-budget-note" th:text="#{budget.auto.trend.note(${seasonName})}">※ 過去の冬の額は、だいたい 2 年前の水準です。</small>
+                </p>
+            </th:block>
+            <p th:unless="${auto.hasRecordYears}" th:text="#{budget.auto.norecord(${seasonName})}">過去の冬の実績がないので、直前の季節の実績や予算をもとにしました。</p>
+        </th:block>
+    </div>
+
+    <!--/* 案を入れたあとだけ：3つをくっつけた切りかえボタン（btn-group。中身は GET のリンク。最初の文の下。いまの選択は薄いターコイズ＋aria-current。選び直すたびに、もとから計算し直す）と、右端の保存ボタン（塗り）。材料がないときは出さない */-->
+    <div class="auto-budget-choices" th:if="${saveInChoices}">
+        <div class="btn-group" role="group" aria-label="案の割合の切りかえ">
+            <a th:each="n : ${ {1, 2, 3} }" class="btn btn-outline-secondary"
+               th:href="@{/budgets(year=${budgetView.period.year}, season=${budgetView.period.season.urlName}, auto=${n})}"
+               th:attr="aria-current=${auto.choice.ordinal() + 1 == n} ? 'true' : null, data-budget-confirm=#{budget.auto.confirm}"
+               th:text="#{|budget.auto.choice.${n}|}">1. これで OK</a>
+        </div>
+        <button type="submit" form="budget-form" class="btn btn-primary budget-save">保存</button>
+    </div>
+
     <!--/* 科目ごとの予算額の入力。科目の登録順。保存先は、年と季節を含む URL（設計書 5.7）。
          入力欄には、カンマも「円」も使わない。数字だけを入力する（設計書 2.3）。画面側では必須・範囲の制限を付けない（G1）。
          「（この季節は未設定）」の印は、その季節の予算が保存されていない行に出す（Q26）。保存すると、全科目の行が作られ、印が消える。
          エラーのとき（表示し直し）は、全行の入力値が残り、エラーのある行の横にメッセージが出る（6.9）。
-         科目名は th:text で出す。th:utext は使わない（7.5）。保存していない入力は、前・次の季節のリンクで移動すると、確認なしで捨てられる（Q27 の d） */-->
-    <form th:unless="${#lists.isEmpty(budgetView.rows)}"
+         科目名は th:text で出す。th:utext は使わない（7.5）。保存していない入力は、前・次の季節のリンクで移動すると、確認なしで捨てられる（Q27 の d）。
+         案を入れたあとだけ、表は5列（科目／直前の季節の予算／直前の季節の実績／案の根拠／予算額）。ふだんは2列 */-->
+    <form id="budget-form" th:unless="${#lists.isEmpty(budgetView.rows)}"
           th:action="@{/budgets(year=${budgetView.period.year}, season=${budgetView.period.season.urlName})}"
           th:object="${budgetForm}" method="post" novalidate>
         <div class="table-responsive">
@@ -30,27 +87,79 @@
             <thead>
             <tr>
                 <th>科目</th>
-                <th>予算額（円。0〜3000000の整数）</th>
+                <th class="num budget-ref" th:if="${auto != null}"
+                    th:text="${auto.previousSeason != null} ? #{budget.auto.head.budget(${'' + auto.previousSeason.year}, #{|season.${auto.previousSeason.season.urlName}|})} : #{budget.auto.head.budget.none}">2026 年 秋の予算</th>
+                <th class="num budget-ref" th:if="${auto != null}"
+                    th:text="${auto.previousSeason != null} ? (#{budget.auto.head.actual(${'' + auto.previousSeason.year}, #{|season.${auto.previousSeason.season.urlName}|})} + ${untilToday}) : #{budget.auto.head.actual.none}">2026 年 秋の実績（11/11 まで）</th>
+                <th class="num budget-ref budget-basis" th:if="${auto != null}" th:text="#{budget.auto.head.basis(${seasonName})}">根拠（過去 3 年の冬の中央値）</th>
+                <th class="num budget-amount">予算額（円）</th>
             </tr>
             </thead>
             <tbody>
-            <tr th:each="row, stat : ${budgetView.rows}">
+            <tr th:each="row, stat : ${budgetView.rows}" th:with="arow=${auto != null} ? ${auto.rows[stat.index]} : null">
                 <td>
                     <span th:text="${row.categoryName}">食費</span>
-                    <span class="unset-mark" th:if="${row.unset}">（この季節は未設定）</span>
+                    <span class="unset-mark" th:if="${row.unset}" th:text="#{budget.unsaved}">未保存</span>
                 </td>
-                <td>
+                <td class="num budget-ref" th:if="${arow != null}">
+                    <span th:if="${arow.previousBudget != null}" th:text="${#numbers.formatInteger(arow.previousBudget, 1, 'COMMA')}">95,000</span>
+                    <span class="budget-dash" th:unless="${arow.previousBudget != null}">—</span>
+                </td>
+                <td class="num budget-ref" th:if="${arow != null}">
+                    <span th:text="${#numbers.formatInteger(arow.previousActual, 1, 'COMMA')}">49,200</span>
+                    <small class="d-block text-nowrap auto-budget-note" th:if="${arow.paceAmount != null}"
+                           th:text="#{budget.auto.pace(${#numbers.formatInteger(arow.paceAmount, 1, 'COMMA')})}">ペース 約 62,200</small>
+                </td>
+                <td class="num budget-ref budget-basis" th:if="${arow != null}" th:switch="${arow.basisKind.name()}"
+                    th:with="amountText=${#numbers.formatInteger(arow.baseAmount, 1, 'COMMA')}">
+                    <span th:case="'MEDIAN'" th:text="#{budget.auto.basis.median(${amountText})}">中央値 90,000 円（3 年）</span>
+                    <span th:case="'AVERAGE'"
+                          th:text="${arow.yearsConsecutive} ? #{budget.auto.basis.average(${amountText})} : #{budget.auto.basis.average.gap(${amountText}, ${'' + arow.years[0]}, ${'' + arow.years[1]})}">平均 21,500 円（2 年）</span>
+                    <span th:case="'SINGLE_YEAR'"
+                          th:text="${arow.years[0] == budgetView.period.year - 1} ? #{budget.auto.basis.single.last(${amountText})} : #{budget.auto.basis.single(${'' + arow.years[0]}, ${amountText})}">去年 22,050 円</span>
+                    <span th:case="'PACE'"
+                          th:text="#{budget.auto.basis.pace(#{|season.${auto.previousSeason.season.urlName}|}, ${amountText})}">秋のペース 4,600 円</span>
+                    <span th:case="'ACTUAL'"
+                          th:text="#{budget.auto.basis.actual(#{|season.${auto.previousSeason.season.urlName}|}, ${amountText})}">夏の実績 15,200 円</span>
+                    <span th:case="'BUDGET'"
+                          th:text="#{budget.auto.basis.budget(#{|season.${auto.previousSeason.season.urlName}|}, ${amountText})}">秋の予算 8,000 円</span>
+                    <span th:case="*" th:text="#{budget.auto.basis.none}">材料なし（今の値のまま）</span>
+                </td>
+                <td class="budget-amount">
                     <input type="hidden" th:name="|rows[${stat.index}].categoryId|" th:value="${row.categoryId}">
-                    <input class="form-control" type="text" inputmode="numeric" th:field="*{rows[__${stat.index}__].amount}">
+                    <input class="form-control" type="text" inputmode="numeric" data-budget-amount th:field="*{rows[__${stat.index}__].amount}">
                     <div class="field-error" th:each="message : ${#fields.errors('rows[__${stat.index}__].amount')}"
                          th:text="${message}">エラー</div>
                 </td>
             </tr>
             </tbody>
+            <!--/* 合計の行（ふだんの画面にも出す）。予算額の合計は、開いたときの欄の値の足し算（JavaScript が無効のときの表示）。
+                 入力エラーで表示し直したときは「—」。固定の2つの文は、ふだんは hidden（budget-total.js が、数字でない欄・空の欄があるときだけ見せる） */-->
+            <tfoot>
+            <tr>
+                <th scope="row">合計</th>
+                <td class="num" th:if="${auto != null}">
+                    <span class="budget-sum" th:if="${auto.previousBudgetTotal != null}" th:text="${#numbers.formatInteger(auto.previousBudgetTotal, 1, 'COMMA')}">173,000</span>
+                    <span class="budget-dash" th:unless="${auto.previousBudgetTotal != null}">—</span>
+                </td>
+                <td class="num" th:if="${auto != null}">
+                    <span class="budget-sum" th:text="${#numbers.formatInteger(auto.previousActualTotal, 1, 'COMMA')}">80,400</span>
+                    <small class="d-block text-nowrap auto-budget-note" th:if="${auto.previousPaceTotal != null}"
+                           th:text="#{budget.auto.pace(${#numbers.formatInteger(auto.previousPaceTotal, 1, 'COMMA')})}">ペース 約 101,700</small>
+                </td>
+                <td th:if="${auto != null}"></td>
+                <td>
+                    <strong class="budget-total budget-sum" data-budget-total th:text="${budgetView.total != null} ? ${#numbers.formatInteger(budgetView.total, 1, 'COMMA')} : '—'">186,000</strong>
+                    <div class="small text-danger" hidden data-budget-not-number th:text="#{budget.total.notNumber}">数字でない欄があります</div>
+                    <div class="small text-danger" hidden data-budget-empty th:text="#{budget.total.empty}">空の欄があります</div>
+                </td>
+            </tr>
+            </tfoot>
         </table>
         </div>
-        <button type="submit" class="btn btn-primary">保存</button>
+        <p class="budget-hint"><small th:text="#{budget.amount.hint}">0〜3,000,000 の整数</small></p>
     </form>
 </main>
+<script defer th:src="@{/js/budget-total.js}"></script>
 </body>
 </html>

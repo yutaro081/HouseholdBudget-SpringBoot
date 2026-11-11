@@ -73,8 +73,10 @@ final class SeasonSelectAssertions {
 	}
 
 	/**
-	 * 「今の季節」のボタン（Phase 8 の issue 007、設計書 2.4）の確認：リンクが1つだけあり、行き先は季節を指定しない URL（path のまま。? を含まない）。
-	 * 前後のリンクと同じボタンの見た目で、「前の季節」と「次の季節」の間（同じ行の真ん中）に並ぶ（範囲の端で、片方が出ないときはある方だけ）。
+	 * 「今の季節」のボタン（Phase 8 の issue 007、設計書 2.4。issue 019 で位置を変えた）の確認：リンクが1つだけあり、行き先は季節を指定しない URL
+	 * （path のまま。? を含まない）。前後のリンクと同じボタンの見た目。<b>見出しのすぐ下の1行</b>、つまり年と季節を選ぶフォームの中で、
+	 * 「表示」ボタンのあとに並ぶ。「前の季節」「次の季節」は見出しの両脇（見出しより前）にある（範囲の端で、片方が出ないときはある方だけ）。
+	 * 「冬は、12月がある年を選びます」の一文は出さない。
 	 */
 	static void assertCurrentSeasonLink(String body, String path) {
 		String text = ">今の季節</a>";
@@ -86,14 +88,25 @@ final class SeasonSelectAssertions {
 		assertThat(tag).contains("href=\"" + path + "\"").doesNotContain("?");
 		assertThat(tag).as("前後のリンクと同じボタンの見た目").contains("class=\"btn btn-outline-secondary btn-sm\"");
 
+		int heading = body.indexOf("</h2>");
+		assertThat(heading).isGreaterThanOrEqualTo(0);
+		assertThat(end).as("見出しより後（すぐ下の行）").isGreaterThan(heading);
+		String form = form(body);
+		int formStart = body.indexOf(form);
+		assertThat(formStart).as("選ぶ欄の行は、見出しのすぐ下").isGreaterThan(heading);
+		assertThat(form).as("年と季節を選ぶ欄・「表示」・「今の季節」が同じ1行（同じフォームの中）").contains(">今の季節</a>");
+		assertThat(form.indexOf(">表示</button>")).as("「表示」のあとに「今の季節」").isLessThan(form.indexOf(">今の季節</a>"));
+		assertThat(body.substring(heading, formStart)).as("見出しと選ぶ欄の間に、ほかの行を挟まない").doesNotContain("<table").doesNotContain("<h1");
+
 		int previous = body.indexOf("前の季節</a>");
 		if (previous >= 0) {
-			assertThat(previous).as("「前の季節」より後").isLessThan(end);
+			assertThat(previous).as("「前の季節」は見出しより前").isLessThan(heading);
 		}
 		int next = body.indexOf("次の季節</a>");
 		if (next >= 0) {
-			assertThat(next).as("「次の季節」より前").isGreaterThan(end);
+			assertThat(next).as("「次の季節」は見出しより後ろではなく、同じ行（選ぶ欄より前）").isLessThan(formStart);
 		}
+		assertThat(body).as("一文はなくした").doesNotContain("冬は、12月がある年を選びます");
 	}
 
 	/** 年と季節を選ぶ欄の、まとめての確認：GET のフォームで、送り先が path。年は 2000〜2100、季節は 4 つ。最初の値は year と season */

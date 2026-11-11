@@ -62,6 +62,36 @@ class AuthAndListStyleSheetTest {
 		assertThat(wide).as("2 列のときは HTML の順（紹介が左）").contains(".auth-card-col", "order: 0");
 	}
 
+	/**
+	 * 768px 以上（2 列）：ヘッダーの下の残りの高さの縦の真ん中に、紹介とカードを置く（設計書 2.3）。
+	 * body を画面の高さいっぱいの縦の flex にし、main.auth-main を残りの高さに伸ばして、中身を縦の真ん中にそろえる。
+	 */
+	@Test
+	void from768pxTheAuthMainIsCenteredVerticallyInTheHeightBelowTheHeader() throws Exception {
+		String css = css();
+
+		String block = mediaBlocks(css, "(min-width: 768px)").stream().filter(b -> b.contains("body:has(> main.auth-main)")).findFirst().orElse("");
+		assertThat(block).as("768px 以上の規則がある").isNotEmpty();
+		block = block.replaceAll("(?m)^\\s+", ""); // rule() は行頭の選択子を探すので、字下げを外す
+		String body = rule(block, "body:has(> main.auth-main)");
+		assertThat(body).contains("min-height: 100vh", "display: flex", "flex-direction: column");
+		String main = rule(block, "body:has(> main.auth-main) main.auth-main");
+		assertThat(main).contains("flex: 1 1 auto", "display: flex", "flex-direction: column", "justify-content: center");
+	}
+
+	/** せまいとき（768px 未満。カードが上に来る）は今のまま上から並べる：縦の中央にする規則を、768px 以上の外には書かない */
+	@Test
+	void belowTheTwoColumnWidthTheAuthMainStaysAtTheTop() throws Exception {
+		String css = css();
+
+		assertThat(rule(css, "main.auth-main")).doesNotContain("justify-content", "min-height", "flex");
+		String outside = css;
+		for (String b : mediaBlocks(css, "(min-width: 768px)")) {
+			outside = outside.replace(b, "");
+		}
+		assertThat(outside).as("768px 以上の外に、縦の中央の規則を置かない").doesNotContain("body:has(> main.auth-main)");
+	}
+
 	@Test
 	void theMainKeepsTheStandardWidth() throws Exception {
 		String css = css();

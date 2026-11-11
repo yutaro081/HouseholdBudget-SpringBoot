@@ -138,7 +138,7 @@ class MenuCurrentItemTest {
 		}
 
 		assertThat(labels).as("メニューの項目（<a>）は、ちょうど 7 個")
-				.containsExactly("トップ", "取引一覧", "科目", "取引先", "支払方法", "予算", "予実比較");
+				.containsExactly("トップ", "取引一覧", "科目", "取引先", "支払方法", "予算設定", "予実比較");
 		assertThat(nav.split("<svg", -1)).as("各項目にアイコンが 1 つずつ").hasSize(8);
 		assertThat(hrefs).containsExactly("/", "/transactions", "/categories", "/vendors", "/payment-methods",
 				"/budgets", "/comparison");
