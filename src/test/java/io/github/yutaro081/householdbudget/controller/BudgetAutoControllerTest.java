@@ -1149,7 +1149,7 @@ class BudgetAutoControllerTest {
 		String css = new String(new org.springframework.core.io.ClassPathResource("static/css/style.css").getContentAsByteArray(),
 				java.nio.charset.StandardCharsets.UTF_8);
 
-		assertThat(css).containsPattern("(?s)\\.budget-ref[^{]*\\{[^}]*color:\\s*var\\(--hb-text-sub\\)[^}]*font-size:\\s*var\\(--hb-font-size-small\\)");
+		assertThat(css).containsPattern("(?s)\\.budget-ref[^{]*\\{[^}]*color:\\s*var\\(--hb-text-sub\\)");
 		assertThat(css).containsPattern("(?s)\\.budget-amount[^{]*\\{[^}]*font-weight:\\s*700");
 		assertThat(css).containsPattern("(?s)\\.budget-dash\\s*\\{[^}]*color:\\s*#");
 		assertThat(css).containsPattern("(?s)tfoot[^{]*\\{[^}]*font-size:\\s*1\\.25rem");
@@ -1214,6 +1214,105 @@ class BudgetAutoControllerTest {
 		assertThat(body).as("アイコンと文字を横に並べる").contains("inline-flex");
 		assertThat(css).as("--hb-teal-text は #0B6E6B").containsPattern("--hb-teal-text:\\s*#0B6E6B");
 		assertThat(css).as("青（primary の枠線ボタン）の上書きは、このボタンでは使わない").doesNotContain(".btn-outline-primary");
+	}
+
+	// ================================================================
+	// そろえる（ブラウザで見て決めた。設計書 2.3）
+	// ================================================================
+
+	private static String styleSheet() throws Exception {
+		return new String(new org.springframework.core.io.ClassPathResource("static/css/style.css").getContentAsByteArray(),
+				java.nio.charset.StandardCharsets.UTF_8);
+	}
+
+	/** 規則（selector { … }）の中身を、セレクタに selectorPart を含むものから集める */
+	private static List<String> rulesWith(String css, String selectorPart) {
+		List<String> bodies = new ArrayList<>();
+		Matcher m = Pattern.compile("(?s)([^{}]+)\\{([^}]*)\\}").matcher(css.replaceAll("(?s)/\\*.*?\\*/", ""));
+		while (m.find()) {
+			if (m.group(1).contains(selectorPart)) {
+				bodies.add(m.group(2));
+			}
+		}
+		return bodies;
+	}
+
+	/** 予算額の入力欄の右端を、見出し・合計の数字の右端にそろえる（入力欄を、セルの右に寄せる） */
+	@Test
+	void amountInputIsPushedToTheRightEdgeOfItsCell() throws Exception {
+		List<String> rules = rulesWith(styleSheet(), "td.budget-amount input");
+
+		assertThat(rules).as("入力欄の規則がある").isNotEmpty();
+		assertThat(String.join(" ", rules)).containsPattern("margin-left:\\s*auto");
+	}
+
+	/** 表の見出しは、すべて同じ大きさ（本文と同じ）・同じ太さ（700）。列ごとに大きさを変える規則を持たない */
+	@Test
+	void everyTableHeaderHasTheSameSizeAndWeight() throws Exception {
+		String css = styleSheet();
+
+		String head = String.join(" ", rulesWith(css, ".budget-table thead th"));
+		assertThat(head).containsPattern("font-size:\\s*var\\(--hb-font-size-body\\)").containsPattern("font-weight:\\s*700");
+		for (String selector : List.of(".budget-ref", ".budget-amount", "th.num")) {
+			assertThat(String.join(" ", rulesWith(css, selector))).as(selector + " は文字の大きさを変えない").doesNotContain("font-size");
+		}
+		assertThat(String.join(" ", rulesWith(css, ".budget-ref"))).as("参考の 3 列は小さくしない").doesNotContain("font-size");
+	}
+
+	/** 合計の行の数字は、どの列も同じ色・同じ大きさ・同じ太さ（budget-sum）。予算額の合計だけ違う、をなくす */
+	@Test
+	void totalRowNumbersShareOneStyle() throws Exception {
+		designExample();
+
+		String body = winter("1");
+		Matcher foot = Pattern.compile("(?s)<tfoot>(.*?)</tfoot>").matcher(body);
+		assertThat(foot.find()).isTrue();
+		Matcher sums = Pattern.compile("<(span|strong)[^>]*budget-sum[^>]*>\\s*([0-9,]+)\\s*</").matcher(foot.group(1));
+		List<String> numbers = new ArrayList<>();
+		while (sums.find()) {
+			numbers.add(sums.group(2));
+		}
+		assertThat(numbers).as("直前の予算・実績・予算額の合計の 3 つが、同じクラス").containsExactly("173,000", "80,400", "186,000");
+
+		String sum = String.join(" ", rulesWith(styleSheet(), ".budget-sum"));
+		assertThat(sum).containsPattern("color:\\s*var\\(--hb-text\\)").containsPattern("font-size:\\s*1\\.25rem").containsPattern("font-weight:\\s*700");
+	}
+
+	private static double luminance(String hex) {
+		double[] c = new double[3];
+		for (int i = 0; i < 3; i++) {
+			double v = Integer.parseInt(hex.substring(1 + i * 2, 3 + i * 2), 16) / 255.0;
+			c[i] = v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+		}
+		return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+	}
+
+	private static double ratio(String a, String b) {
+		double la = luminance(a);
+		double lb = luminance(b);
+		return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+	}
+
+	private static String variable(String css, String name) {
+		Matcher m = Pattern.compile("--" + Pattern.quote(name) + ":\\s*(#[0-9A-Fa-f]{6})").matcher(css);
+		assertThat(m.find()).as("--" + name).isTrue();
+		return m.group(1);
+	}
+
+	/** 参考の 3 列の色：補足の文字の色（#56625F）。背景（#F6F8F8）・白との明るさの比が 4.5 以上。本文より少しだけ落ちている */
+	@Test
+	void referenceColumnsColorIsDimmerThanTheBodyButStillReadable() throws Exception {
+		String css = styleSheet();
+		String sub = variable(css, "hb-text-sub");
+		String text = variable(css, "hb-text");
+		String background = variable(css, "hb-bg");
+		String white = variable(css, "hb-input-bg");
+
+		assertThat(String.join(" ", rulesWith(css, ".budget-ref"))).containsPattern("color:\\s*var\\(--hb-text-sub\\)");
+		assertThat(sub.toUpperCase()).isEqualTo("#56625F");
+		assertThat(ratio(sub, background)).as("背景との比").isGreaterThanOrEqualTo(4.5).isBetween(5.9, 6.0);
+		assertThat(ratio(sub, white)).as("白との比").isGreaterThanOrEqualTo(4.5);
+		assertThat(ratio(sub, background)).as("本文より落ちている").isLessThan(ratio(text, background));
 	}
 
 	// ================================================================

@@ -139,17 +139,17 @@
             <tr>
                 <th scope="row">合計</th>
                 <td class="num" th:if="${auto != null}">
-                    <span th:if="${auto.previousBudgetTotal != null}" th:text="${#numbers.formatInteger(auto.previousBudgetTotal, 1, 'COMMA')}">173,000</span>
+                    <span class="budget-sum" th:if="${auto.previousBudgetTotal != null}" th:text="${#numbers.formatInteger(auto.previousBudgetTotal, 1, 'COMMA')}">173,000</span>
                     <span class="budget-dash" th:unless="${auto.previousBudgetTotal != null}">—</span>
                 </td>
                 <td class="num" th:if="${auto != null}">
-                    <span th:text="${#numbers.formatInteger(auto.previousActualTotal, 1, 'COMMA')}">80,400</span>
+                    <span class="budget-sum" th:text="${#numbers.formatInteger(auto.previousActualTotal, 1, 'COMMA')}">80,400</span>
                     <small class="d-block text-nowrap auto-budget-note" th:if="${auto.previousPaceTotal != null}"
                            th:text="#{budget.auto.pace(${#numbers.formatInteger(auto.previousPaceTotal, 1, 'COMMA')})}">ペース 約 101,700</small>
                 </td>
                 <td th:if="${auto != null}"></td>
                 <td>
-                    <strong class="budget-total" th:text="${budgetView.total != null} ? ${#numbers.formatInteger(budgetView.total, 1, 'COMMA')} : '—'">186,000</strong>
+                    <strong class="budget-total budget-sum" th:text="${budgetView.total != null} ? ${#numbers.formatInteger(budgetView.total, 1, 'COMMA')} : '—'">186,000</strong>
                     <div class="small text-danger" hidden th:text="#{budget.total.notNumber}">数字でない欄があります</div>
                     <div class="small text-danger" hidden th:text="#{budget.total.empty}">空の欄があります</div>
                 </td>

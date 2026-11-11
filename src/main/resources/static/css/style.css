@@ -1267,16 +1267,31 @@ main.list-wide {
     text-align: right;
 }
 
-.budget-table .budget-ref {
-    color: var(--hb-text-sub);
-    font-size: var(--hb-font-size-small);
+/* 表の見出しは、すべて同じ大きさ（本文と同じ）・同じ太さ */
+.budget-table thead th {
+    font-size: var(--hb-font-size-body);
+    font-weight: 700;
 }
 
-.budget-table .budget-amount {
+/* 参考の列：大きさは本文と同じ。色だけ補足の文字の色（#56625F。背景 #F6F8F8 との比 5.96、白との比 6.35） */
+.budget-table .budget-ref {
+    color: var(--hb-text-sub);
+}
+
+/* 予算額の列：太字で目立たせる。入力欄は、セルの右に寄せて、見出し・合計の数字の右端にそろえる */
+.budget-table td.budget-amount {
     font-weight: 700;
 }
 
 .budget-table td.budget-amount input[type="text"] {
+    margin-left: auto;
+    font-weight: 700;
+}
+
+/* 合計の行の数字：どの列も同じ色・大きさ・太さ */
+.budget-table .budget-sum {
+    color: var(--hb-text);
+    font-size: 1.25rem;
     font-weight: 700;
 }
 
