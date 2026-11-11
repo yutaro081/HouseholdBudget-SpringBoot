@@ -46,7 +46,7 @@
 
     <!--/* 科目ごとの予算・実績・見込み・差額（科目の登録順）と、最下行の合計行（issue 020 で、予算設定の表の形にそろえた）。
          金額は 30,000 の形（「円」は見出しにまとめた）。差額のマイナスは -5,000（設計書 2.3、3.7）。予算が未設定なら「未設定」、差額は空欄。
-         差額のセルには diff-cell（太字。列を足しても崩れないよう、「最後の列」ではなく、差額のセルにだけ付くクラスで指定する）。色は差額のセルだけ：赤は diff-over（「予算超え」のチップを数字の左に、同じ行で）、青は diff-low（「使い残し」）。<tr> のクラスは、予算内の行の row-within（背景）と、合計行の total-row だけ。
+         今の季節は、残り（差額と同じ値。色と印はここに付く）・見込み（数字だけ）・見込みとの差（gap-cell。太字・大きく。マイナスのときだけ gap-over と「超える見込み」）の列。過去・未来の季節は、差額のセル（diff-cell。太字・大きく）。列を足しても崩れないよう、「最後の列」ではなく、セルにだけ付くクラスで指定する。色は差額のセルだけ：赤は diff-over（「予算超え」のチップを数字の左に、同じ行で）、青は diff-low（「使い残し」）。<tr> のクラスは、予算内の行の row-within（背景）と、合計行の total-row だけ。
          予算内の印（💮）は、科目名の横に出す。row.withinBudget が true の行（合計行も）だけ。その行には row-within を付け、背景を薄いアプリコットにする。
          絵文字は読み上げに使わず（aria-hidden）、「予算内」を画面に出さない文字（visually-hidden）で添える。
          見込みの列は、今の季節だけ（showForecast）。見込みを出さない科目（予算が未設定・0円）は「—」。見込みが予算を上回る科目だけ、数字の左に同じ行のチップ「予算超えの見込み」。表の下に文は出さない。
@@ -54,14 +54,16 @@
          科目名は th:text で出す。th:utext は使わない（7.5） */-->
     <th:block th:unless="${#lists.isEmpty(comparison.rows)}">
         <div class="table-responsive">
-            <table class="list comparison-table table align-middle">
+            <table class="list comparison-table table align-middle" th:classappend="${showForecast} ? 'has-forecast'">
             <thead>
             <tr>
                 <th>科目</th>
                 <th class="num col-budget">予算（円）</th>
                 <th class="num col-actual">実績（円）</th>
+                <th class="num col-remain" th:if="${showForecast}">残り（円）</th>
                 <th class="num col-forecast" th:if="${showForecast}">見込み（円）</th>
-                <th class="num col-diff">差額（円）</th>
+                <th class="num col-gap" th:if="${showForecast}">見込みとの差（円）</th>
+                <th class="num col-diff" th:unless="${showForecast}">差額（円）</th>
             </tr>
             </thead>
             <tbody>
@@ -71,11 +73,18 @@
                 <td><span th:text="${row.categoryName}">食費</span><span class="within-mark" th:if="${row.withinBudget}"><span aria-hidden="true">💮</span><span class="visually-hidden">予算内</span></span></td>
                 <td class="num" th:text="${row.budget != null} ? ${#numbers.formatInteger(row.budget, 1, 'COMMA')} : '未設定'">30,000</td>
                 <td class="num" th:text="${#numbers.formatInteger(row.actual, 1, 'COMMA')}">1,500</td>
+                <td class="num" th:if="${showForecast}" th:classappend="${row.color.name() == 'RED'} ? 'diff-over' : (${row.color.name() == 'BLUE'} ? 'diff-low')">
+                    <th:block th:if="${row.difference != null}"><small class="cell-mark" th:if="${row.color.name() == 'RED'}">予算超え</small><small class="cell-mark" th:if="${row.color.name() == 'BLUE'}">使い残し</small><span th:text="${#numbers.formatInteger(row.difference, 1, 'COMMA')}">28,500</span></th:block>
+                </td>
                 <td class="num" th:if="${showForecast}">
-                    <th:block th:if="${forecast != null}"><small class="cell-mark" th:if="${forecast.overBudget}">予算超えの見込み</small><span th:text="${#numbers.formatInteger(forecast.amount, 1, 'COMMA')}">38,100</span></th:block>
+                    <th:block th:if="${forecast != null}"><span th:text="${#numbers.formatInteger(forecast.amount, 1, 'COMMA')}">38,100</span></th:block>
                     <th:block th:unless="${forecast != null}">—</th:block>
                 </td>
-                <td class="num diff-cell" th:classappend="${row.color.name() == 'RED'} ? 'diff-over' : (${row.color.name() == 'BLUE'} ? 'diff-low')">
+                <td class="num gap-cell" th:if="${showForecast}" th:with="gap=${rowGaps[stat.index]}" th:classappend="${gap != null and gap < 0} ? 'gap-over'">
+                    <th:block th:if="${gap != null}"><small class="cell-mark" th:if="${gap < 0}">超える見込み</small><span th:text="${#numbers.formatInteger(gap, 1, 'COMMA')}">1,900</span></th:block>
+                    <th:block th:unless="${gap != null}">—</th:block>
+                </td>
+                <td class="num diff-cell" th:unless="${showForecast}" th:classappend="${row.color.name() == 'RED'} ? 'diff-over' : (${row.color.name() == 'BLUE'} ? 'diff-low')">
                     <th:block th:if="${row.difference != null}"><small class="cell-mark" th:if="${row.color.name() == 'RED'}">予算超え</small><small class="cell-mark" th:if="${row.color.name() == 'BLUE'}">使い残し</small><span th:text="${#numbers.formatInteger(row.difference, 1, 'COMMA')}">28,500</span></th:block>
                 </td>
             </tr>
@@ -84,11 +93,18 @@
                 <td><span>合計</span><span class="within-mark" th:if="${comparison.total.withinBudget}"><span aria-hidden="true">💮</span><span class="visually-hidden">予算内</span></span></td>
                 <td class="num" th:text="${comparison.total.budget != null} ? ${#numbers.formatInteger(comparison.total.budget, 1, 'COMMA')} : '未設定'">75,000</td>
                 <td class="num" th:text="${#numbers.formatInteger(comparison.total.actual, 1, 'COMMA')}">1,500</td>
+                <td class="num" th:if="${showForecast}" th:classappend="${comparison.total.color.name() == 'RED'} ? 'diff-over' : (${comparison.total.color.name() == 'BLUE'} ? 'diff-low')">
+                    <th:block th:if="${comparison.total.difference != null}"><small class="cell-mark" th:if="${comparison.total.color.name() == 'RED'}">予算超え</small><small class="cell-mark" th:if="${comparison.total.color.name() == 'BLUE'}">使い残し</small><span th:text="${#numbers.formatInteger(comparison.total.difference, 1, 'COMMA')}">73,500</span></th:block>
+                </td>
                 <td class="num" th:if="${showForecast}">
-                    <th:block th:if="${landing != null}"><small class="cell-mark" th:if="${landing.overBudget}">予算超えの見込み</small><span th:text="${#numbers.formatInteger(landing.amount, 1, 'COMMA')}">142,000</span></th:block>
+                    <th:block th:if="${landing != null}"><span th:text="${#numbers.formatInteger(landing.amount, 1, 'COMMA')}">142,000</span></th:block>
                     <th:block th:unless="${landing != null}">—</th:block>
                 </td>
-                <td class="num diff-cell" th:classappend="${comparison.total.color.name() == 'RED'} ? 'diff-over' : (${comparison.total.color.name() == 'BLUE'} ? 'diff-low')">
+                <td class="num gap-cell" th:if="${showForecast}" th:classappend="${totalGap != null and totalGap < 0} ? 'gap-over'">
+                    <th:block th:if="${totalGap != null}"><small class="cell-mark" th:if="${totalGap < 0}">超える見込み</small><span th:text="${#numbers.formatInteger(totalGap, 1, 'COMMA')}">-500</span></th:block>
+                    <th:block th:unless="${totalGap != null}">—</th:block>
+                </td>
+                <td class="num diff-cell" th:unless="${showForecast}" th:classappend="${comparison.total.color.name() == 'RED'} ? 'diff-over' : (${comparison.total.color.name() == 'BLUE'} ? 'diff-low')">
                     <th:block th:if="${comparison.total.difference != null}"><small class="cell-mark" th:if="${comparison.total.color.name() == 'RED'}">予算超え</small><small class="cell-mark" th:if="${comparison.total.color.name() == 'BLUE'}">使い残し</small><span th:text="${#numbers.formatInteger(comparison.total.difference, 1, 'COMMA')}">73,500</span></th:block>
                 </td>
             </tr>
@@ -97,7 +113,8 @@
             </div>
 
         <!--/* 色と印の意味の注記（Q7-6 の C。issue 020 で、色が差額のセルだけになり、文字の印を足した） */-->
-        <p class="legend">差額の赤：予算超え／青：使い残し（予算の1/3以下）／💮：予算内（予算の1/3を超え、予算以下）</p>
+        <p class="legend" th:if="${showForecast}">残りの赤：予算超え／青：使い残し（予算の1/3以下）／見込みとの差の赤：超える見込み／💮：予算内（予算の1/3を超え、予算以下）</p>
+        <p class="legend" th:unless="${showForecast}">差額の赤：予算超え／青：使い残し（予算の1/3以下）／💮：予算内（予算の1/3を超え、予算以下）</p>
     </th:block>
 </main>
 </body>

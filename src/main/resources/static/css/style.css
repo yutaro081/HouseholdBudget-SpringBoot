@@ -535,8 +535,9 @@ dl.detail dd {
     width: 16%;
 }
 
-/* 列の幅は、中身に合わせて配る（issue 020 の見直し）：科目 16%・予算 16%・実績 16%・見込み 24%・差額 28%（チップの付く見込みと差額を広く）。
-   見込みの列がない季節は、同じ割合の比のまま配られる（足して 100% に満たない分は、固定のレイアウトが、各列に割合に応じて分ける） */
+/* 列の幅は、中身に合わせて配る（issue 020 の見直し）。
+   過去・未来の季節（4 列）：科目 16%・予算 16%・実績 16%・差額 28%（足して 100% に満たない分は、割合に応じて配られる）。
+   今の季節（6 列。表に has-forecast）：科目 16%・予算 12%・実績 12%・残り 20%・見込み 12%・見込みとの差 28%（チップの付く残りと見込みとの差を広く）。 */
 .comparison-table th.col-budget {
     width: 16%;
 }
@@ -545,12 +546,37 @@ dl.detail dd {
     width: 16%;
 }
 
-.comparison-table th.col-forecast {
-    width: 24%;
-}
-
 .comparison-table th.col-diff {
     width: 28%;
+    color: var(--hb-teal-text);
+}
+
+.comparison-table.has-forecast {
+    min-width: 56rem;
+}
+
+.comparison-table.has-forecast th.col-budget {
+    width: 12%;
+}
+
+.comparison-table.has-forecast th.col-actual {
+    width: 12%;
+}
+
+.comparison-table.has-forecast th.col-remain {
+    width: 20%;
+}
+
+.comparison-table.has-forecast th.col-forecast {
+    width: 12%;
+}
+
+.comparison-table.has-forecast th.col-gap {
+    width: 28%;
+}
+
+/* 見込みとの差の見出しは濃いターコイズ（#0B6E6B） */
+.comparison-table th.col-gap {
     color: var(--hb-teal-text);
 }
 
@@ -564,6 +590,16 @@ dl.detail dd {
 .comparison-table td.diff-cell {
     font-size: 1.25rem;
     font-weight: 700;
+}
+
+/* 今の季節は、見込みとの差のセルをいちばん目立たせる（1.25rem、太字）。マイナスのときは赤（予算超過の意味の色）。残りは、ふつうの大きさ・太さ（色と印だけ付く） */
+.comparison-table td.gap-cell {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.comparison-table td.gap-over {
+    color: #c62828;
 }
 
 .comparison-table th.num {
@@ -1453,9 +1489,11 @@ main.list-wide {
     font-weight: 700;
 }
 
-/* 参考の列：大きさは本文と同じ。色だけ補足の文字の色（#56625F。背景 #F6F8F8 との比 5.96、白との比 6.35） */
-.budget-table .budget-ref {
-    color: var(--hb-text-sub);
+/* 表のセルの文字（issue 020 の見直し）：本文と同じ濃さ（--hb-text ＝ #24302F）、予実比較の表と同じ大きさ（1.0625rem）。以前は、参考の 3 列を灰色にしていたが、薄くて読みにくかった。
+   Bootstrap の表はセルの文字色を自分で決めるので、td に直接指定する。「ペース 約 …」の補足だけは、小さな灰色のまま（.auto-budget-note） */
+.budget-table tbody td {
+    color: var(--hb-text);
+    font-size: 1.0625rem;
 }
 
 /* 根拠の列：右寄せ（クラス num）。中身に合わせて狭くし（幅 1%、セルは折り返さない）、実績の列のすぐ右に寄せる（issue 020。それまでは、列が均等に広がって、実績との間が空いていた）。

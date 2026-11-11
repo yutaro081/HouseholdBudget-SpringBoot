@@ -685,6 +685,14 @@ class BudgetAutoControllerTest {
 		assertThat(headerCells(winter(null))).as("ふだんの画面は 2 列のまま").containsExactly("科目", "予算額（円）");
 	}
 
+	/** issue 020：参考の列を灰色にしていた印（budget-ref）は、なくした。本文と同じ濃さで読める */
+	@Test
+	void theReferenceColumnsHaveNoMutedClassAnyMore() throws Exception {
+		designExample();
+
+		assertThat(winter("1")).doesNotContain("budget-ref");
+	}
+
 	/** 科目の行は、すべて 5 つのセル（合計の行も）。科目の登録順 */
 	@Test
 	void everyRowHasFiveCellsInRegistrationOrder() throws Exception {
@@ -1172,23 +1180,20 @@ class BudgetAutoControllerTest {
 		assertThat(rowOf(winter("1"), "娯楽").get(1)).isEqualTo("材料なし");
 	}
 
-	/** 参考の 3 列（直前の季節の予算・実績・根拠）は budget-ref（灰色で小さい）。予算額の列は budget-amount（目立たせる） */
+	/** issue 020：参考の列（根拠・前の季節の実績・予算）を灰色にする印（budget-ref）は、なくした（本文と同じ濃さで読める）。予算額の列だけ budget-amount（目立たせる） */
 	@Test
-	void referenceColumnsAreMutedAndTheAmountColumnStandsOut() throws Exception {
+	void noColumnIsMutedAndOnlyTheAmountColumnStandsOut() throws Exception {
 		designExample();
 
 		String body = winter("1");
 		List<String> th = thTags(body);
 		List<String> td = tdTags(body, "食費");
-		for (int i : new int[] { 1, 3, 4 }) {
-			assertThat(th.get(i)).as("見出し " + i).contains("budget-ref");
-			assertThat(td.get(i)).as("セル " + i).contains("budget-ref");
+		for (int i : new int[] { 0, 1, 3, 4 }) {
+			assertThat(th.get(i)).as("見出し " + i).doesNotContain("budget-ref").doesNotContain("budget-amount");
+			assertThat(td.get(i)).as("セル " + i).doesNotContain("budget-ref").doesNotContain("budget-amount");
 		}
-		assertThat(th.get(0)).doesNotContain("budget-ref");
-		assertThat(td.get(0)).doesNotContain("budget-ref");
 		assertThat(th.get(2)).contains("budget-amount");
 		assertThat(td.get(2)).contains("budget-amount");
-		assertThat(th.get(2)).doesNotContain("budget-ref");
 	}
 
 	/** 前の季節の予算が未設定のセルは、薄い灰色の「—」（budget-dash）。設定済みのセルには付けない */
@@ -1215,13 +1220,13 @@ class BudgetAutoControllerTest {
 		assertThat(body).doesNotContain("未設定</td>");
 	}
 
-	/** 自作の CSS：参考の列は灰色で小さい、予算額の列は太い、「—」は薄い灰色、合計の行は 1.25rem で上の線が太い */
+	/** 自作の CSS：表のセルは本文の色（灰色にしない。issue 020）、予算額の列は太い、「—」は薄い灰色、合計の行は 1.25rem で上の線が太い */
 	@Test
 	void styleSheetStylesTheTable() throws Exception {
 		String css = new String(new org.springframework.core.io.ClassPathResource("static/css/style.css").getContentAsByteArray(),
 				java.nio.charset.StandardCharsets.UTF_8);
 
-		assertThat(css).containsPattern("(?s)\\.budget-ref[^{]*\\{[^}]*color:\\s*var\\(--hb-text-sub\\)");
+		assertThat(css).containsPattern("(?s)\\.budget-table tbody td[^{]*\\{[^}]*color:\\s*var\\(--hb-text\\)");
 		assertThat(css).containsPattern("(?s)\\.budget-amount[^{]*\\{[^}]*font-weight:\\s*700");
 		assertThat(css).containsPattern("(?s)\\.budget-dash\\s*\\{[^}]*color:\\s*#");
 		assertThat(css).containsPattern("(?s)tfoot[^{]*\\{[^}]*font-size:\\s*1\\.25rem");
@@ -1371,16 +1376,16 @@ class BudgetAutoControllerTest {
 		return m.group(1);
 	}
 
-	/** 参考の 3 列の色：補足の文字の色（#56625F）。背景（#F6F8F8）・白との明るさの比が 4.5 以上。本文より少しだけ落ちている */
+	/** 補足の文字の色（#56625F）：今は「ペース 約 …」の補足だけが使う（issue 020 で、参考の 3 列は本文の色に戻した）。背景（#F6F8F8）・白との明るさの比が 4.5 以上。本文より少しだけ落ちている */
 	@Test
-	void referenceColumnsColorIsDimmerThanTheBodyButStillReadable() throws Exception {
+	void thePaceNoteColorIsDimmerThanTheBodyButStillReadable() throws Exception {
 		String css = styleSheet();
 		String sub = variable(css, "hb-text-sub");
 		String text = variable(css, "hb-text");
 		String background = variable(css, "hb-bg");
 		String white = variable(css, "hb-input-bg");
 
-		assertThat(String.join(" ", rulesWith(css, ".budget-ref"))).containsPattern("color:\\s*var\\(--hb-text-sub\\)");
+		assertThat(String.join(" ", rulesWith(css, ".auto-budget-note"))).containsPattern("color:\\s*var\\(--hb-text-sub\\)");
 		assertThat(sub.toUpperCase()).isEqualTo("#56625F");
 		assertThat(ratio(sub, background)).as("背景との比").isGreaterThanOrEqualTo(4.5).isBetween(5.9, 6.0);
 		assertThat(ratio(sub, white)).as("白との比").isGreaterThanOrEqualTo(4.5);

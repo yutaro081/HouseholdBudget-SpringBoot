@@ -70,6 +70,15 @@ public class ComparisonController {
 			rowLandings.add(showForecast ? LandingForecast.of(row.budget(), row.actual(), period, today, countFrom).orElse(null) : null);
 		}
 		model.addAttribute("rowLandings", rowLandings);
+		// 見込みとの差の列（issue 020）＝ 予算 − 見込み（表示する見込みの額）。見込みが出ない科目・合計は null（画面は「—」）。計算は、テンプレートでなく、ここで行う
+		List<Long> rowGaps = new ArrayList<>();
+		for (int i = 0; i < rowLandings.size(); i++) {
+			LandingForecast.Result forecast = rowLandings.get(i);
+			Long budget = comparison.rows().get(i).budget();
+			rowGaps.add(forecast == null || budget == null ? null : budget - forecast.amount());
+		}
+		model.addAttribute("rowGaps", rowGaps);
+		model.addAttribute("totalGap", landing.isPresent() ? comparison.total().budget() - landing.get().amount() : null);
 		// 要約カードの棒と文（トップの季節のメーターと同じ値の求め方。PeriodProgress）
 		if (landing.isPresent()) {
 			model.addAttribute("cardUsedPercent", PeriodProgress.usedPercent(comparison.total().budget(), comparison.total().actual()));

@@ -45,6 +45,40 @@ class BudgetTableStyleSheetTest {
 		assertThat(basis).doesNotContain("2.5rem");
 	}
 
+	/** 表のセルの文字は、本文と同じ濃さ（#24302F）で、予実比較の表と同じ大きさ（1.0625rem）。灰色にしない */
+	@Test
+	void theCellsHaveTheBodyColorAndTheSameSizeAsTheComparisonTable() throws Exception {
+		String css = css();
+		String cells = rule(css, ".budget-table tbody td");
+
+		assertThat(css).contains("--hb-text: #24302F");
+		assertThat(cells).contains("color: var(--hb-text)", "font-size: 1.0625rem");
+		assertThat(rule(css, ".comparison-table tbody td")).as("予実比較の表と同じ大きさ").contains("font-size: 1.0625rem");
+	}
+
+	/** 参考の列を灰色にする規則（.budget-ref）は、なくした */
+	@Test
+	void noRuleMakesTheReferenceColumnsGray() throws Exception {
+		assertThat(css()).doesNotContain(".budget-ref");
+	}
+
+	/** 「ペース 約 …」の補足だけは、小さな灰色のまま */
+	@Test
+	void onlyThePaceNoteStaysSmallAndGray() throws Exception {
+		String note = rule(css(), ".auto-budget-note");
+
+		assertThat(note).contains("color: var(--hb-text-sub)", "font-size: var(--hb-font-size-small)");
+	}
+
+	/** 予算額の列は、今の 2px の枠と太字のまま */
+	@Test
+	void theAmountColumnKeepsItsBorderAndTheBoldText() throws Exception {
+		String css = css();
+
+		assertThat(rule(css, ".budget-table td.budget-amount")).contains("font-weight: 700");
+		assertThat(rule(css, ".budget-table input[type=\"text\"]")).contains("border: 2px solid var(--hb-teal)");
+	}
+
 	/** 見出し「予算額（円）」は、濃いターコイズ（#0B6E6B。リンクと同じ色）。大きさ・太さは変えない */
 	@Test
 	void theAmountHeadingIsDarkTealAndKeepsTheSizeOfTheOtherHeadings() throws Exception {
