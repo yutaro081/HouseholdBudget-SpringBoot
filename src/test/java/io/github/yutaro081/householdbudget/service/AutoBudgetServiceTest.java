@@ -708,6 +708,47 @@ class AutoBudgetServiceTest {
 		assertThat(row.amount()).isEqualTo(5_000L);
 	}
 
+	/**
+	 * 案のもとにした数字（issue 020）：どの数字に印（ターコイズの下線）を付けるかは、Service が、案のルール①〜④から決める（テンプレートでは計算しない）。
+	 * ①→根拠の列の数字、②（前の季節が今日を含む）→「ペース 約 …」、③→前の季節の予算の数字、④→なし
+	 */
+	@Test
+	void theSourceOfTheProposalIsDecidedByTheServiceFromTheRule() {
+		Owner a = createOwner("autosvc40");
+		Category one = category(a, "食費");
+		Category two = category(a, "医療費");
+		Category three = category(a, "日用品");
+		Category four = category(a, "娯楽");
+		recordingStartedLongAgo(a, two);
+		spendIn(a, one, p(2025, Season.WINTER), 20_000);          // ①
+		spendIn(a, two, AUTUMN_2026, 3_600);                      // ②（今日を含む季節のペース）
+		budget(a, three, AUTUMN_2026, 8_000);                     // ③
+
+		AutoBudgetView view = proposeOk(a, WINTER_2026, NOV_11_2026);
+
+		assertThat(rowOf(view, one).rule()).isEqualTo(1);
+		assertThat(rowOf(view, one).source()).isEqualTo(AutoBudgetView.Source.BASIS);
+		assertThat(rowOf(view, two).rule()).isEqualTo(2);
+		assertThat(rowOf(view, two).source()).isEqualTo(AutoBudgetView.Source.PACE_NOTE);
+		assertThat(rowOf(view, three).rule()).isEqualTo(3);
+		assertThat(rowOf(view, three).source()).isEqualTo(AutoBudgetView.Source.PREVIOUS_BUDGET);
+		assertThat(rowOf(view, four).rule()).isEqualTo(4);
+		assertThat(rowOf(view, four).source()).isEqualTo(AutoBudgetView.Source.NONE);
+	}
+
+	/** ②で、直前の季節が終わっているとき：前の季節の実績の数字 */
+	@Test
+	void theSourceIsThePreviousActualWhenThePreviousSeasonIsFinished() {
+		Owner a = createOwner("autosvc41");
+		Category food = category(a, "食費");
+		spendIn(a, food, AUTUMN_2026, 15_200);
+
+		AutoBudgetView.Row row = rowOf(proposeOk(a, WINTER_2026, LocalDate.of(2026, 12, 5)), food);
+
+		assertThat(row.rule()).isEqualTo(2);
+		assertThat(row.source()).isEqualTo(AutoBudgetView.Source.PREVIOUS_ACTUAL);
+	}
+
 	/** 実績 0 円で予算がある：③（予算 8,000 円） */
 	@Test
 	void ruleThreeUsesThePreviousBudgetWhenThereIsNoActual() {

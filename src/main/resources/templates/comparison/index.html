@@ -68,10 +68,10 @@
                 <td><span th:text="${row.categoryName}">食費</span><span class="within-mark" th:if="${row.withinBudget}"><span aria-hidden="true">💮</span><span class="visually-hidden">予算内</span></span></td>
                 <td class="num" th:text="${row.budget != null} ? ${#numbers.formatInteger(row.budget, 1, 'COMMA')} : '未設定'">30,000</td>
                 <td class="num" th:text="${#numbers.formatInteger(row.actual, 1, 'COMMA')}">1,500</td>
-                <td class="num" th:if="${showForecast}" th:classappend="${row.color.name() == 'RED'} ? 'diff-over' : (${row.color.name() == 'BLUE'} ? 'diff-low')">
+                <td class="num remain-cell" th:if="${showForecast}" th:classappend="${row.color.name() == 'RED'} ? 'diff-over' : (${row.color.name() == 'BLUE'} ? 'diff-low')">
                     <th:block th:if="${row.difference != null}"><small class="cell-mark" th:if="${row.color.name() == 'RED'}">予算超え</small><small class="cell-mark" th:if="${row.color.name() == 'BLUE'}">使い残し</small><span th:text="${#numbers.formatInteger(row.difference, 1, 'COMMA')}">28,500</span></th:block>
                 </td>
-                <td class="num" th:if="${showForecast}">
+                <td class="num forecast-cell" th:if="${showForecast}">
                     <th:block th:if="${forecast != null}"><span th:text="${#numbers.formatInteger(forecast.amount, 1, 'COMMA')}">38,100</span><span class="cell-sub" th:text="| / ${#numbers.formatInteger(row.budget, 1, 'COMMA')}|"> / 40,000</span></th:block>
                     <th:block th:unless="${forecast != null}">—</th:block>
                 </td>
@@ -88,10 +88,10 @@
                 <td><span>合計</span><span class="within-mark" th:if="${comparison.total.withinBudget}"><span aria-hidden="true">💮</span><span class="visually-hidden">予算内</span></span></td>
                 <td class="num" th:text="${comparison.total.budget != null} ? ${#numbers.formatInteger(comparison.total.budget, 1, 'COMMA')} : '未設定'">75,000</td>
                 <td class="num" th:text="${#numbers.formatInteger(comparison.total.actual, 1, 'COMMA')}">1,500</td>
-                <td class="num" th:if="${showForecast}" th:classappend="${comparison.total.color.name() == 'RED'} ? 'diff-over' : (${comparison.total.color.name() == 'BLUE'} ? 'diff-low')">
+                <td class="num remain-cell" th:if="${showForecast}" th:classappend="${comparison.total.color.name() == 'RED'} ? 'diff-over' : (${comparison.total.color.name() == 'BLUE'} ? 'diff-low')">
                     <th:block th:if="${comparison.total.difference != null}"><small class="cell-mark" th:if="${comparison.total.color.name() == 'RED'}">予算超え</small><small class="cell-mark" th:if="${comparison.total.color.name() == 'BLUE'}">使い残し</small><span th:text="${#numbers.formatInteger(comparison.total.difference, 1, 'COMMA')}">73,500</span></th:block>
                 </td>
-                <td class="num" th:if="${showForecast}">
+                <td class="num forecast-cell" th:if="${showForecast}">
                     <th:block th:if="${landing != null}"><span th:text="${#numbers.formatInteger(landing.amount, 1, 'COMMA')}">142,000</span><span class="cell-sub" th:text="| / ${#numbers.formatInteger(comparison.total.budget, 1, 'COMMA')}|"> / 175,000</span></th:block>
                     <th:block th:unless="${landing != null}">—</th:block>
                 </td>

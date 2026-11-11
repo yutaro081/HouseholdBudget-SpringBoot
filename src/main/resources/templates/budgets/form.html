@@ -101,7 +101,7 @@
                     <span th:text="${row.categoryName}">食費</span>
                     <span class="unset-mark" th:if="${row.unset}" th:text="#{budget.unsaved}">未保存</span>
                 </td>
-                <td class="num budget-basis" th:if="${arow != null}" th:switch="${arow.basisKind.name()}"
+                <td class="num budget-basis" th:if="${arow != null}" th:classappend="${arow.source.name() == 'BASIS'} ? 'auto-source-cell'" th:switch="${arow.basisKind.name()}"
                     th:with="amountText=${#numbers.formatInteger(arow.baseAmount, 1, 'COMMA')}">
                     <span th:case="'MEDIAN'" th:text="#{budget.auto.basis.median(${amountText})}">中央値 90,000 円（3 年）</span>
                     <span th:case="'AVERAGE'"
@@ -123,12 +123,12 @@
                          th:text="${message}">エラー</div>
                 </td>
                 <td class="num" th:if="${arow != null}">
-                    <span th:text="${#numbers.formatInteger(arow.previousActual, 1, 'COMMA')}">49,200</span>
-                    <small class="d-block text-nowrap auto-budget-note" th:if="${arow.paceAmount != null}"
+                    <span th:classappend="${arow.source.name() == 'PREVIOUS_ACTUAL'} ? 'auto-source'" th:text="${#numbers.formatInteger(arow.previousActual, 1, 'COMMA')}">49,200</span>
+                    <small class="d-block text-nowrap auto-budget-note" th:if="${arow.paceAmount != null}" th:classappend="${arow.source.name() == 'PACE_NOTE'} ? 'auto-source'"
                            th:text="#{budget.auto.pace(${#numbers.formatInteger(arow.paceAmount, 1, 'COMMA')})}">ペース 約 62,200</small>
                 </td>
                 <td class="num" th:if="${arow != null}">
-                    <span th:if="${arow.previousBudget != null}" th:text="${#numbers.formatInteger(arow.previousBudget, 1, 'COMMA')}">95,000</span>
+                    <span th:if="${arow.previousBudget != null}" th:classappend="${arow.source.name() == 'PREVIOUS_BUDGET'} ? 'auto-source'" th:text="${#numbers.formatInteger(arow.previousBudget, 1, 'COMMA')}">95,000</span>
                     <span class="budget-dash" th:unless="${arow.previousBudget != null}">—</span>
                 </td>
             </tr>
@@ -158,6 +158,8 @@
         </table>
         </div>
         <p class="budget-hint"><small th:text="#{budget.amount.hint}">0〜3,000,000 の整数</small></p>
+        <!--/* 案のもとにした数字の印（issue 020）：「自動予算」を押したあとで、材料があるときだけ。どの数字に引くかは、Service が決めた arow.source（案のルール①〜④）。ここでは計算しない */-->
+        <p class="legend" th:if="${auto != null and !auto.noMaterial}" th:text="#{budget.auto.source.legend}">ターコイズの下線：案のもとにした数字</p>
     </form>
 </main>
 <script defer th:src="@{/js/budget-total.js}"></script>

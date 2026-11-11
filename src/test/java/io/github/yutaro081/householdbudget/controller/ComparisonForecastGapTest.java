@@ -312,6 +312,24 @@ class ComparisonForecastGapTest {
 		assertThat(cells.get(5)).isEqualTo("—");
 	}
 
+	/** 残り・見込み・見込みとの差のセルに、それぞれのクラス（太字・大きさ、区切り線）。今の季節だけ */
+	@Test
+	void theCellsOfTheCurrentSeasonHaveTheirOwnClasses() throws Exception {
+		fourCategories();
+
+		String body = page("/comparison");
+
+		for (String name : new String[] { "食費", "交通費", "雑費", "娯楽", "合計" }) {
+			String row = rowOf(body, name);
+			assertThat(cellHtml(row, 3)).as(name + " の残り").contains("remain-cell");
+			assertThat(cellHtml(row, 4)).as(name + " の見込み").contains("forecast-cell");
+			assertThat(cellHtml(row, 5)).as(name + " の見込みとの差").contains("gap-cell");
+			assertThat(cellHtml(row, 1) + cellHtml(row, 2)).as(name + " の予算・実績には付かない").doesNotContain("remain-cell", "forecast-cell", "gap-cell");
+		}
+		String past = page("/comparison?year=2026&season=summer");
+		assertThat(past).doesNotContain("remain-cell", "forecast-cell", "gap-cell");
+	}
+
 	// ---- 残り：今までの差額 ----
 
 	@Test

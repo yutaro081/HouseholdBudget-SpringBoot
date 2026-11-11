@@ -552,32 +552,45 @@ dl.detail dd {
 }
 
 .comparison-table.has-forecast {
-    min-width: 56rem;
+    min-width: 72rem;
 }
 
 .comparison-table.has-forecast th.col-budget {
-    width: 12%;
+    width: 9%;
 }
 
 .comparison-table.has-forecast th.col-actual {
-    width: 12%;
+    width: 9%;
 }
 
 .comparison-table.has-forecast th.col-remain {
-    width: 20%;
+    width: 24%;
 }
 
 .comparison-table.has-forecast th.col-forecast {
-    width: 12%;
+    width: 16%;
 }
 
 .comparison-table.has-forecast th.col-gap {
-    width: 28%;
+    width: 26%;
 }
 
-/* 見込みとの差の見出しは濃いターコイズ（#0B6E6B） */
+/* 残りと見込みとの差の見出しは濃いターコイズ（#0B6E6B） */
+.comparison-table th.col-remain {
+    color: var(--hb-teal-text);
+}
+
 .comparison-table th.col-gap {
     color: var(--hb-teal-text);
+}
+
+/* 実績・残りの組と、見込み・見込みとの差の組の間の、薄い縦の区切り線（見込みの列の左。見出しもセルも） */
+.comparison-table th.col-forecast {
+    border-left: 1px solid var(--hb-line);
+}
+
+.comparison-table td.forecast-cell {
+    border-left: 1px solid var(--hb-line);
 }
 
 /* どの行も同じ高さ（チップのある行も、ない行も）。高さは最小の値で、合計行は大きな文字の分だけ高くなる */
@@ -592,7 +605,12 @@ dl.detail dd {
     font-weight: 700;
 }
 
-/* 今の季節は、見込みとの差のセルをいちばん目立たせる（1.25rem、太字）。マイナスのときは赤（予算超過の意味の色）。残りは、ふつうの大きさ・太さ（色と印だけ付く） */
+/* 今の季節は、残りと見込みとの差のセルを、同じくらい目立たせる（1.25rem、太字）。見込みとの差のマイナスは赤（予算超過の意味の色）。残りには、色と印（予算超え・使い残し）が付く */
+.comparison-table td.remain-cell {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
 .comparison-table td.gap-cell {
     font-size: 1.25rem;
     font-weight: 700;
@@ -1582,6 +1600,24 @@ main.list-wide {
 
 .budget-table th.budget-amount {
     color: var(--hb-teal-text);
+}
+
+/* 案のもとにした数字（issue 020）：予算額の欄の枠と同じターコイズ（--hb-teal ＝ #0E9594）の 2px の下線と、太字。基本のターコイズは枠（線）にだけ使うので、下線は border-bottom。
+   どの数字かは、Service が決めた案のルール①〜④（AutoBudgetView.Row.source）。根拠のセルは、中の文字（span）に引く */
+.budget-table .auto-source {
+    border-bottom: 2px solid var(--hb-teal);
+    font-weight: 700;
+}
+
+/* 「ペース 約 …」は行いっぱいの block（d-block）なので、下線が文字の幅だけになるよう、中身の幅にして、右に寄せる */
+.budget-table small.auto-source {
+    width: fit-content;
+    margin-left: auto;
+}
+
+.budget-table td.auto-source-cell > span {
+    border-bottom: 2px solid var(--hb-teal);
+    font-weight: 700;
 }
 
 .budget-table td.budget-amount input[type="text"] {

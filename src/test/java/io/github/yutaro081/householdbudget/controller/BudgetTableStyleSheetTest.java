@@ -70,6 +70,25 @@ class BudgetTableStyleSheetTest {
 		assertThat(note).contains("color: var(--hb-text-sub)", "font-size: var(--hb-font-size-small)");
 	}
 
+	/** 案のもとにした数字：予算額の欄の枠と同じターコイズ（#0E9594）の 2px の下線と、太字。基本のターコイズは枠（線）にだけ使う決まりなので、下線は border-bottom */
+	@Test
+	void theSourceOfTheProposalHasATealUnderlineAndIsBold() throws Exception {
+		String css = css();
+
+		for (String selector : new String[] { ".budget-table .auto-source", ".budget-table td.auto-source-cell > span" }) {
+			String rule = rule(css, selector);
+			assertThat(rule).as(selector).contains("border-bottom: 2px solid var(--hb-teal)", "font-weight: 700");
+			assertThat(rule).as(selector + "：基本のターコイズは、線だけ").doesNotContain("color: var(--hb-teal)");
+		}
+		assertThat(css).contains("--hb-teal: #0E9594");
+	}
+
+	/** 「ペース 約 …」は行いっぱいの block なので、下線が文字の幅だけになるよう、中身の幅にして右に寄せる */
+	@Test
+	void theUnderlineOfThePaceNoteIsOnlyAsWideAsItsText() throws Exception {
+		assertThat(rule(css(), ".budget-table small.auto-source")).contains("width: fit-content", "margin-left: auto");
+	}
+
 	/** 予算額の列は、今の 2px の枠と太字のまま */
 	@Test
 	void theAmountColumnKeepsItsBorderAndTheBoldText() throws Exception {

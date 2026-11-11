@@ -285,6 +285,17 @@ class BudgetAutoControllerTest {
 		throw new AssertionError("行がない：" + label);
 	}
 
+	/** 科目名（または「合計」）で始まる行の HTML（&lt;tr&gt; の中身）。印（クラス）の場所を調べるために使う */
+	private static String rowHtml(String html, String label) {
+		Matcher rowMatcher = Pattern.compile("(?s)<tr[^>]*>(.*?)</tr>").matcher(budgetTable(html));
+		while (rowMatcher.find()) {
+			if (plain(rowMatcher.group(1)).startsWith(label)) {
+				return rowMatcher.group(1);
+			}
+		}
+		throw new AssertionError("行がない：" + label);
+	}
+
 	/** 「自動予算」ボタン（auto=1 への <a>）の開始タグ。なければ null */
 	private static String autoButtonTag(String html) {
 		Matcher m = Pattern.compile("(?s)(<a[^>]*href=\"" + Pattern.quote(BUTTON_HREF) + "\"[^>]*>)(?:(?!</a>).)*自動予算(?:(?!</a>).)*</a>")
@@ -691,6 +702,90 @@ class BudgetAutoControllerTest {
 		designExample();
 
 		assertThat(winter("1")).doesNotContain("budget-ref");
+	}
+
+	// ---- issue 020：案のもとにした数字に、ターコイズの下線（auto-source）。どの数字かは Service が決める ----
+
+	/** ① 中央値の行：根拠の列の数字だけ（印は 1 か所） */
+	@Test
+	void ruleOneUnderlinesTheBasisCell() throws Exception {
+		designExample();
+
+		String row = rowHtml(winter("1"), "食費");
+
+		assertThat(countOf(row, "auto-source")).isEqualTo(1);
+		assertThat(row).containsPattern("(?s)<td class=\"num budget-basis auto-source-cell\"[^>]*>");
+	}
+
+	/** ② 前の季節のペースの行：前の季節の実績の下の「ペース 約 …」 */
+	@Test
+	void ruleTwoUnderlinesThePaceNote() throws Exception {
+		designExample();
+
+		String row = rowHtml(winter("1"), "医療費");
+
+		assertThat(countOf(row, "auto-source")).isEqualTo(1);
+		assertThat(row).containsPattern("(?s)<small class=\"d-block text-nowrap auto-budget-note auto-source\"[^>]*>ペース 約");
+	}
+
+	/** ② 前の季節が終わっているとき：前の季節の実績の数字 */
+	@Test
+	void ruleTwoOfAFinishedSeasonUnderlinesThePreviousActual() throws Exception {
+		Category food = category("食費");
+		spend(food, p(2026, Season.SUMMER), 15_200);
+		flush();
+
+		String row = rowHtml(page("2026", "autumn", "1"), "食費");
+
+		assertThat(countOf(row, "auto-source")).isEqualTo(1);
+		assertThat(row).contains("<span class=\"auto-source\">15,200</span>");
+	}
+
+	/** ③ 前の季節の予算の行：前の季節の予算の列の数字 */
+	@Test
+	void ruleThreeUnderlinesThePreviousBudget() throws Exception {
+		designExample();
+
+		String row = rowHtml(winter("1"), "日用品");
+
+		assertThat(countOf(row, "auto-source")).isEqualTo(1);
+		assertThat(row).contains("<span class=\"auto-source\">8,000</span>");
+	}
+
+	/** ④ 材料なしの行：引かない */
+	@Test
+	void ruleFourHasNoUnderline() throws Exception {
+		designExample();
+
+		assertThat(rowHtml(winter("1"), "娯楽")).doesNotContain("auto-source");
+	}
+
+	/** 合計の行には引かない。「自動予算」を押す前は、どこにも引かず、注記も出さない */
+	@Test
+	void noUnderlineBeforeTheButtonAndNotOnTheTotalRow() throws Exception {
+		designExample();
+
+		assertThat(rowHtml(winter("1"), "合計")).doesNotContain("auto-source");
+		String plain = winter(null);
+		assertThat(plain).doesNotContain("auto-source").doesNotContain("ターコイズの下線");
+	}
+
+	/** 表の下の注記：自動予算を押したあと（材料があるとき）だけ */
+	@Test
+	void theLegendExplainsTheUnderlineOnlyWhenThereIsAnythingUnderlined() throws Exception {
+		designExample();
+
+		assertThat(winter("1")).contains("ターコイズの下線：案のもとにした数字");
+	}
+
+	@Test
+	void noLegendAndNoUnderlineWhenThereIsNoMaterial() throws Exception {
+		category("食費");
+		flush();
+
+		String body = winter("1");
+
+		assertThat(body).doesNotContain("ターコイズの下線").doesNotContain("auto-source");
 	}
 
 	/** 科目の行は、すべて 5 つのセル（合計の行も）。科目の登録順 */

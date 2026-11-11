@@ -48,28 +48,38 @@ class ComparisonStyleSheetTest {
 		assertThat(rule(css, ".comparison-table td.num")).doesNotContain("width").contains("text-align: right");
 	}
 
-	/** 今の季節（6 列。表に has-forecast）の幅：科目 16%・予算 12%・実績 12%・残り 20%・見込み 12%・見込みとの差 28%（チップの付く残りと見込みとの差を広く） */
+	/** 今の季節（6 列。表に has-forecast）の幅：科目 16%・予算 9%・実績 9%・残り 24%・見込み 16%・見込みとの差 26%（チップの付く残りと見込みとの差を、同じくらい広く） */
 	@Test
 	void theSixColumnsOfTheCurrentSeasonAreSizedByTheirContent() throws Exception {
 		String css = css();
 
-		assertThat(rule(css, ".comparison-table.has-forecast th.col-budget")).as("予算").contains("width: 12%");
-		assertThat(rule(css, ".comparison-table.has-forecast th.col-actual")).as("実績").contains("width: 12%");
-		assertThat(rule(css, ".comparison-table.has-forecast th.col-remain")).as("残り（チップが付く）").contains("width: 20%");
-		assertThat(rule(css, ".comparison-table.has-forecast th.col-forecast")).as("見込み（数字だけ）").contains("width: 12%");
-		assertThat(rule(css, ".comparison-table.has-forecast th.col-gap")).as("見込みとの差（チップが付く）").contains("width: 28%");
-		assertThat(rule(css, ".comparison-table.has-forecast")).as("6 列は、せまい幅で横にスクロールする").contains("min-width: 56rem");
+		assertThat(rule(css, ".comparison-table.has-forecast th.col-budget")).as("予算").contains("width: 9%");
+		assertThat(rule(css, ".comparison-table.has-forecast th.col-actual")).as("実績").contains("width: 9%");
+		assertThat(rule(css, ".comparison-table.has-forecast th.col-remain")).as("残り（チップが付く。見込みとの差と同じくらい）").contains("width: 24%");
+		assertThat(rule(css, ".comparison-table.has-forecast th.col-forecast")).as("見込み（「7,900 / 25,000」が入る幅）").contains("width: 16%");
+		assertThat(rule(css, ".comparison-table.has-forecast th.col-gap")).as("見込みとの差（チップが付く）").contains("width: 26%");
+		assertThat(rule(css, ".comparison-table.has-forecast")).as("6 列は、せまい幅で横にスクロールする").contains("min-width: 72rem");
 	}
 
-	/** いちばん目立たせるのは見込みとの差：1.25rem、太字、見出しは濃いターコイズ（#0B6E6B）。マイナスは赤。残りは、ふつう（専用の規則を持たない） */
+	/** 残りと見込みとの差を、同じくらい目立たせる：1.25rem、太字、見出しは濃いターコイズ（#0B6E6B）。見込みとの差のマイナスは赤 */
 	@Test
-	void theGapIsTheMostProminentAndTheRemainingIsPlain() throws Exception {
+	void theRemainingAndTheGapAreEquallyProminent() throws Exception {
 		String css = css();
 
 		assertThat(rule(css, ".comparison-table td.gap-cell")).contains("font-weight: 700", "font-size: 1.25rem");
+		assertThat(rule(css, ".comparison-table td.remain-cell")).contains("font-weight: 700", "font-size: 1.25rem");
 		assertThat(rule(css, ".comparison-table th.col-gap")).contains("color: var(--hb-teal-text)");
+		assertThat(rule(css, ".comparison-table th.col-remain")).contains("color: var(--hb-teal-text)");
 		assertThat(rule(css, ".comparison-table td.gap-over")).contains("color: #c62828");
-		assertThat(css).as("残りには、大きさ・太さの規則を付けない（クラスも作らない）").doesNotContain("remain-cell").doesNotContain("td.col-remain");
+	}
+
+	/** 実績・残りの組と、見込み・見込みとの差の組の間に、薄い縦の区切り線（見込みの列の左。見出しもセルも） */
+	@Test
+	void aThinVerticalLineSeparatesTheTwoGroupsOfColumns() throws Exception {
+		String css = css();
+
+		assertThat(rule(css, ".comparison-table th.col-forecast")).contains("border-left: 1px solid var(--hb-line)");
+		assertThat(rule(css, ".comparison-table td.forecast-cell")).contains("border-left: 1px solid var(--hb-line)");
 	}
 
 	/** 過去・未来の季節の差額は、今までどおり目立たせる（差額の数字は大きく 1.25rem、見出し「差額（円）」は濃いターコイズ #0B6E6B） */
