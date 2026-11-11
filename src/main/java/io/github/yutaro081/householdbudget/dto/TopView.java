@@ -32,7 +32,7 @@ import io.github.yutaro081.householdbudget.domain.SeasonPeriod;
  * @param seasonDaysLeft      季節の終わりまであと何日（今日を含める。最後の日は 1）
  * @param seasonUsedPercent   「予算のうち ○% を使った」の％（四捨五入。100％をこえてもそのまま）。予算が未設定・0円なら null
  * @param seasonElapsedPercent 「縦の線は『今日』（季節の ○%）」の％（四捨五入）
- * @param weekDayNumber       今日が今週の何日目か（日曜＝1、土曜＝7）。「縦の線は『今日』（週の ○ 日目）」
+ * @param weekDayNumber       今日が今週の何日目か（日曜＝1、土曜＝7）。「点線は『今日』（週の ○ 日目）」
  * @param landingAmount      着地見込みの額（円。100 円単位。予算が未設定・0 円なら null）〔issue 018。issue 017 のペースの一言のキー `paceKey` を置きかえた〕
  * @param landingPercent     着地見込みの、予算に対する％（なければ null）
  */
