@@ -160,6 +160,19 @@
 
 **すること：あなたが行う。Claude Code は、DB にログインしない。**
 
+**ファイル**〔2026年11月11日。作った。まだ流していない。案の場所：`docs/demo-data/`。あとで作り直すときにも使う〕
+
+| ファイル | 中身 |
+|---|---|
+| `docs/demo-data/issue-019-demo-history-insert.sql` | INSERT だけ〔83 件。`START TRANSACTION`・`COMMIT`・`ROLLBACK` は入れていない〕。下の 3 の SQL と同じ |
+| `docs/demo-data/issue-019-demo-history-check.sql` | 流したあとの確かめの SELECT〔6 本。読むだけ〕 |
+| `docs/demo-data/issue-019-demo-history-delete.sql` | 作り直し用の DELETE〔83 件だけ消す。今の夏の 1 件は残す〕 |
+
+**あなたが打つ手順**〔リポジトリーの最上位のフォルダーで `mysql` を起動する〕：`mysql --default-character-set=utf8mb4 -u （ユーザー）-p （データベース）` → パスワード入力 → `START TRANSACTION;` → `source docs/demo-data/issue-019-demo-history-insert.sql` → すぐ `SELECT ROW_COUNT();`〔83〕 → `source docs/demo-data/issue-019-demo-history-check.sql` → 見て `COMMIT;` か `ROLLBACK;`。作り直すときは、`START TRANSACTION;` → `source …-delete.sql` → `SELECT ROW_COUNT();`〔83〕→ `COMMIT;` か `ROLLBACK;`。
+
+以下は、同じ内容の説明。
+
+
 1. `hb_app` で `mysql` にログインする〔`--default-character-set=utf8mb4` を付ける〕。ふだんの DB を選ぶ。
 2. **事前に確かめる〔読むだけ〕**：
 ```sql
