@@ -379,6 +379,37 @@ class AutoBudgetServiceTest {
 		assertThat(totalOf(view)).isEqualTo(130_000L);
 	}
 
+	/**
+	 * 冬の取引が、すべて「次の年の 1 月・2 月」の日付でも、前の年の冬に入る（傾向の T1〜T3 と、過去の冬のもとの額の両方）。
+	 * 2023 年 冬＝2024/1/5、2024 年 冬＝2025/2/28、2025 年 冬＝2026/2/28。ほかの季節は真ん中あたり。
+	 * 暦の年で数えると、冬が別の年に入って、T と中央値が変わる。結果は trendUp と同じ（118%、中央値 110,000、案 130,000）
+	 */
+	@Test
+	void januaryAndFebruaryTransactionsCountInThePreviousYearsWinterForTheTrendToo() {
+		Owner a = createOwner("autosvc13j");
+		Category food = category(a, "食費");
+		List<SeasonPeriod> seasons = twelveSeasons();
+		for (int i = 0; i < 12; i++) {
+			int amount = i < 4 ? 100_000 : (i < 8 ? 110_000 : 120_000);
+			SeasonPeriod season = seasons.get(i);
+			if (season.season() == Season.WINTER) {
+				LocalDate date = (i == 1) ? LocalDate.of(season.year() + 1, 1, 5) : LocalDate.of(season.year() + 1, 2, 28);
+				spendOn(a, food, date, amount);
+			} else {
+				spendIn(a, food, season, amount);
+			}
+		}
+
+		AutoBudgetView view = proposeOk(a, WINTER_2026, NOV_11_2026);
+
+		assertThat(view.trendKind()).isEqualTo(TrendKind.UP);
+		assertThat(view.trendPercent()).isEqualTo(118);
+		AutoBudgetView.Row row = rowOf(view, food);
+		assertThat(row.years()).containsExactly(2023, 2024, 2025);
+		assertThat(row.baseAmount()).isEqualTo(110_000L);
+		assertThat(row.amount()).isEqualTo(130_000L);
+	}
+
 	/** 減る：T1＝480,000、T2＝440,000、T3＝400,000 → 82% */
 	@Test
 	void trendDown() {
