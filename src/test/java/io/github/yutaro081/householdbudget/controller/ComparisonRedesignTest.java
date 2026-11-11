@@ -5,7 +5,6 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.time.Clock;
 import java.time.LocalDate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -14,15 +13,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.transaction.annotation.Transactional;
 
-import io.github.yutaro081.householdbudget.config.AppConfig;
 import io.github.yutaro081.householdbudget.domain.Season;
 import io.github.yutaro081.householdbudget.entity.Budget;
 import io.github.yutaro081.householdbudget.entity.Category;
@@ -48,17 +44,9 @@ import jakarta.persistence.EntityManager;
  */
 @SpringBootTest
 @AutoConfigureMockMvc
+@Import(FixedClock20261111Config.class)
 @Transactional
 class ComparisonRedesignTest {
-
-	@TestConfiguration
-	static class FixedClockConfig {
-		@Bean
-		@Primary
-		Clock fixedClock() {
-			return Clock.fixed(LocalDate.of(2026, 11, 11).atStartOfDay(AppConfig.JAPAN).toInstant(), AppConfig.JAPAN);
-		}
-	}
 
 	@Autowired
 	private MockMvc mockMvc;

@@ -86,7 +86,7 @@ class AuthAndListStyleSheetTest {
 
 		String block = mediaBlocks(css, "(min-width: 768px)").stream().filter(b -> b.contains("body:has(> main.auth-main)")).findFirst().orElse("");
 		block = block.replaceAll("(?m)^\s+", "");
-		assertThat(rule(block, "body:has(> main.auth-main) main.auth-main")).contains("padding-bottom: calc(var(--hb-space-7) + max(0px, (100vh - 768px) * 0.5))", "justify-content: center");
+		assertThat(rule(block, "body:has(> main.auth-main) main.auth-main")).contains("padding-bottom: calc(var(--hb-space-7) + max(0px, (100vh - 768px) * 0.7))", "justify-content: center");
 		assertThat(rule(css, "main.auth-main")).as("768px 未満は今のまま").doesNotContain("vh").contains("padding-bottom: var(--hb-space-7)");
 	}
 
@@ -212,13 +212,13 @@ class AuthAndListStyleSheetTest {
 		assertThat(wide).as("2 列のとき、紹介とカードの間は 72px").contains("gap: 4.5rem");
 	}
 
-	/** 取引一覧：本体の幅をトップと同じ 1120px、表のマスの左右の余白を 20px（見出しの行のマスも同じ） */
+	/** 取引一覧：本体の幅をトップと同じ 1280px、表のマスの左右の余白を 20px（見出しの行のマスも同じ） */
 	@Test
 	void theListMainIsAsWideAsTheTopAndTheCellsHave20pxOnTheSides() throws Exception {
 		String css = css();
 
-		assertThat(rule(css, "main.list-wide")).contains("max-width: 1120px");
-		assertThat(rule(css, "main.top-wide")).contains("max-width: 1120px");
+		assertThat(rule(css, "main.list-wide")).contains("max-width: 1280px");
+		assertThat(rule(css, "main.top-wide")).contains("max-width: 1280px");
 		assertThat(rule(css, "main.container")).as("ほかの画面は 960px のまま").contains("max-width: 960px");
 		assertThat(rule(css, ".list-card th")).contains("padding-left: 1.25rem", "padding-right: 1.25rem");
 		assertThat(rule(css, ".list-card td")).contains("padding-left: 1.25rem", "padding-right: 1.25rem");

@@ -194,9 +194,9 @@ main.narrow {
     max-width: 420px;
 }
 
-/* トップの本体の幅（issue 017）。2 列（左 440px + 右）が入る 1120px まで。ほかの画面は 960px のまま */
+/* トップの本体の幅（issue 017。issue 020 で 1120px から 1280px に広げた）。2 列（左 440px + 右）が入る。ほかの画面は 960px のまま */
 main.top-wide {
-    max-width: 1120px;
+    max-width: 1280px;
 }
 
 /*
@@ -295,13 +295,13 @@ main.form-wide {
     padding: 8px 0;
 }
 
-/* ヘッダーの中身（issue 017）：左にロゴ、真ん中にメニュー、右にユーザー名とログアウト。幅は本文（トップ）と同じ 1120px まで、中央にそろえる。幅が足りないときは折り返す（JavaScript は使わない） */
+/* ヘッダーの中身（issue 017）：左にロゴ、真ん中にメニュー、右にユーザー名とログアウト。幅は本文（トップ）と同じ 1280px まで、中央にそろえる。幅が足りないときは折り返す（JavaScript は使わない） */
 .app-header-inner {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 8px 12px;
-    max-width: 1120px;
+    max-width: 1280px;
     margin: 0 auto;
     padding: 0 12px;
 }
@@ -834,6 +834,34 @@ dl.detail dd {
     border-radius: 0.375rem;
 }
 
+/* 予算を超えたとき（実績 ＞ 予算）の棒は、予算超過の色（赤。意味の色。issue 020）。棒の長さは 100％で止まる */
+.top-meter-bar.top-meter-over {
+    background: #c62828;
+}
+
+/*
+ * 棒の右端（100％ ＝ 予算）の短い縦線（issue 020）：濃い灰色（補足の文字の色）、幅 2px、上下に 0.125rem ずつはみ出す。
+ * 「今日」の縦線（本文の色、上下に 0.25rem ずつはみ出す）と見分けがつくよう、灰色で短くする。
+ * 季節のメーター、予実比較のカード、今週の科目ごとのメーター、すべての .top-meter に付く（HTML は変えない）。
+ */
+.top-meter::after {
+    content: "";
+    position: absolute;
+    top: -0.125rem;
+    right: 0;
+    bottom: -0.125rem;
+    width: 2px;
+    background: var(--hb-text-sub);
+}
+
+/* 棒の線の下の、小さな「予算」（トップの季節のメーターと予実比較のカードだけ。今週の科目ごとのメーターには付けない） */
+.top-meter-budget-label {
+    margin: calc(-1 * var(--hb-space-2)) 0 0;
+    color: var(--hb-text-sub);
+    font-size: var(--hb-font-size-small);
+    text-align: right;
+}
+
 .top-meter-today {
     position: absolute;
     top: -0.25rem;
@@ -1164,7 +1192,7 @@ main.auth-main {
         flex-direction: column;
         justify-content: center;
         /* 下にだけ余白を足して、少し上に置く（issue 020）。高さ 768px 以下では 0。背の高い画面ほど大きい（上下の空きがだいたい 2：3） */
-        padding-bottom: calc(var(--hb-space-7) + max(0px, (100vh - 768px) * 0.5));
+        padding-bottom: calc(var(--hb-space-7) + max(0px, (100vh - 768px) * 0.7));
     }
 }
 
@@ -1246,14 +1274,14 @@ main.auth-main {
     text-align: center;
 }
 
-/* 予算設定・予実比較の本体の幅（issue 020）：ヘッダーの中身・トップ・取引一覧と同じ 1120px */
+/* 予算設定・予実比較の本体の幅（issue 020）：ヘッダーの中身・トップ・取引一覧と同じ 1280px */
 main.table-wide {
-    max-width: 1120px;
+    max-width: 1280px;
 }
 
-/* 取引一覧の本体の幅（issue 017 の 2 回目の見直し）：トップと同じ 1120px。ほかの画面は 960px のまま */
+/* 取引一覧の本体の幅（issue 017 の 2 回目の見直し。issue 020 で 1280px に広げた）：トップと同じ。ほかの画面は 960px のまま */
 main.list-wide {
-    max-width: 1120px;
+    max-width: 1280px;
 }
 
 /*

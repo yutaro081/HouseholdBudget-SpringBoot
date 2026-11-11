@@ -37,6 +37,6 @@ class HeaderFitStyleSheetTest {
 
 	@Test
 	void theLogoTheMenuAndTheUserAreaAre12pxApart() throws Exception {
-		assertThat(rule(css(), ".app-header-inner")).contains("gap: 8px 12px", "max-width: 1120px", "padding: 0 12px");
+		assertThat(rule(css(), ".app-header-inner")).contains("gap: 8px 12px", "max-width: 1280px", "padding: 0 12px");
 	}
 }

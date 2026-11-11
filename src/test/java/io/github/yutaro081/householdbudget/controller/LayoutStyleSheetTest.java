@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 /**
  * ヘッダーとトップの並びの CSS（style.css）のテスト（設計書 2.3、4.3、issue 017 の 1 回目）。
  * 見た目そのもの（折り返し、色の見え方、にじみ）は、ここでは確かめられない。ブラウザで確かめる。
- * ここでは、決めた数字（1120px、992px、440px、44px、34px、16px・10px・14px の棒）と、色の決まりを確かめる。
+ * ここでは、決めた数字（1280px、992px、440px、44px、34px、16px・10px・14px の棒）と、色の決まりを確かめる。
  */
 class LayoutStyleSheetTest {
 
@@ -52,10 +52,10 @@ class LayoutStyleSheetTest {
 	// ---- 幅と 2 列 ----
 
 	@Test
-	void theTopMainIsAtMost1120pxAndOtherScreensStayAt960px() throws Exception {
+	void theTopMainIsAtMost1280pxAndOtherScreensStayAt960px() throws Exception {
 		String css = css();
 
-		assertThat(rule(css, "main.top-wide")).contains("max-width: 1120px");
+		assertThat(rule(css, "main.top-wide")).contains("max-width: 1280px");
 		assertThat(rule(css, "main.container")).contains("max-width: 960px");
 	}
 
@@ -109,10 +109,10 @@ class LayoutStyleSheetTest {
 	// ---- ヘッダー ----
 
 	@Test
-	void theHeaderContentIsAtMost1120pxAndCentered() throws Exception {
+	void theHeaderContentIsAtMost1280pxAndCentered() throws Exception {
 		String inner = rule(css(), ".app-header-inner");
 
-		assertThat(inner).contains("max-width: 1120px", "margin: 0 auto", "flex-wrap: wrap");
+		assertThat(inner).contains("max-width: 1280px", "margin: 0 auto", "flex-wrap: wrap");
 	}
 
 	/** issue 020：ヘッダーの中身に左右 12px の余白（本文の .container の余白と端を合わせる）。帯そのものの左右の余白は 0 */
@@ -122,10 +122,10 @@ class LayoutStyleSheetTest {
 		assertThat(rule(css(), ".app-header")).contains("padding: 8px 0");
 	}
 
-	/** issue 020：予算設定・予実比較の本体の幅は 1120px。ほかの画面は 960px のまま */
+	/** issue 020：予算設定・予実比較の本体の幅は 1280px。ほかの画面は 960px のまま */
 	@Test
-	void theTableWideMainIs1120pxAndTheDefaultStaysAt960px() throws Exception {
-		assertThat(rule(css(), "main.table-wide")).contains("max-width: 1120px");
+	void theTableWideMainIs1280pxAndTheDefaultStaysAt960px() throws Exception {
+		assertThat(rule(css(), "main.table-wide")).contains("max-width: 1280px");
 		assertThat(rule(css(), "main.container")).contains("max-width: 960px");
 	}
 

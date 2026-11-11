@@ -334,9 +334,9 @@ class BudgetAutoControllerTest {
 		mockMvc.perform(request(year, season, "1")).andExpect(status().isNotFound());
 	}
 
-	/** issue 020：本体の幅は 1120px（table-wide） */
+	/** issue 020：本体の幅は 1280px（table-wide） */
 	@Test
-	void mainIsTableWideSo1120px() throws Exception {
+	void mainIsTableWideSo1280px() throws Exception {
 		category("食費");
 		flush();
 

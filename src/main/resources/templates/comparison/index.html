@@ -28,9 +28,10 @@
                 <span th:text="#{comparison.card.today(${cardElapsedPercent})}">縦の線は『今日』（季節の 77%）</span>
             </p>
             <div class="top-meter" aria-hidden="true">
-                <div class="top-meter-bar" th:style="|width: ${cardBarPermille / 10}.${cardBarPermille % 10}%|"></div>
+                <div class="top-meter-bar" th:classappend="${comparison.total.color.name() == 'RED'} ? 'top-meter-over'" th:style="|width: ${cardBarPermille / 10}.${cardBarPermille % 10}%|"></div>
                 <div class="top-meter-today" th:style="|left: ${cardTodayPermille / 10}.${cardTodayPermille % 10}%|"></div>
             </div>
+            <p class="top-meter-budget-label">予算</p>
         </div>
         <p class="comparison-card-over" th:if="${landing.overBudget}" th:text="#{comparison.landing.over}">見込みは、予算を上回ります。</p>
         <p class="comparison-card-note" th:text="#{comparison.landing.note}">月ごとにまとめて払うものは、払う日で見込みが上下します。</p>

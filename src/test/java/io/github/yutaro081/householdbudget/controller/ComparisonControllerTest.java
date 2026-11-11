@@ -163,9 +163,9 @@ class ComparisonControllerTest {
 		assertThat(body).contains("href=\"/comparison?year=2027&amp;season=spring\">次の季節");
 	}
 
-	/** issue 020：本体の幅は 1120px（table-wide） */
+	/** issue 020：本体の幅は 1280px（table-wide） */
 	@Test
-	void mainIsTableWideSo1120px() throws Exception {
+	void mainIsTableWideSo1280px() throws Exception {
 		Owner a = createOwner("ctrlcmp6");
 
 		String body = open(a, null, null);
