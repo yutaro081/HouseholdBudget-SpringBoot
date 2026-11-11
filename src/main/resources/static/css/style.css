@@ -44,6 +44,7 @@
     --hb-text-sub: #56625F;
     --hb-bg: #F6F8F8;
     --hb-line: #E2E8E8;
+    --hb-row-hover: #EEF3F3;
     --hb-input-border: #849290;
     --hb-input-bg: #FFFFFF;
     --hb-apricot: #FFF2E5;
@@ -404,6 +405,33 @@ main.form-wide {
 .inline-form {
     display: inline-block;
     margin: 0;
+}
+
+/* 科目・取引先・支払方法の追加フォーム（issue 024。設計書 2.3）：名前の入力欄と「追加」ボタンを同じ行に並べる。エラーの文は行の下に出るので、ボタンは上にそろえる */
+.add-form {
+    display: block;
+    margin: 0 0 1rem;
+}
+
+.add-form .field {
+    margin-bottom: 0;
+}
+
+.add-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.add-row .form-control {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 28rem;
+}
+
+.add-row .btn {
+    flex: none;
+    white-space: nowrap;
 }
 
 /* 登録できないときの案内（Bootstrap の alert の中の段落の余白） */
@@ -1505,6 +1533,9 @@ main.list-wide {
 
 .list-card table.list {
     margin-bottom: 0;
+    /* 行にマウスを載せたときの色（issue 024）：薄い灰緑。薄いターコイズは使わない。Bootstrap の table-hover の変数を、この表だけで上書きする */
+    --bs-table-hover-bg: var(--hb-row-hover);
+    --bs-table-hover-color: var(--hb-text);
 }
 
 /* マスの左右の余白は 20px（案に合わせた例外。余白の目盛りの外。設計書 2.3）。見出しの行のマスも同じ */

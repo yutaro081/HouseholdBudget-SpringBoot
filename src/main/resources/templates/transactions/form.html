@@ -19,7 +19,7 @@
          入力欄には、カンマも「円」も使わない（2.3）。金額は文字として受け付ける（G1）。
          エラーで戻ったときも、入力値と選んでいた値が残る（th:field）。利用者の入力は th:field / th:text で出す。th:utext は使わない（7.5） */-->
     <!--/* 取引の複写（issue 012、U8）：複写で開いたときだけ出す固定の 1 行。利用者の入力は入れない。エラーで表示し直した画面には出ない */-->
-    <p class="alert alert-info" th:if="${copied}">この取引を写しています。日付は今日にしてあります。「登録する」を押すまで、保存されません。</p>
+    <p class="alert alert-info" th:if="${copied}">この取引を写しています。日付は今日にしてあります。「保存」を押すまで、保存されません。</p>
 
     <div class="notice alert alert-warning" th:if="${#lists.isEmpty(categories) or #lists.isEmpty(vendors) or #lists.isEmpty(paymentMethods)}">
         <p th:if="${#lists.isEmpty(categories)}">先に科目を追加してください。<a th:href="@{/categories}">科目の画面へ</a></p>
@@ -104,7 +104,7 @@
         <!--/* 右下：キャンセル（取引一覧へのリンク。ボタンではないので、Enter キーでは送信されない）→ 送信ボタン */-->
         <div class="form-actions">
             <a class="btn btn-outline-secondary" th:href="@{/transactions}">キャンセル</a>
-            <button type="submit" class="btn btn-primary" th:text="${transactionId == null} ? '登録する' : '更新'">登録する</button>
+            <button type="submit" class="btn btn-primary">保存</button>
         </div>
     </form>
 

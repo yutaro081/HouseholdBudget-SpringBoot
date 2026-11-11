@@ -206,7 +206,7 @@ class AuthAndListStyleSheetTest {
 
 		assertThat(rule(css, ".auth-title")).contains("line-height: 1.45", "margin-bottom: 1.25rem");
 		assertThat(rule(css, ".auth-lead")).as("説明：行の間 1.85。下の余白は、チェックの上の 24px の側に持たせる").contains("line-height: 1.85", "margin: 0");
-		assertThat(rule(css, ".auth-points")).as("チェックの上 24px、2 行の間 12px").contains("margin: 1.5rem 0 0", "gap: var(--hb-space-3)");
+		assertThat(rule(css, ".auth-points")).as("チェックの上 24px、3 行の間 12px").contains("margin: 1.5rem 0 0", "gap: var(--hb-space-3)");
 		assertThat(rule(css, ".auth-chip")).as("チップの下 14px").contains("margin-bottom: 0.875rem");
 		String wide = mediaBlocks(css, "(min-width: 768px)").stream().filter(b -> b.contains(".auth-layout")).findFirst().orElse("");
 		assertThat(wide).as("2 列のとき、紹介とカードの間は 72px").contains("gap: 4.5rem");

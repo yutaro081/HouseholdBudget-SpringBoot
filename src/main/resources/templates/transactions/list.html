@@ -21,7 +21,7 @@
     <p th:if="${#lists.isEmpty(transactions)}">取引はまだありません</p>
 
     <!--/* 日付の新しい順（同じ日は登録の新しい順）。編集・削除のボタンは置かない（U3）。
-         日付は 2026/10/19、金額は 30,000円 の形（2.3、Q5-9）。利用者が入力した値は th:text で出す。th:utext は使わない（7.5） */-->
+         日付は 2026/10/19、金額は 30,000 の形（「円」は見出し「金額（円）」にまとめる。issue 024）（2.3、Q5-9）。利用者が入力した値は th:text で出す。th:utext は使わない（7.5） */-->
     <div class="list-card table-responsive" th:unless="${#lists.isEmpty(transactions)}">
         <table class="list table table-hover align-middle">
         <thead>
@@ -31,7 +31,7 @@
             <th>取引先</th>
             <th>支払方法</th>
             <th>摘要</th>
-            <th class="num">金額</th>
+            <th class="num">金額（円）</th>
             <th>操作</th>
         </tr>
         </thead>
@@ -42,7 +42,7 @@
             <td th:text="${transaction.vendor.name}">コンビニ</td>
             <td class="list-muted" th:text="${transaction.paymentMethod.name}">現金</td>
             <td class="list-muted" th:text="${transaction.description}">昼食</td>
-            <td class="num" th:text="|${#numbers.formatInteger(transaction.amount, 1, 'COMMA')}円|">30,000円</td>
+            <td class="num" th:text="${#numbers.formatInteger(transaction.amount, 1, 'COMMA')}">30,000</td>
             <td><a th:href="@{/transactions/{id}(id=${transaction.id})}">詳細</a></td>
         </tr>
         </tbody>

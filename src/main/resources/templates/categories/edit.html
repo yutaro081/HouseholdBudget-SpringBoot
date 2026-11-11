@@ -15,7 +15,7 @@
             <input class="form-control" type="text" th:field="*{name}" autofocus>
             <div class="field-error" th:each="message : ${#fields.errors('name')}" th:text="${message}">エラー</div>
         </div>
-        <button type="submit" class="btn btn-primary">変更</button>
+        <button type="submit" class="btn btn-primary">保存</button>
     </form>
 
     <p><a th:href="@{/categories}">戻る</a></p>

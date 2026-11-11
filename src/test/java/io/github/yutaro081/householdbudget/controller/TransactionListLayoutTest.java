@@ -151,8 +151,8 @@ class TransactionListLayoutTest {
 		while (m.find()) {
 			labels.add(m.group(1).replaceAll("<[^>]*>", "").strip());
 		}
-		assertThat(labels).containsExactly("日付", "科目", "取引先", "支払方法", "摘要", "金額", "操作");
-		assertThat(head).as("金額の見出しは右寄せの印").contains("<th class=\"num\">金額</th>");
+		assertThat(labels).containsExactly("日付", "科目", "取引先", "支払方法", "摘要", "金額（円）", "操作");
+		assertThat(head).as("金額の見出しは右寄せの印。「円」は見出しにまとめる（issue 024）").contains("<th class=\"num\">金額（円）</th>");
 	}
 
 	@Test
@@ -162,7 +162,7 @@ class TransactionListLayoutTest {
 		String row = body.substring(body.indexOf("<tbody>"), body.indexOf("</tbody>"));
 
 		assertThat(row).contains("<td class=\"list-muted\">2026/10/19</td>", "<td class=\"list-muted\">現金</td>", "<td class=\"list-muted\">昼食</td>");
-		assertThat(row).contains("<td class=\"num\">30,000円</td>");
+		assertThat(row).as("セルに「円」を付けない（issue 024）").contains("<td class=\"num\">30,000</td>").doesNotContain("円");
 		assertThat(row).containsPattern("<td><a href=\"/transactions/\\d+\">詳細</a></td>");
 	}
 
