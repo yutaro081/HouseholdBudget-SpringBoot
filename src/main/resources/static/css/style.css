@@ -537,7 +537,7 @@ dl.detail dd {
 
 /* 列の幅は、中身に合わせて配る（issue 020 の見直し）。
    過去・未来の季節（4 列）：科目 16%・予算 16%・実績 16%・差額 28%（足して 100% に満たない分は、割合に応じて配られる）。
-   今の季節（6 列。表に has-forecast）：科目 16%・予算 12%・実績 12%・残り 20%・見込み 12%・見込みとの差 28%（チップの付く残りと見込みとの差を広く）。 */
+   今の季節（6 列。表に has-forecast）：科目 16%、数字の 5 列（予算・実績・残り・見込み・見込みとの差）は残りを等分（16.8% ずつ）。印付きの数字と「7,900 / 25,000」が 1 行に収まることを、横 1366px で確かめた。 */
 .comparison-table th.col-budget {
     width: 16%;
 }
@@ -556,23 +556,23 @@ dl.detail dd {
 }
 
 .comparison-table.has-forecast th.col-budget {
-    width: 9%;
+    width: 16.8%;
 }
 
 .comparison-table.has-forecast th.col-actual {
-    width: 9%;
+    width: 16.8%;
 }
 
 .comparison-table.has-forecast th.col-remain {
-    width: 24%;
+    width: 16.8%;
 }
 
 .comparison-table.has-forecast th.col-forecast {
-    width: 16%;
+    width: 16.8%;
 }
 
 .comparison-table.has-forecast th.col-gap {
-    width: 26%;
+    width: 16.8%;
 }
 
 /* 残りと見込みとの差の見出しは濃いターコイズ（#0B6E6B） */

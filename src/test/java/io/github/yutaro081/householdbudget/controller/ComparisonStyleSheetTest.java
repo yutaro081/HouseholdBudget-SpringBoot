@@ -48,16 +48,16 @@ class ComparisonStyleSheetTest {
 		assertThat(rule(css, ".comparison-table td.num")).doesNotContain("width").contains("text-align: right");
 	}
 
-	/** 今の季節（6 列。表に has-forecast）の幅：科目 16%・予算 9%・実績 9%・残り 24%・見込み 16%・見込みとの差 26%（チップの付く残りと見込みとの差を、同じくらい広く） */
+	/** 今の季節（6 列。表に has-forecast）の幅：科目 16%、数字の 5 列は残りを等分（16.8% ずつ） */
 	@Test
 	void theSixColumnsOfTheCurrentSeasonAreSizedByTheirContent() throws Exception {
 		String css = css();
 
-		assertThat(rule(css, ".comparison-table.has-forecast th.col-budget")).as("予算").contains("width: 9%");
-		assertThat(rule(css, ".comparison-table.has-forecast th.col-actual")).as("実績").contains("width: 9%");
-		assertThat(rule(css, ".comparison-table.has-forecast th.col-remain")).as("残り（チップが付く。見込みとの差と同じくらい）").contains("width: 24%");
-		assertThat(rule(css, ".comparison-table.has-forecast th.col-forecast")).as("見込み（「7,900 / 25,000」が入る幅）").contains("width: 16%");
-		assertThat(rule(css, ".comparison-table.has-forecast th.col-gap")).as("見込みとの差（チップが付く）").contains("width: 26%");
+		assertThat(rule(css, ".comparison-table.has-forecast th.col-budget")).as("予算").contains("width: 16.8%");
+		assertThat(rule(css, ".comparison-table.has-forecast th.col-actual")).as("実績").contains("width: 16.8%");
+		assertThat(rule(css, ".comparison-table.has-forecast th.col-remain")).as("残り（チップが付く。見込みとの差と同じくらい）").contains("width: 16.8%");
+		assertThat(rule(css, ".comparison-table.has-forecast th.col-forecast")).as("見込み").contains("width: 16.8%");
+		assertThat(rule(css, ".comparison-table.has-forecast th.col-gap")).as("見込みとの差（チップが付く）").contains("width: 16.8%");
 		assertThat(rule(css, ".comparison-table.has-forecast")).as("6 列は、せまい幅で横にスクロールする").contains("min-width: 72rem");
 	}
 
