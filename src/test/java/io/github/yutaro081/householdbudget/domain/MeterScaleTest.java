@@ -114,4 +114,12 @@ class MeterScaleTest {
 		assertThat(m.overPermille()).isEqualTo(300);
 		assertThat(m.overflowPercent()).isEqualTo(23_333_233);
 	}
+
+	/** 「+○%」の計算は long。実績が int の上限（約 21 億）を超える大きな額でも、あふれずに正しい％になる */
+	@Test
+	void overflowPercentIsCalculatedInLongForAmountsBeyondTheIntRange() {
+		Meter m = MeterScale.of(1_000_000L, 3_000_000_000L, 1000);
+
+		assertThat(m.overflowPercent()).isEqualTo(299_900);
+	}
 }

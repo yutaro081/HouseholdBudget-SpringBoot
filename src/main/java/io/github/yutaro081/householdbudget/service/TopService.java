@@ -124,10 +124,12 @@ public class TopService {
 		// 見込みの一文（issue 018）：事実の文〔季節の％と使った割合。四捨五入した整数〕と、着地見込み〔予実比較の合計行と同じ値から、同じ式で〕。予算が未設定・0円なら出さない
 		Integer usedPercent = PeriodProgress.usedPercent(seasonTotal.budget(), seasonTotal.actual());
 		int elapsedPercent = PeriodProgress.seasonElapsedPercent(season, today);
+		// 数え始めの日は、検索を 1 回だけにして、着地見込みと今週の科目のひとことの両方に渡す
+		LocalDate countFrom = comparisonService.countingStart(userId, season, today);
 		Optional<LandingForecast.Result> landing = LandingForecast.of(seasonTotal.budget(), seasonTotal.actual(), season, today,
-				comparisonService.countingStart(userId, season, today));
+				countFrom);
 
-		WeekPickView weekPick = weekPick(rows, seasonComparison, season, today, comparisonService.countingStart(userId, season, today));
+		WeekPickView weekPick = weekPick(rows, seasonComparison, season, today, countFrom);
 
 		return new TopView(season, seasonTotal.budget(), seasonTotal.actual(), seasonTotal.difference(),
 				MeterScale.of(seasonTotal.budget(), seasonTotal.actual(), PeriodProgress.seasonElapsedPermille(season, today)),
