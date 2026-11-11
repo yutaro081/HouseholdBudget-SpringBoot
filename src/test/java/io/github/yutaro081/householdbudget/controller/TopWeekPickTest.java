@@ -131,9 +131,9 @@ class TopWeekPickTest {
 		assertThat(comparison).contains("<span>5,900</span><span class=\"cell-sub\"> / 65,000</span>");
 	}
 
-	/** 置き場所：「今週の進み具合」のメーターと、その下の注記の下 */
+	/** 置き場所（issue 020 の見直し）：「今週の進み具合」のメーターのすぐ下。注記（「点線：今日／実線：予算」）より上 */
 	@Test
-	void theSentenceIsBelowTheWeeklyMetersAndTheirLegend() throws Exception {
+	void theSentenceIsRightBelowTheWeeklyMetersAndAboveTheirLegend() throws Exception {
 		foodAndFare();
 
 		String body = page("/");
@@ -141,8 +141,23 @@ class TopWeekPickTest {
 
 		assertThat(sentence).isGreaterThanOrEqualTo(0);
 		assertThat(sentence).as("今週のメーターの下").isGreaterThan(body.indexOf("class=\"top-weeks"));
-		assertThat(sentence).as("注記の下").isGreaterThan(body.indexOf("点線：今日／実線：予算"));
+		assertThat(sentence).as("メーター（科目の行）の下").isGreaterThan(body.indexOf("</ul>", body.indexOf("class=\"top-weeks")));
+		assertThat(sentence).as("注記より上").isLessThan(body.indexOf("点線：今日／実線：予算"));
 		assertThat(body.split("class=\"top-week-pick\"", -1).length - 1).as("1 つだけ").isEqualTo(1);
+	}
+
+	/** 「きょうのひとこと」の行（「今週はまだ…」）と同じように、左に小さなアイコンの四角（hitokoto-icon。棒グラフのアイコン）を付ける */
+	@Test
+	void theSentenceHasASmallIconLikeTheHitokotoRows() throws Exception {
+		foodAndFare();
+
+		String body = page("/");
+		int row = body.indexOf("class=\"top-week-pick-row hitokoto-row\"");
+
+		assertThat(row).isGreaterThanOrEqualTo(0);
+		String segment = body.substring(row, body.indexOf("class=\"top-week-pick\"", row) + 30);
+		assertThat(segment).contains("<span class=\"hitokoto-icon\"><svg", "class=\"hitokoto-body\"");
+		assertThat(segment.indexOf("hitokoto-icon")).as("アイコンは文の左（前）").isLessThan(segment.indexOf("top-week-pick\""));
 	}
 
 	/** 週の予算を超えていなくても出す。超えているときも出す */
