@@ -121,10 +121,10 @@ class TransactionFormLayoutTest {
 	// ---- ボタンの文字と、戻る行き先 ----
 
 	@Test
-	void submitButtonSaysTourokuSuruOnNewAndKoushinOnEdit() throws Exception {
-		assertThat(newPage()).containsPattern("<button type=\"submit\"[^>]*>登録する</button>").doesNotContainPattern("<button type=\"submit\"[^>]*>(登録|更新)</button>");
-		assertThat(editPage()).containsPattern("<button type=\"submit\"[^>]*>更新</button>").doesNotContain("登録する</button>");
-		assertThat(errorPage()).as("入力エラーで表示し直した登録画面").containsPattern("<button type=\"submit\"[^>]*>登録する</button>");
+	void submitButtonSaysHozonOnNewAndOnEdit() throws Exception {
+		assertThat(newPage()).containsPattern("<button type=\"submit\"[^>]*>保存</button>").doesNotContainPattern("<button type=\"submit\"[^>]*>(登録する|登録|更新)</button>");
+		assertThat(editPage()).containsPattern("<button type=\"submit\"[^>]*>保存</button>").doesNotContain("登録する</button>", "更新</button>");
+		assertThat(errorPage()).as("入力エラーで表示し直した登録画面").containsPattern("<button type=\"submit\"[^>]*>保存</button>");
 	}
 
 	@Test
@@ -264,7 +264,7 @@ class TransactionFormLayoutTest {
 		String body = mockMvc.perform(get("/transactions/new").param("copyFrom", String.valueOf(transaction.getId())).with(asUser))
 				.andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
 		assertThat(body.indexOf("この取引を写しています")).isLessThan(formStart(body));
-		assertThat(body).contains("「登録する」を押すまで、保存されません");
+		assertThat(body).contains("「保存」を押すまで、保存されません");
 	}
 
 	// ---- style.css ----
