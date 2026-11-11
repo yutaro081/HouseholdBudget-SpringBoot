@@ -287,14 +287,14 @@ class BudgetAutoControllerTest {
 
 	/** 「自動予算」ボタン（auto=1 への <a>）の開始タグ。なければ null */
 	private static String autoButtonTag(String html) {
-		Matcher m = Pattern.compile("(?s)(<a[^>]*href=\"" + Pattern.quote(BUTTON_HREF) + "\"[^>]*>)\\s*自動予算\\s*</a>")
+		Matcher m = Pattern.compile("(?s)(<a[^>]*href=\"" + Pattern.quote(BUTTON_HREF) + "\"[^>]*>)(?:(?!</a>).)*自動予算(?:(?!</a>).)*</a>")
 				.matcher(html);
 		return m.find() ? m.group(1) : null;
 	}
 
 	private static String choiceTag(String html, int auto) {
 		Matcher m = Pattern.compile("(?s)(<a[^>]*href=\"" + Pattern.quote(WINTER_URL + "&amp;auto=" + auto) + "\"[^>]*>)"
-				+ "(?!\\s*自動予算\\s*</a>)").matcher(html);
+				+ "(?!(?:(?!</a>).)*自動予算)").matcher(html);
 		return m.find() ? m.group(1) : null;
 	}
 
@@ -1164,6 +1164,56 @@ class BudgetAutoControllerTest {
 		flush();
 
 		assertThat(headerCells(page("2026", "autumn", "1")).get(3)).isEqualTo("根拠（過去 3 年の秋の中央値）");
+	}
+
+	// ================================================================
+	// 「自動予算」ボタンの見た目（ターコイズ、きらきらのアイコン。設計書 2.3。ブラウザで見て決めた）
+	// ================================================================
+
+	/** 「自動予算」ボタンの <a> から </a> まで */
+	private static String autoButtonHtml(String body) {
+		String tag = autoButtonTag(body);
+		assertThat(tag).as("自動予算ボタン").isNotNull();
+		int start = body.indexOf(tag);
+		return body.substring(start, body.indexOf("</a>", start) + 4);
+	}
+
+	/** 青（Bootstrap の primary 系）を使わず、アプリのターコイズ用のクラス。文字の左に、飾りのアイコン（aria-hidden）。絵文字は使わない */
+	@ParameterizedTest(name = "auto={0}：自動予算ボタンはターコイズで、左にきらきらのアイコン")
+	@ValueSource(strings = { "", "1" })
+	void autoButtonIsTealWithASparkleIcon(String auto) throws Exception {
+		designExample();
+
+		String button = autoButtonHtml(winter(auto.isEmpty() ? null : auto));
+		String tag = autoButtonTag(winter(auto.isEmpty() ? null : auto));
+
+		assertThat(tag).contains("btn").contains("auto-budget-button");
+		assertThat(tag).as("青は予実比較の意味の色なので使わない").doesNotContain("btn-outline-primary").doesNotContain("btn-primary").doesNotContain("btn-outline-secondary");
+		int svg = button.indexOf("<svg");
+		int text = button.indexOf("自動予算");
+		assertThat(svg).as("アイコンがある").isPositive();
+		assertThat(svg).as("文字の左").isLessThan(text);
+		assertThat(button.substring(svg, button.indexOf("</svg>") + 6)).contains("aria-hidden=\"true\"").contains("M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z");
+		assertThat(button).as("絵文字は使わない").doesNotContainPattern("[\\x{2600}-\\x{27BF}\\x{1F300}-\\x{1FAFF}\\x{FE0F}]");
+		assertThat(plain(button)).as("読み上げは「自動予算」だけ").isEqualTo("自動予算");
+	}
+
+	/** 自作の CSS：ターコイズの枠 2px、濃いターコイズ（#0B6E6B）の文字を太字、少し大きく。保存（塗り）と切りかえ（細い灰色の枠）の間の強さ */
+	@Test
+	void styleSheetStylesTheAutoButton() throws Exception {
+		String css = new String(new org.springframework.core.io.ClassPathResource("static/css/style.css").getContentAsByteArray(),
+				java.nio.charset.StandardCharsets.UTF_8);
+		Matcher rule = Pattern.compile("(?s)\\.auto-budget-button\\s*\\{([^}]*)\\}").matcher(css);
+
+		assertThat(rule.find()).as(".auto-budget-button の規則がある").isTrue();
+		String body = rule.group(1);
+		assertThat(body).as("枠 2px のターコイズ（--hb-teal は border の宣言にだけ使う決まり）").containsPattern("(?m)^\\s*border:\\s*2px solid var\\(--hb-teal\\)");
+		assertThat(body).containsPattern("--bs-btn-color:\\s*var\\(--hb-teal-text\\)");
+		assertThat(body).containsPattern("--bs-btn-font-weight:\\s*700");
+		assertThat(body).as("少し大きく").containsPattern("--bs-btn-padding-y:").containsPattern("--bs-btn-font-size:");
+		assertThat(body).as("アイコンと文字を横に並べる").contains("inline-flex");
+		assertThat(css).as("--hb-teal-text は #0B6E6B").containsPattern("--hb-teal-text:\\s*#0B6E6B");
+		assertThat(css).as("青（primary の枠線ボタン）の上書きは、このボタンでは使わない").doesNotContain(".btn-outline-primary");
 	}
 
 	// ================================================================

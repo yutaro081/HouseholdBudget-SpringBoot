@@ -22,9 +22,9 @@ import org.thymeleaf.spring6.SpringTemplateEngine;
 @SpringBootTest
 class IconsFragmentTest {
 
-	/** 設計書 2.3「アイコン」の 12 個（issue 017 の 2 回目で check を足した） */
+	/** 設計書 2.3「アイコン」の 13 個（issue 017 の 2 回目で check、issue 019 で sparkle を足した） */
 	private static final List<String> NAMES = List.of("logo", "top", "transactions", "categories", "vendors",
-			"payment-methods", "budgets", "comparison", "plus", "sun", "pie", "check");
+			"payment-methods", "budgets", "comparison", "plus", "sun", "pie", "check", "sparkle");
 
 	private static final Pattern SVG = Pattern.compile("<svg.*?</svg>", Pattern.DOTALL);
 
@@ -49,7 +49,7 @@ class IconsFragmentTest {
 	}
 
 	@Test
-	void eachOfTheTwelveNamesGivesOneSvg() {
+	void eachOfTheThirteenNamesGivesOneSvg() {
 		for (String name : NAMES) {
 			List<String> svgs = svgs(render(List.of(name), 18, 2));
 			assertThat(svgs).as(name).hasSize(1);
@@ -57,14 +57,14 @@ class IconsFragmentTest {
 	}
 
 	@Test
-	void theTwelveIconsAreAllDifferent() {
+	void theThirteenIconsAreAllDifferent() {
 		Set<String> shapes = new HashSet<>();
 		for (String name : NAMES) {
 			String svg = svgs(render(List.of(name), 18, 2)).get(0);
 			// 形（中身）だけを比べる
 			shapes.add(svg.substring(svg.indexOf('>') + 1));
 		}
-		assertThat(shapes).hasSize(12);
+		assertThat(shapes).hasSize(13);
 	}
 
 	@Test
@@ -88,7 +88,7 @@ class IconsFragmentTest {
 	@Test
 	void noIconContainsAnythingUnsafeOrExternal() {
 		String all = String.join(" ", svgs(render(NAMES, 18, 2)));
-		assertThat(svgs(all)).hasSize(12);
+		assertThat(svgs(all)).hasSize(13);
 
 		assertThat(all).doesNotContain("<script", "<use", "<image", "xmlns", "style=", "http", "onclick", "onload", "href", "url(");
 	}
@@ -114,6 +114,15 @@ class IconsFragmentTest {
 		String svg = svgs(render(List.of("check"), 12, 2.6)).get(0);
 
 		assertThat(svg).contains("<path d=\"M5 12l5 5 9-10\"></path>", "stroke-width=\"2.6\"", "width=\"12\"", "aria-hidden=\"true\"");
+	}
+
+	/** issue 019：「自動予算」ボタンのきらきら。4 つの角の星と、小さな「＋」。線だけ・飾り（aria-hidden） */
+	@Test
+	void theSparkleIconIsAFourPointedStarWithASmallPlus() {
+		String svg = svgs(render(List.of("sparkle"), 18, 2)).get(0);
+
+		assertThat(svg).contains("<path d=\"M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z\"></path>", "<path d=\"M19 3v4\"></path>", "<path d=\"M17 5h4\"></path>",
+				"aria-hidden=\"true\"", "width=\"18\"");
 	}
 
 }

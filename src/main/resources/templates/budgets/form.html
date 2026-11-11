@@ -29,9 +29,8 @@
          「保存」ボタンは上にだけ置く（下にはない）。表を囲むフォームの外にあるので、form 属性で同じフォームを送る（CSRF のトークンはフォームの中）。
          ふだんの画面では、この行の右端。案を入れたあと（選ぶリンクがあるとき）は、選ぶリンクの行の右端 */-->
     <div class="auto-budget-action" th:if="${hasRows and (budgetView.autoAvailable or !saveInChoices)}">
-        <a class="btn btn-outline-primary" th:if="${budgetView.autoAvailable}"
-           th:href="@{/budgets(year=${budgetView.period.year}, season=${budgetView.period.season.urlName}, auto=1)}"
-           th:text="#{budget.auto.button}">自動予算</a>
+        <a class="btn auto-budget-button" th:if="${budgetView.autoAvailable}"
+           th:href="@{/budgets(year=${budgetView.period.year}, season=${budgetView.period.season.urlName}, auto=1)}"><th:block th:replace="~{fragments/icons :: icon('sparkle', 20, 2)}"></th:block><span th:text="#{budget.auto.button}">自動予算</span></a>
         <span class="auto-budget-note" th:if="${budgetView.autoAvailable}" th:text="#{budget.auto.note}">手で直した額は、ボタンを押すと消えます。</span>
         <button type="submit" form="budget-form" class="btn btn-primary budget-save" th:unless="${saveInChoices}">保存</button>
     </div>

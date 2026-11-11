@@ -1208,6 +1208,25 @@ main.list-wide {
     margin: 12px 0;
 }
 
+/* 「自動予算」ボタン：アプリのターコイズ（Bootstrap の青は、予実比較の意味の色なので使わない）。枠 2px（--hb-teal）、文字は濃いターコイズの太字、少し大きく。
+   強さの順は、保存（塗り）＞ このボタン ＞ 切りかえボタン（細い灰色の枠）。アイコンは文字の左 */
+.btn.auto-budget-button {
+    --bs-btn-color: var(--hb-teal-text);
+    --bs-btn-font-weight: 700;
+    --bs-btn-font-size: 1.0625rem;
+    --bs-btn-padding-x: 1.125rem;
+    --bs-btn-padding-y: 0.5rem;
+    --bs-btn-hover-color: var(--hb-teal-text);
+    --bs-btn-hover-bg: var(--hb-teal-pale);
+    --bs-btn-active-color: var(--hb-teal-text);
+    --bs-btn-active-bg: var(--hb-teal-pale);
+    --bs-btn-focus-shadow-rgb: 11, 127, 126;
+    border: 2px solid var(--hb-teal);   /* 基本のターコイズは border だけに使う決まり（ホバー・押したときも枠はそのまま） */
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .auto-budget-note {
     color: var(--hb-text-sub);
     font-size: var(--hb-font-size-small);
