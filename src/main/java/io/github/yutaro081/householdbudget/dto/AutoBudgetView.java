@@ -25,9 +25,6 @@ import io.github.yutaro081.householdbudget.domain.SeasonPeriod;
  * @param trendPercent        案にかけた傾向の %（計算しなかったときは 100）
  * @param trendKind           傾向の種類（文の書き分け）
  * @param trendCapped         傾向を上限（130）・下限（70）で止めたか
- * @param proposalTotal       全科目の案の合計（自動予算）
- * @param someFromPrevious    一部の科目だけがルール②〜④か（①と②〜④が混ざっているとき true。「（一部の科目は直前の季節をもとにしています）」）
- * @param allFromPrevious     記録のある年はあるが、全科目がルール②〜④か（全科目が④のときは false。「（すべての科目が直前の季節をもとにしています）」）
  * @param noMaterial          全科目がルール④か（「案を作れる材料がありません」。入力欄は何も変えない）
  * @param rows                科目ごとの行（科目の登録順）
  */
@@ -44,9 +41,6 @@ public record AutoBudgetView(
 		int trendPercent,
 		TrendKind trendKind,
 		boolean trendCapped,
-		long proposalTotal,
-		boolean someFromPrevious,
-		boolean allFromPrevious,
 		boolean noMaterial,
 		List<Row> rows) {
 

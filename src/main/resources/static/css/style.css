@@ -1222,10 +1222,11 @@ main.list-wide {
     margin: 12px 0;
 }
 
-.auto-budget-links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px 16px;
+/* 切りかえボタン（btn-group）：選んでいるものは、メニューの「今の画面」と同じ薄いターコイズの地に濃い文字（太さ 700）。保存は塗り、切りかえは枠線で、見た目を変える */
+.auto-budget-choices .btn-group a[aria-current="true"] {
+    background-color: var(--hb-teal-pale);
+    color: var(--hb-teal-text);
+    font-weight: 700;
 }
 
 .budget-save {
@@ -1239,4 +1240,34 @@ main.list-wide {
 .budget-table td.num,
 .budget-table tfoot td:last-child {
     text-align: right;
+}
+
+/* 予算設定の表の見た目（設計書 2.3、issue 019。ブラウザで見て決めた）。数字の列は見出しも右寄せ。
+   参考の列（直前の季節の予算・実績・根拠）は灰色で少し小さく、予算額の列は太くして目立たせる。合計の行は大きく、上の線を太く */
+.budget-table th.num {
+    text-align: right;
+}
+
+.budget-table .budget-ref {
+    color: var(--hb-text-sub);
+    font-size: var(--hb-font-size-small);
+}
+
+.budget-table .budget-amount {
+    font-weight: 700;
+}
+
+.budget-table td.budget-amount input[type="text"] {
+    font-weight: 700;
+}
+
+/* 前の季節の予算が未設定のときの「—」 */
+.budget-dash {
+    color: #A7B0AE;
+}
+
+.budget-table tfoot th,
+.budget-table tfoot td {
+    font-size: 1.25rem;
+    border-top: 3px solid var(--hb-text);
 }

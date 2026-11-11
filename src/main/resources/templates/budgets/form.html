@@ -60,20 +60,17 @@
                 </p>
             </th:block>
             <p th:unless="${auto.hasRecordYears}" th:text="#{budget.auto.norecord(${seasonName})}">過去の冬の実績がないので、直前の季節の実績や予算をもとにしました。</p>
-            <p th:text="#{budget.auto.total(${seasonName}, ${#numbers.formatInteger(auto.proposalTotal, 1, 'COMMA')})}
-                        + (${auto.someFromPrevious} ? #{budget.auto.total.some} : (${auto.allFromPrevious} ? #{budget.auto.total.all} : ''))">過去の冬の実績をもとにした自動予算は 186,000 円です。</p>
         </th:block>
     </div>
 
-    <!--/* 案を入れたあとだけ：選ぶリンク3つ（最初の文の下。GET。いまの選択は太字。選び直すたびに、もとから計算し直す）と、右端の保存ボタン。材料がないときは出さない */-->
+    <!--/* 案を入れたあとだけ：3つをくっつけた切りかえボタン（btn-group。中身は GET のリンク。最初の文の下。いまの選択は薄いターコイズ＋aria-current。選び直すたびに、もとから計算し直す）と、右端の保存ボタン（塗り）。材料がないときは出さない */-->
     <div class="auto-budget-choices" th:if="${saveInChoices}">
-        <span class="auto-budget-links">
-            <a th:each="n : ${ {1, 2, 3} }"
+        <div class="btn-group" role="group" aria-label="案の割合の切りかえ">
+            <a th:each="n : ${ {1, 2, 3} }" class="btn btn-outline-secondary"
                th:href="@{/budgets(year=${budgetView.period.year}, season=${budgetView.period.season.urlName}, auto=${n})}"
-               th:classappend="${auto.choice.ordinal() + 1 == n} ? 'fw-bold'"
                th:attr="aria-current=${auto.choice.ordinal() + 1 == n} ? 'true' : null"
                th:text="#{|budget.auto.choice.${n}|}">1. これで OK</a>
-        </span>
+        </div>
         <button type="submit" form="budget-form" class="btn btn-primary budget-save">保存</button>
     </div>
 
@@ -91,12 +88,12 @@
             <thead>
             <tr>
                 <th>科目</th>
-                <th th:if="${auto != null}"
+                <th class="num budget-ref" th:if="${auto != null}"
                     th:text="${auto.previousSeason != null} ? #{budget.auto.head.budget(${'' + auto.previousSeason.year}, #{|season.${auto.previousSeason.season.urlName}|})} : #{budget.auto.head.budget.none}">2026 年 秋の予算</th>
-                <th th:if="${auto != null}"
+                <th class="num budget-ref" th:if="${auto != null}"
                     th:text="${auto.previousSeason != null} ? (#{budget.auto.head.actual(${'' + auto.previousSeason.year}, #{|season.${auto.previousSeason.season.urlName}|})} + ${untilToday}) : #{budget.auto.head.actual.none}">2026 年 秋の実績（11/11 まで）</th>
-                <th th:if="${auto != null}" th:text="#{budget.auto.head.basis(${seasonName})}">案の根拠（過去 3 年の冬）</th>
-                <th>予算額（円）</th>
+                <th class="budget-ref" th:if="${auto != null}" th:text="#{budget.auto.head.basis(${seasonName})}">根拠（過去 3 年の冬の中央値）</th>
+                <th class="num budget-amount">予算額（円）</th>
             </tr>
             </thead>
             <tbody>
@@ -105,14 +102,16 @@
                     <span th:text="${row.categoryName}">食費</span>
                     <span class="unset-mark" th:if="${row.unset}" th:text="#{budget.unsaved}">未保存</span>
                 </td>
-                <td class="num" th:if="${arow != null}"
-                    th:text="${arow.previousBudget != null} ? ${#numbers.formatInteger(arow.previousBudget, 1, 'COMMA')} : #{budget.total.unset}">95,000</td>
-                <td class="num" th:if="${arow != null}">
+                <td class="num budget-ref" th:if="${arow != null}">
+                    <span th:if="${arow.previousBudget != null}" th:text="${#numbers.formatInteger(arow.previousBudget, 1, 'COMMA')}">95,000</span>
+                    <span class="budget-dash" th:unless="${arow.previousBudget != null}">—</span>
+                </td>
+                <td class="num budget-ref" th:if="${arow != null}">
                     <span th:text="${#numbers.formatInteger(arow.previousActual, 1, 'COMMA')}">49,200</span>
                     <small class="d-block text-nowrap auto-budget-note" th:if="${arow.paceAmount != null}"
                            th:text="#{budget.auto.pace(${#numbers.formatInteger(arow.paceAmount, 1, 'COMMA')})}">ペース 約 62,200</small>
                 </td>
-                <td th:if="${arow != null}" th:switch="${arow.basisKind.name()}"
+                <td class="budget-ref" th:if="${arow != null}" th:switch="${arow.basisKind.name()}"
                     th:with="amountText=${#numbers.formatInteger(arow.baseAmount, 1, 'COMMA')}">
                     <span th:case="'MEDIAN'" th:text="#{budget.auto.basis.median(${amountText})}">中央値 90,000 円（3 年）</span>
                     <span th:case="'AVERAGE'"
@@ -127,7 +126,7 @@
                           th:text="#{budget.auto.basis.budget(#{|season.${auto.previousSeason.season.urlName}|}, ${amountText})}">秋の予算 8,000 円</span>
                     <span th:case="*" th:text="#{budget.auto.basis.none}">材料なし（今の値のまま）</span>
                 </td>
-                <td>
+                <td class="budget-amount">
                     <input type="hidden" th:name="|rows[${stat.index}].categoryId|" th:value="${row.categoryId}">
                     <input class="form-control" type="text" inputmode="numeric" th:field="*{rows[__${stat.index}__].amount}">
                     <div class="field-error" th:each="message : ${#fields.errors('rows[__${stat.index}__].amount')}"
@@ -140,8 +139,10 @@
             <tfoot>
             <tr>
                 <th scope="row">合計</th>
-                <td class="num" th:if="${auto != null}"
-                    th:text="${auto.previousBudgetTotal != null} ? ${#numbers.formatInteger(auto.previousBudgetTotal, 1, 'COMMA')} : #{budget.total.unset}">173,000</td>
+                <td class="num" th:if="${auto != null}">
+                    <span th:if="${auto.previousBudgetTotal != null}" th:text="${#numbers.formatInteger(auto.previousBudgetTotal, 1, 'COMMA')}">173,000</span>
+                    <span class="budget-dash" th:unless="${auto.previousBudgetTotal != null}">—</span>
+                </td>
                 <td class="num" th:if="${auto != null}">
                     <span th:text="${#numbers.formatInteger(auto.previousActualTotal, 1, 'COMMA')}">80,400</span>
                     <small class="d-block text-nowrap auto-budget-note" th:if="${auto.previousPaceTotal != null}"

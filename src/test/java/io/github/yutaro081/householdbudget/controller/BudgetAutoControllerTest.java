@@ -344,7 +344,7 @@ class BudgetAutoControllerTest {
 		String text = plain(page(null, null, "1"));
 
 		assertThat(text).contains("2026年 秋");
-		assertThat(text).contains("過去の秋の実績をもとにした自動予算は 16,000 円です。");
+		assertThat(text).contains("過去の秋の実績がないので、直前の季節の実績や予算をもとにしました。");
 	}
 
 	/** 案を入れても、保存はしない（予算の行は増えない） */
@@ -498,9 +498,9 @@ class BudgetAutoControllerTest {
 	// 最初に出す 3 行の文（設計書 5.14。文そのもの）
 	// ================================================================
 
-	/** 設計書 5.14 の例：1 行目・2 行目・注記・3 行目〔一部の科目は直前の季節〕。この順で、表より上 */
+	/** 設計書 5.14 の例：1 行目・2 行目・注記。この順で、表より上（3 行目はなくした） */
 	@Test
-	void threeLinesOfTheDesignExample() throws Exception {
+	void twoLinesOfTheDesignExample() throws Exception {
 		designExample();
 
 		String body = winter("1");
@@ -509,16 +509,28 @@ class BudgetAutoControllerTest {
 		String line1 = "直前の季節（2026 年 秋）は予算 173,000 円・実績 80,400 円（11/11 まで）でした。";
 		String line2 = "ここ 3 年、出費は増える傾向です。そのため、案は過去の冬の額より 10% 多くしています。";
 		String note = "※ 過去の冬の額は、だいたい 2 年前の水準です。ここ 3 年の増え方を 2 年分延ばして、今年の冬の水準に合わせています。";
-		String line3 = "過去の冬の実績をもとにした自動予算は 186,000 円です。（一部の科目は直前の季節をもとにしています）";
-		assertThat(text).contains(line1).contains(line2).contains(note).contains(line3);
+		assertThat(text).contains(line1).contains(line2).contains(note);
 		assertThat(text.indexOf(line1)).isLessThan(text.indexOf(line2));
 		assertThat(text.indexOf(line2)).isLessThan(text.indexOf(note));
-		assertThat(text.indexOf(note)).isLessThan(text.indexOf(line3));
-		assertThat(body.indexOf("自動予算は")).isLessThan(body.indexOf("budget-table"));
-		assertThat(body.indexOf("直前の季節（")).isLessThan(body.indexOf("自動予算は"));
+		assertThat(body.indexOf(note.substring(0, 6))).isLessThan(body.indexOf("budget-table"));
 		assertThat(text).doesNotContain("案を作れる材料がありません");
 		assertThat(text).doesNotContain("実績がないので");
 	}
+
+	/** 3 行目（案の合計の文）と、その付記は、なくした。合計は表の一番下の合計の行で分かる */
+	@ParameterizedTest(name = "auto={0}：3 行目と付記は出ない")
+	@ValueSource(strings = { "1", "2", "3" })
+	void theTotalSentenceAndItsSuffixAreGone(String auto) throws Exception {
+		designExample();   // ①と②〜④が混ざる（以前は「一部の科目は…」が付いた）
+
+		String body = winter(auto);
+		String text = plain(body);
+
+		assertThat(text).doesNotContain("をもとにした自動予算は").doesNotContain("自動予算は");
+		assertThat(text).doesNotContain("一部の科目は").doesNotContain("すべての科目が").doesNotContain("直前の季節をもとにしています");
+		assertThat(rowOf(body, "合計").get(4)).as("合計は合計の行で分かる").contains(auto.equals("1") ? "186,000" : (auto.equals("2") ? "170,000" : "205,000"));
+	}
+
 
 	/** 注記は、傾向の文の下に「小さく」出す（small） */
 	@Test
@@ -545,8 +557,8 @@ class BudgetAutoControllerTest {
 
 		assertThat(text).contains(sentence);
 		assertThat(text).contains("※ 過去の冬の額は、だいたい 2 年前の水準です。");
-		assertThat(text).contains("過去の冬の実績をもとにした自動予算は " + total + " 円です。");
-		assertThat(text).doesNotContain("直前の季節をもとにしています");   // 全科目がルール①のときは何も付けない
+		assertThat(text).doesNotContain("自動予算は");
+		assertThat(rowOf(winter("1"), "合計").get(4)).contains(total);
 		assertThat(text).contains("直前の季節（2026 年 秋）は予算 未設定・実績 0 円（11/11 まで）でした。");
 	}
 
@@ -561,7 +573,7 @@ class BudgetAutoControllerTest {
 		assertThat(text).contains("ここ 3 年、出費はほぼ同じです。");
 		assertThat(text).doesNotContain("※ 過去の冬の額は");
 		assertThat(body).doesNotContain("<small class=\"auto-budget-note\">※");
-		assertThat(text).contains("過去の冬の実績をもとにした自動予算は 150,000 円です。");
+		assertThat(text).doesNotContain("自動予算は");
 	}
 
 	/** 12 季節がそろわないとき：傾向は入れていない、の文。注記は出さない。全科目が②〜④（記録はある）→「すべての科目が…」 */
@@ -581,7 +593,7 @@ class BudgetAutoControllerTest {
 		assertThat(text).contains("記録が 3 年分そろっていないので、増える・減る傾向は入れていません。");
 		assertThat(text).doesNotContain("※ 過去の冬の額は");
 		assertThat(text).doesNotContain("傾向です");
-		assertThat(text).contains("過去の冬の実績をもとにした自動予算は 5,000 円です。（すべての科目が直前の季節をもとにしています）");
+		assertThat(text).doesNotContain("自動予算は").doesNotContain("すべての科目が");
 	}
 
 	/** 記録のある年が 1 つもないとき：2 行目と注記の代わりに「過去の○の実績がないので…」。3 行目には何も付けない */
@@ -598,9 +610,8 @@ class BudgetAutoControllerTest {
 		assertThat(text).contains("過去の秋の実績がないので、直前の季節の実績や予算をもとにしました。");
 		assertThat(text).doesNotContain("ここ 3 年");
 		assertThat(text).doesNotContain("※ 過去の秋の額は");
-		assertThat(text).contains("過去の秋の実績をもとにした自動予算は 16,000 円です。");
-		assertThat(text).doesNotContain("をもとにしています");
-		assertThat(text.indexOf("実績がないので")).isLessThan(text.indexOf("自動予算は"));
+		assertThat(text).doesNotContain("自動予算は").doesNotContain("をもとにしています");
+		assertThat(text).as("ここ 3 年の文は出ず、この文だけが 2 行目").contains("過去の秋の実績がないので、直前の季節の実績や予算をもとにしました。");
 	}
 
 	/** 全科目がルール④：1 行目と「案を作れる材料がありません」だけ。入力欄は何も変えない。選ぶリンクは出さない */
@@ -622,7 +633,7 @@ class BudgetAutoControllerTest {
 		assertThat(amountInputOf(body, "食費")).isEqualTo("7000");
 		assertThat(amountInputOf(body, "交通費")).isEqualTo("0");
 		assertThat(choiceTag(body, 2)).isNull();
-		assertThat(rowOf(body, "食費").get(3)).isEqualTo("材料なし（今の値のまま）");
+		assertThat(rowOf(body, "食費").get(3)).isEqualTo("材料なし");
 	}
 
 	// ================================================================
@@ -640,7 +651,7 @@ class BudgetAutoControllerTest {
 		assertThat(header.get(0)).isEqualTo("科目");
 		assertThat(header.get(1)).isEqualTo("2026 年 秋の予算");
 		assertThat(header.get(2)).isEqualTo("2026 年 秋の実績（11/11 まで）");   // 今日を含む季節だけ、日付を見出しに 1 回
-		assertThat(header.get(3)).isEqualTo("案の根拠（過去 3 年の冬）");
+		assertThat(header.get(3)).isEqualTo("根拠（過去 3 年の冬の中央値）");
 		assertThat(header.get(4)).isEqualTo("予算額（円）");
 	}
 
@@ -664,12 +675,12 @@ class BudgetAutoControllerTest {
 
 		String body = winter("1");
 
-		assertRow(body, "食費", "95,000", "49,200", "ペース 約 62,200", "中央値 90,000 円（3 年）", "99000");
-		assertRow(body, "交通費", "40,000", "5,600", "ペース 約 7,100", "中央値 38,000 円（3 年）", "42000");
-		assertRow(body, "雑費", "30,000", "22,000", "ペース 約 27,900", "中央値 24,000 円（3 年）", "27000");
-		assertRow(body, "医療費", "未設定", "3,600", "ペース 約 4,600", "秋のペース 4,600 円", "5000");
-		assertRow(body, "日用品", "8,000", "0", null, "秋の予算 8,000 円", "8000");
-		assertRow(body, "娯楽", "未設定", "0", null, "材料なし（今の値のまま）", "5000");
+		assertRow(body, "食費", "95,000", "49,200", "ペース 約 62,200", "90,000（3 年）", "99000");
+		assertRow(body, "交通費", "40,000", "5,600", "ペース 約 7,100", "38,000（3 年）", "42000");
+		assertRow(body, "雑費", "30,000", "22,000", "ペース 約 27,900", "24,000（3 年）", "27000");
+		assertRow(body, "医療費", "—", "3,600", "ペース 約 4,600", "秋のペース 4,600", "5000");
+		assertRow(body, "日用品", "8,000", "0", null, "秋の予算 8,000", "8000");
+		assertRow(body, "娯楽", "—", "0", null, "材料なし", "5000");
 	}
 
 	private void assertRow(String body, String name, String previousBudget, String actual, String pace, String basis,
@@ -718,11 +729,11 @@ class BudgetAutoControllerTest {
 		String body = page("2026", "autumn", "1");
 
 		List<String> row = rowOf(body, "食費");
-		assertThat(row.get(1)).isEqualTo("未設定");
+		assertThat(row.get(1)).isEqualTo("—");
 		assertThat(row.get(2)).isEqualTo("15,200");
-		assertThat(row.get(3)).isEqualTo("夏の実績 15,200 円");
+		assertThat(row.get(3)).isEqualTo("夏の実績 15,200");
 		List<String> total = rowOf(body, "合計");
-		assertThat(total.get(1)).isEqualTo("未設定");
+		assertThat(total.get(1)).isEqualTo("—");
 		assertThat(total.get(2)).isEqualTo("15,200");
 		assertThat(total.get(4)).contains("16,000");
 	}
@@ -735,7 +746,7 @@ class BudgetAutoControllerTest {
 		spend(food, p(2025, Season.WINTER), 23_000);
 		flush();
 
-		assertThat(rowOf(winter("1"), "食費").get(3)).isEqualTo("平均 21,500 円（2 年）");
+		assertThat(rowOf(winter("1"), "食費").get(3)).isEqualTo("平均 21,500（2 年）");
 	}
 
 	/** 1 つなら「去年の冬」〔その年が 1 年前〕。年が飛ぶときは「2023・2025 年の冬の平均」 */
@@ -744,11 +755,11 @@ class BudgetAutoControllerTest {
 		Category food = category("食費");
 		spend(food, p(2025, Season.WINTER), 22_050);
 		flush();
-		assertThat(rowOf(winter("1"), "食費").get(3)).isEqualTo("去年 22,050 円");
+		assertThat(rowOf(winter("1"), "食費").get(3)).isEqualTo("去年 22,050");
 
 		spend(food, p(2023, Season.WINTER), 20_000);
 		flush();
-		assertThat(rowOf(winter("1"), "食費").get(3)).isEqualTo("平均 21,025 円（2023・2025 年）");
+		assertThat(rowOf(winter("1"), "食費").get(3)).isEqualTo("平均 21,025（2023・2025 年）");
 	}
 
 	// ================================================================
@@ -774,16 +785,15 @@ class BudgetAutoControllerTest {
 		assertThat(amountInputOf(body, "医療費")).isEqualTo(medical);
 		assertThat(amountInputOf(body, "日用品")).isEqualTo(supplies);
 		assertThat(amountInputOf(body, "娯楽")).isEqualTo(fun);
-		assertThat(plain(body)).contains("自動予算は " + total + " 円です。");
 		assertThat(rowOf(body, "合計").get(4)).contains(total);
 
 		for (int n = 1; n <= 3; n++) {
 			String tag = choiceTag(body, n);
 			assertThat(tag).as("auto=" + n + " のリンク").isNotNull();
 			if (n == auto) {
-				assertThat(tag).as("いまの選択は太字").contains("fw-bold");
+				assertThat(tag).as("いまの選択は、選んでいると分かる印").contains("aria-current=\"true\"");
 			} else {
-				assertThat(tag).as("ほかは太字にしない").doesNotContain("fw-bold");
+				assertThat(tag).as("ほかには印を付けない").doesNotContain("aria-current");
 			}
 		}
 	}
@@ -876,7 +886,7 @@ class BudgetAutoControllerTest {
 
 		int button = body.indexOf("手で直した額は");
 		int line1 = body.indexOf("直前の季節（2026 年 秋）は");
-		int line3 = body.indexOf("自動予算は");
+		int line3 = body.indexOf("ここ 3 年");   // 最初の文の最後（2 行目）
 		int choices = body.indexOf("1. これで OK");
 		int table = body.indexOf("budget-table");
 		assertThat(button).isPositive();
@@ -959,7 +969,7 @@ class BudgetAutoControllerTest {
 		int lastLink = body.indexOf("3. 上乗せしたい");
 		int to = body.indexOf(save);
 		assertThat(to).as("3 つめのリンクのあと").isGreaterThan(lastLink);
-		assertThat(body.substring(lastLink, to)).as("同じ行（同じ入れ物の中）").doesNotContain("</div>").doesNotContain("</p>");
+		assertThat(count(body.substring(lastLink, to), "</div>")).as("同じ行：間にあるのは切りかえボタンの閉じだけ").isEqualTo(1);
 		assertThat(save).contains("btn-primary").contains("budget-save");
 		assertThat(autoButtonTag(body)).isNotNull();
 		assertThat(body.indexOf(autoButtonTag(body))).as("「自動予算」ボタンの行とは別の行").isLessThan(body.indexOf("直前の季節（"));
@@ -998,6 +1008,162 @@ class BudgetAutoControllerTest {
 
 		assertThat(css).containsPattern("(?s)\\.budget-save\\s*\\{[^}]*margin-left:\\s*auto");
 		assertThat(css).containsPattern("(?s)\\.auto-budget-choices\\s*\\{[^}]*gap:");
+	}
+
+	// ================================================================
+	// 切りかえボタン（btn-group）、表の見た目（設計書 2.3。ブラウザで見て決めた）
+	// ================================================================
+
+	/** 1〜3 は、3 つをくっつけた切りかえボタン（btn-group）。中身は GET のリンク。保存は塗り、切りかえは枠線で、見た目が違う */
+	@ParameterizedTest(name = "auto={0}：切りかえボタン")
+	@ValueSource(ints = { 1, 2, 3 })
+	void choicesAreAButtonGroup(int auto) throws Exception {
+		designExample();
+
+		String body = winter(String.valueOf(auto));
+
+		Matcher group = Pattern.compile("(?s)<div[^>]*btn-group[^>]*>(.*?)</div>").matcher(body);
+		assertThat(group.find()).as("btn-group がある").isTrue();
+		assertThat(group.group()).contains("role=\"group\"");
+		List<String> links = new ArrayList<>();
+		Matcher a = Pattern.compile("<a [^>]*>").matcher(group.group(1));
+		while (a.find()) {
+			links.add(a.group());
+		}
+		assertThat(links).as("3 つがくっついている").hasSize(3);
+		for (int n = 1; n <= 3; n++) {
+			String tag = links.get(n - 1);
+			assertThat(tag).contains("href=\"" + WINTER_URL + "&amp;auto=" + n + "\"").contains("btn").doesNotContain("btn-primary");
+			if (n == auto) {
+				assertThat(tag).as("選んでいるもの").contains("aria-current=\"true\"");
+			} else {
+				assertThat(tag).doesNotContain("aria-current");
+			}
+		}
+		assertThat(plain(group.group(1))).contains("1. これで OK").contains("2. 節約したい（さらに 10% 減らす）").contains("3. 上乗せしたい（さらに 10% 増やす）");
+		assertThat(saveButtonTag(body)).as("保存は塗りのボタン").contains("btn-primary").doesNotContain("outline");
+		assertThat(body.indexOf("</div>", body.indexOf("btn-group"))).as("保存は切りかえボタンの外（右端）").isLessThan(body.indexOf(saveButtonTag(body)));
+	}
+
+	/** 選んでいる切りかえボタンは、メニューの「今の画面」と同じ薄いターコイズの地に濃い文字 */
+	@Test
+	void styleSheetMarksTheSelectedChoice() throws Exception {
+		String css = new String(new org.springframework.core.io.ClassPathResource("static/css/style.css").getContentAsByteArray(),
+				java.nio.charset.StandardCharsets.UTF_8);
+
+		assertThat(css).containsPattern("(?s)\\[aria-current=\"true\"\\][^{]*\\{[^}]*background(-color)?:\\s*var\\(--hb-teal-pale\\)[^}]*color:\\s*var\\(--hb-teal-text\\)");
+	}
+
+	private static List<String> thTags(String body) {
+		Matcher m = Pattern.compile("(?s)<thead>(.*?)</thead>").matcher(budgetTable(body));
+		assertThat(m.find()).isTrue();
+		List<String> tags = new ArrayList<>();
+		Matcher th = Pattern.compile("<th[^>]*>").matcher(m.group(1));
+		while (th.find()) {
+			tags.add(th.group());
+		}
+		return tags;
+	}
+
+	/** 科目の行（最初の行）の、セルの開きタグ */
+	private static List<String> tdTags(String body, String label) {
+		Matcher row = Pattern.compile("(?s)<tr[^>]*>(.*?)</tr>").matcher(budgetTable(body));
+		while (row.find()) {
+			if (plain(row.group(1)).startsWith(label)) {
+				List<String> tags = new ArrayList<>();
+				Matcher td = Pattern.compile("<t[dh][^>]*>").matcher(row.group(1));
+				while (td.find()) {
+					tags.add(td.group());
+				}
+				return tags;
+			}
+		}
+		throw new AssertionError("行がない：" + label);
+	}
+
+	/** 数字の列（直前の季節の予算・実績、予算額）は、見出しも右寄せ（num）。科目と根拠の列は右寄せにしない */
+	@Test
+	void numberColumnHeadersAreRightAligned() throws Exception {
+		designExample();
+
+		List<String> auto = thTags(winter("1"));
+		assertThat(auto).hasSize(5);
+		assertThat(auto.get(0)).doesNotContain("num");
+		assertThat(auto.get(1)).contains("num");
+		assertThat(auto.get(2)).contains("num");
+		assertThat(auto.get(3)).doesNotContain("num");
+		assertThat(auto.get(4)).contains("num");
+
+		List<String> plain = thTags(winter(null));
+		assertThat(plain).hasSize(2);
+		assertThat(plain.get(0)).doesNotContain("num");
+		assertThat(plain.get(1)).as("ふだんの画面の予算額も").contains("num");
+	}
+
+	/** 参考の 3 列（直前の季節の予算・実績・根拠）は budget-ref（灰色で小さい）。予算額の列は budget-amount（目立たせる） */
+	@Test
+	void referenceColumnsAreMutedAndTheAmountColumnStandsOut() throws Exception {
+		designExample();
+
+		String body = winter("1");
+		List<String> th = thTags(body);
+		List<String> td = tdTags(body, "食費");
+		for (int i : new int[] { 1, 2, 3 }) {
+			assertThat(th.get(i)).as("見出し " + i).contains("budget-ref");
+			assertThat(td.get(i)).as("セル " + i).contains("budget-ref");
+		}
+		assertThat(th.get(0)).doesNotContain("budget-ref");
+		assertThat(td.get(0)).doesNotContain("budget-ref");
+		assertThat(th.get(4)).contains("budget-amount");
+		assertThat(td.get(4)).contains("budget-amount");
+		assertThat(th.get(4)).doesNotContain("budget-ref");
+	}
+
+	/** 前の季節の予算が未設定のセルは、薄い灰色の「—」（budget-dash）。設定済みのセルには付けない */
+	@Test
+	void unsetPreviousBudgetIsAGrayDash() throws Exception {
+		designExample();
+
+		String body = winter("1");
+		Matcher rows = Pattern.compile("(?s)<tr[^>]*>(.*?)</tr>").matcher(budgetTable(body));
+		int medical = 0;
+		int food = 0;
+		while (rows.find()) {
+			String name = plain(rows.group(1));
+			if (name.startsWith("医療費")) {
+				medical = rows.group(1).split("budget-dash", -1).length - 1;
+				assertThat(rows.group(1)).containsPattern("<span class=\"budget-dash\">—</span>");
+			}
+			if (name.startsWith("食費")) {
+				food = rows.group(1).split("budget-dash", -1).length - 1;
+			}
+		}
+		assertThat(medical).isEqualTo(1);
+		assertThat(food).isZero();
+		assertThat(body).doesNotContain("未設定</td>");
+	}
+
+	/** 自作の CSS：参考の列は灰色で小さい、予算額の列は太い、「—」は薄い灰色、合計の行は 1.25rem で上の線が太い */
+	@Test
+	void styleSheetStylesTheTable() throws Exception {
+		String css = new String(new org.springframework.core.io.ClassPathResource("static/css/style.css").getContentAsByteArray(),
+				java.nio.charset.StandardCharsets.UTF_8);
+
+		assertThat(css).containsPattern("(?s)\\.budget-ref[^{]*\\{[^}]*color:\\s*var\\(--hb-text-sub\\)[^}]*font-size:\\s*var\\(--hb-font-size-small\\)");
+		assertThat(css).containsPattern("(?s)\\.budget-amount[^{]*\\{[^}]*font-weight:\\s*700");
+		assertThat(css).containsPattern("(?s)\\.budget-dash\\s*\\{[^}]*color:\\s*#");
+		assertThat(css).containsPattern("(?s)tfoot[^{]*\\{[^}]*font-size:\\s*1\\.25rem");
+		assertThat(css).containsPattern("(?s)tfoot[^{]*\\{[^}]*border-top:\\s*[3-9]px");
+	}
+
+	/** 根拠の見出しは「根拠（過去 3 年の○の中央値）」。○は画面の季節（秋のとき「秋」） */
+	@Test
+	void basisHeaderNamesTheScreenSeason() throws Exception {
+		Category food = category("食費");
+		spend(food, p(2026, Season.SUMMER), 15_200);
+		flush();
+
+		assertThat(headerCells(page("2026", "autumn", "1")).get(3)).isEqualTo("根拠（過去 3 年の秋の中央値）");
 	}
 
 	// ================================================================

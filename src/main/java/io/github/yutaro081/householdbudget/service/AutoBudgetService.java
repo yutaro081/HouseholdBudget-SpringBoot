@@ -88,7 +88,6 @@ public class AutoBudgetService {
 		Map<Long, Long> previousActuals = previous.map(s -> actuals.getOrDefault(s, Map.<Long, Long>of())).orElse(Map.of());
 
 		List<AutoBudgetView.Row> rows = new ArrayList<>();
-		long proposalTotal = 0;
 		long previousActualTotal = 0;
 		for (BudgetEditView.Row currentRow : current.rows()) {
 			Long categoryId = currentRow.categoryId();
@@ -106,7 +105,6 @@ public class AutoBudgetService {
 
 			BudgetProposal.Result result = BudgetProposal.of(twiceMedian, trend.percent(), choice, previousActual, pace,
 					previousBudgetAmount, currentRow.amount());
-			proposalTotal = Math.addExact(proposalTotal, result.amount());
 
 			Long paceAmount = (previousContainsToday && previousActual > 0 && pace.isPresent())
 					? pace.get().displayAmount()
@@ -124,16 +122,11 @@ public class AutoBudgetService {
 		}
 
 		boolean hasRecordYears = !recordSeasons.isEmpty();
-		boolean anyRuleOne = rows.stream().anyMatch(r -> r.rule() == 1);
-		boolean anyFromPrevious = rows.stream().anyMatch(r -> r.rule() >= 2);
 		boolean noMaterial = rows.stream().allMatch(r -> r.rule() == 4);
 
 		return new AutoBudgetView(choice, previous.orElse(null), previousBudgetTotal, previousActualTotal,
 				previousContainsToday, today, previousPaceTotal, period.season(), hasRecordYears,
-				trend.percent(), trendKindOf(trend), trend.capped(), proposalTotal,
-				anyRuleOne && anyFromPrevious,                 // ①と②〜④が混ざる
-				hasRecordYears && !noMaterial && !anyRuleOne,  // 記録はあるが、全科目が②〜④（全科目が④のときを除く）
-				noMaterial, rows);
+				trend.percent(), trendKindOf(trend), trend.capped(), noMaterial, rows);
 	}
 
 	private AutoBudgetView.Row row(BudgetEditView.Row currentRow, Long previousBudget, long previousActual,

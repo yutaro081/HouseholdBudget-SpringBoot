@@ -111,6 +111,11 @@ class AutoBudgetServiceTest {
 		return propose(owner, period, ProposalChoice.OK, today);
 	}
 
+	/** 案の合計（行の案の足し算）。画面は、この合計を入力欄の値から出す */
+	private static long totalOf(AutoBudgetView view) {
+		return view.rows().stream().mapToLong(AutoBudgetView.Row::amount).sum();
+	}
+
 	private static AutoBudgetView.Row rowOf(AutoBudgetView view, Category category) {
 		return view.rows().stream().filter(r -> r.categoryId().equals(category.getId())).findFirst().orElseThrow();
 	}
@@ -349,7 +354,6 @@ class AutoBudgetServiceTest {
 		assertThat(rowOf(view, fare).rule()).isEqualTo(3);
 		assertThat(rowOf(view, misc).rule()).isEqualTo(4);
 		assertThat(view.noMaterial()).isFalse();
-		assertThat(view.someFromPrevious()).isFalse();            // 全科目が②〜④のときは「一部」ではない
 	}
 
 	// ================================================================
@@ -372,7 +376,7 @@ class AutoBudgetServiceTest {
 		AutoBudgetView.Row row = rowOf(view, food);
 		assertThat(row.baseAmount()).isEqualTo(110_000L);
 		assertThat(row.amount()).isEqualTo(130_000L);
-		assertThat(view.proposalTotal()).isEqualTo(130_000L);
+		assertThat(totalOf(view)).isEqualTo(130_000L);
 	}
 
 	/** 減る：T1＝480,000、T2＝440,000、T3＝400,000 → 82% */
@@ -565,31 +569,9 @@ class AutoBudgetServiceTest {
 		assertThat(row.amount()).isEqualTo(33_000L);
 	}
 
-	/** 3 行目：全科目の案の合計。①と②〜④が混ざるとき someFromPrevious。全部①なら false */
-	@Test
-	void someFromPreviousIsTrueOnlyWhenRulesAreMixed() {
-		Owner a = createOwner("autosvc25");
-		Category food = category(a, "食費");
-		Category fare = category(a, "交通費");
-		spendIn(a, food, p(2025, Season.WINTER), 40_000);
-		spendIn(a, fare, p(2025, Season.WINTER), 10_000);
-
-		AutoBudgetView allRule1 = proposeOk(a, WINTER_2026, NOV_11_2026);
-		assertThat(allRule1.someFromPrevious()).isFalse();
-		assertThat(allRule1.noMaterial()).isFalse();
-		assertThat(allRule1.proposalTotal()).isEqualTo(50_000L);
-
-		Category extra = category(a, "娯楽");                     // 材料なし → ④
-		AutoBudgetView mixed = proposeOk(a, WINTER_2026, NOV_11_2026);
-		assertThat(rowOf(mixed, extra).rule()).isEqualTo(4);
-		assertThat(mixed.someFromPrevious()).isTrue();
-		assertThat(mixed.noMaterial()).isFalse();
-		assertThat(mixed.proposalTotal()).isEqualTo(50_000L);
-	}
-
 	/**
 	 * 記録のある年はあるが、全科目が②〜④：どの科目も 3 年のうち 1 年しか使っていないので、中央値がすべて 0 円になる。
-	 * 「過去の冬の実績がない」わけではない（hasRecordYears は true）ので、「（すべての科目が直前の季節をもとにしています）」
+	 * 「過去の冬の実績がない」わけではない（hasRecordYears は true）。
 	 */
 	@Test
 	void recordsExistButEveryCategoryIsRuleTwoToFour() {
@@ -610,44 +592,7 @@ class AutoBudgetServiceTest {
 		assertThat(rowOf(view, food).rule()).isEqualTo(2);
 		assertThat(rowOf(view, fare).rule()).isEqualTo(3);
 		assertThat(rowOf(view, misc).rule()).isEqualTo(4);
-		assertThat(view.allFromPrevious()).isTrue();
-		assertThat(view.someFromPrevious()).isFalse();
 		assertThat(view.noMaterial()).isFalse();
-	}
-
-	/** 「すべての科目が直前の季節をもとにしています」を付けない 3 つの場合：記録のある年が 0／①と②〜④が混ざる／全科目が① */
-	@Test
-	void allFromPreviousIsFalseWhenThereAreNoRecordYearsOrRulesAreMixedOrAllRuleOne() {
-		// 記録のある年が 0
-		Owner none = createOwner("autosvc48");
-		Category noneFood = category(none, "食費");
-		spendIn(none, noneFood, AUTUMN_2026, 3_600);
-		AutoBudgetView noRecords = proposeOk(none, WINTER_2026, NOV_11_2026);
-		assertThat(rowOf(noRecords, noneFood).rule()).isEqualTo(2);
-		assertThat(noRecords.hasRecordYears()).isFalse();
-		assertThat(noRecords.allFromPrevious()).isFalse();
-		assertThat(noRecords.someFromPrevious()).isFalse();
-
-		// ①と②が混ざる
-		Owner mixed = createOwner("autosvc49");
-		Category mixedFood = category(mixed, "食費");
-		Category mixedFare = category(mixed, "交通費");
-		spendIn(mixed, mixedFood, p(2025, Season.WINTER), 40_000);
-		spendIn(mixed, mixedFare, AUTUMN_2026, 3_600);
-		AutoBudgetView mixedView = proposeOk(mixed, WINTER_2026, NOV_11_2026);
-		assertThat(rowOf(mixedView, mixedFood).rule()).isEqualTo(1);
-		assertThat(rowOf(mixedView, mixedFare).rule()).isEqualTo(2);
-		assertThat(mixedView.allFromPrevious()).isFalse();
-		assertThat(mixedView.someFromPrevious()).isTrue();
-
-		// 全科目が①
-		Owner allOne = createOwner("autosvc50");
-		Category oneFood = category(allOne, "食費");
-		spendIn(allOne, oneFood, p(2025, Season.WINTER), 40_000);
-		AutoBudgetView allOneView = proposeOk(allOne, WINTER_2026, NOV_11_2026);
-		assertThat(rowOf(allOneView, oneFood).rule()).isEqualTo(1);
-		assertThat(allOneView.allFromPrevious()).isFalse();
-		assertThat(allOneView.someFromPrevious()).isFalse();
 	}
 
 	/** 全科目が④：「案を作れる材料がありません」（noMaterial）。案は今の値のまま */
@@ -661,12 +606,11 @@ class AutoBudgetServiceTest {
 		AutoBudgetView view = proposeOk(a, WINTER_2026, NOV_11_2026);
 
 		assertThat(view.noMaterial()).isTrue();
-		assertThat(view.someFromPrevious()).isFalse();
 		assertThat(rowOf(view, food).rule()).isEqualTo(4);
 		assertThat(rowOf(view, food).amount()).isEqualTo(12_000L);
 		assertThat(rowOf(view, fare).rule()).isEqualTo(4);
 		assertThat(rowOf(view, fare).amount()).isZero();
-		assertThat(view.proposalTotal()).isEqualTo(12_000L);
+		assertThat(totalOf(view)).isEqualTo(12_000L);
 	}
 
 	// ================================================================
@@ -811,9 +755,9 @@ class AutoBudgetServiceTest {
 		assertThat(rowOf(extra, fun).amount()).isEqualTo(5_000L);
 		assertThat(save.choice()).isEqualTo(ProposalChoice.SAVE);
 		assertThat(extra.choice()).isEqualTo(ProposalChoice.EXTRA);
-		assertThat(saveAgain.proposalTotal()).isEqualTo(save.proposalTotal());   // 2 回目も 81% にならない
-		assertThat(save.proposalTotal()).isEqualTo(90_000L + 8_000L + 5_000L);
-		assertThat(extra.proposalTotal()).isEqualTo(110_000L + 9_000L + 5_000L);
+		assertThat(totalOf(saveAgain)).isEqualTo(totalOf(save));   // 2 回目も 81% にならない
+		assertThat(totalOf(save)).isEqualTo(90_000L + 8_000L + 5_000L);
+		assertThat(totalOf(extra)).isEqualTo(110_000L + 9_000L + 5_000L);
 	}
 
 	/** 行は、科目の登録順 */
@@ -907,7 +851,7 @@ class AutoBudgetServiceTest {
 		assertThat(forA.previousBudgetTotal()).isNull();
 		assertThat(forA.previousPaceTotal()).isNull();
 		assertThat(forA.noMaterial()).isTrue();
-		assertThat(forA.proposalTotal()).isZero();
+		assertThat(totalOf(forA)).isZero();
 		assertThat(rowOf(forA, aFood).rule()).isEqualTo(4);
 		assertThat(rowOf(forA, aFood).amount()).isZero();
 	}
@@ -925,9 +869,9 @@ class AutoBudgetServiceTest {
 		AutoBudgetView forB = proposeOk(b, WINTER_2026, NOV_11_2026);
 
 		assertThat(rowOf(forA, aFood).amount()).isEqualTo(10_000L);
-		assertThat(forA.proposalTotal()).isEqualTo(10_000L);
+		assertThat(totalOf(forA)).isEqualTo(10_000L);
 		assertThat(rowOf(forB, bFood).amount()).isEqualTo(70_000L);
-		assertThat(forB.proposalTotal()).isEqualTo(70_000L);
+		assertThat(totalOf(forB)).isEqualTo(70_000L);
 	}
 
 	/** 案を作っても保存しない：予算の行も取引の行も増えず、画面の季節の保存済みの額も変わらない */
@@ -1030,8 +974,7 @@ class AutoBudgetServiceTest {
 		assertThat(view.trendPercent()).isEqualTo(110);
 		assertThat(view.trendKind()).isEqualTo(TrendKind.UP);
 		assertThat(view.trendCapped()).isFalse();
-		assertThat(view.proposalTotal()).isEqualTo(186_000L);
-		assertThat(view.someFromPrevious()).isTrue();
+		assertThat(totalOf(view)).isEqualTo(186_000L);
 		assertThat(view.noMaterial()).isFalse();
 
 		// ルールと案
@@ -1071,10 +1014,10 @@ class AutoBudgetServiceTest {
 
 		assertThat(save.rows()).extracting(AutoBudgetView.Row::amount)
 				.containsExactly(90_000L, 38_000L, 24_000L, 5_000L, 8_000L, 5_000L);
-		assertThat(save.proposalTotal()).isEqualTo(170_000L);
+		assertThat(totalOf(save)).isEqualTo(170_000L);
 		assertThat(extra.rows()).extracting(AutoBudgetView.Row::amount)
 				.containsExactly(109_000L, 46_000L, 30_000L, 6_000L, 9_000L, 5_000L);
-		assertThat(extra.proposalTotal()).isEqualTo(205_000L);
+		assertThat(totalOf(extra)).isEqualTo(205_000L);
 		// 傾向・ルールは選ぶ割合に関わらず同じ
 		assertThat(save.trendPercent()).isEqualTo(110);
 		assertThat(extra.rows()).extracting(AutoBudgetView.Row::rule).containsExactly(1, 1, 1, 2, 3, 4);
@@ -1089,7 +1032,7 @@ class AutoBudgetServiceTest {
 
 		AutoBudgetView view = proposeOk(a, WINTER_2026, NOV_11_2026);
 
-		assertThat(view.proposalTotal()).isEqualTo(186_000L);
+		assertThat(totalOf(view)).isEqualTo(186_000L);
 		assertThat(budgetCount(a)).isEqualTo(budgetsBefore);
 		assertThat(transactionCount(a)).isEqualTo(transactionsBefore);
 	}
