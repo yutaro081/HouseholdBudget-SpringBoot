@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
  */
 class LandingMessagesTest {
 
-	private static final List<String> KEYS = List.of("top.landing", "comparison.landing", "comparison.landing.over", "comparison.landing.note");
+	private static final List<String> KEYS = List.of("top.landing", "comparison.landing.over", "comparison.landing.note", "comparison.card.title", "comparison.card.amount", "comparison.card.budget", "comparison.card.counting");
 
 	private static Properties messages() throws Exception {
 		Properties properties = new Properties();
@@ -36,8 +36,11 @@ class LandingMessagesTest {
 		// {0}＝季節の％、{1}＝予算の％（どちらもメーターと同じ値）、{2}＝見込みの額（100 円単位）、{3}＝見込みの、予算に対する％
 		assertThat(p.getProperty("top.landing"))
 				.isEqualTo("季節は {0}% 過ぎて、予算は {1}% 使いました。このペースだと、季節の終わりには約 {2} 円（予算の {3}%）の見込みです。");
-		// {0}＝見込みの額、{1}＝合計の予算
-		assertThat(p.getProperty("comparison.landing")).isEqualTo("このペースだと、季節の終わりには、合計で約 {0} 円（予算 {1} 円）の見込みです。");
+		// issue 020：予実比較の 1 行の文（comparison.landing）は、要約カードに置きかえて、なくした。{0}＝見込みの額、{1}＝合計の予算
+		assertThat(p.getProperty("comparison.landing")).as("1 行の文は、なくした").isNull();
+		assertThat(p.getProperty("comparison.card.amount")).isEqualTo("約 {0}円");
+		assertThat(p.getProperty("comparison.card.budget")).isEqualTo("予算 {0}円");
+		assertThat(p.getProperty("comparison.card.counting")).isEqualTo("{0}/{1} に記録を始めたので、その日から数えています。");
 		assertThat(p.getProperty("comparison.landing.over")).isEqualTo("見込みは、予算を上回ります。");
 		assertThat(p.getProperty("comparison.landing.note")).isEqualTo("月ごとにまとめて払うものは、払う日で見込みが上下します。");
 	}
@@ -52,9 +55,8 @@ class LandingMessagesTest {
 	@Test
 	void theLandingSentencesNeedTheWordsForAForecastAndNoWordsForAnAlert() throws Exception {
 		Properties p = messages();
-		for (String key : List.of("top.landing", "comparison.landing")) {
-			assertThat(p.getProperty(key)).as(key).contains("このペースだと", "見込み", "約");
-		}
+		assertThat(p.getProperty("top.landing")).contains("このペースだと", "見込み", "約");
+		assertThat(p.getProperty("comparison.card.title")).contains("見込み");
 		assertThat(p.getProperty("comparison.landing.note")).contains("見込み");
 
 		List<String> evaluation = List.of("使いすぎ", "使い過ぎ", "無駄", "節約", "控え", "気をつけ", "がんばって", "！", "!", "しましょう", "してください");

@@ -59,9 +59,16 @@ class ComparisonLandingTest {
 
 	private static final LocalDate TODAY = LocalDate.of(2026, 11, 8);
 
-	/** 予実比較の見込みの文（{0}＝見込みの額、{1}＝合計の予算） */
-	private static String sentence(String amount, String budget) {
-		return "このペースだと、季節の終わりには、合計で約 " + amount + " 円（予算 " + budget + " 円）の見込みです。";
+	/** 要約カードの大きな数字と予算（issue 020。issue 018 の 1 行の文を置きかえた）。{0}＝見込みの額、{1}＝合計の予算 */
+	private static String[] sentence(String amount, String budget) {
+		return new String[] { "約 " + amount + "円", "予算 " + budget + "円" };
+	}
+
+	/** 要約カード（&lt;section class="comparison-card"&gt; から &lt;/section&gt; まで） */
+	private static String cardOf(String body) {
+		int start = body.indexOf("<section class=\"comparison-card\"");
+		assertThat(start).as("要約カードがある").isGreaterThanOrEqualTo(0);
+		return body.substring(start, body.indexOf("</section>", start));
 	}
 
 	private static final String OVER = "見込みは、予算を上回ります。";
@@ -127,27 +134,27 @@ class ComparisonLandingTest {
 	// ---- 出る：今の季節 ----
 
 	@Test
-	void theLandingLineIsShownAboveTheTableForTheCurrentSeason() throws Exception {
+	void theSummaryCardIsShownAboveTheTableForTheCurrentSeason() throws Exception {
 		Category food = category("食費", 100_000, Season.AUTUMN, 2026);
 		recordingStartedLongAgo(food);
 		spend(food, 60_000);                // 見込み：80,350.20… → 80,400。予算以下
 
 		String body = page("/comparison");
 
-		assertThat(body).contains(sentence("80,400", "100,000"), NOTE);
+		assertThat(cardOf(body)).contains(sentence("80,400", "100,000")).contains(NOTE);
 		assertThat(body).as("予算以下なので、上回ると出ない").doesNotContain(OVER);
-		assertThat(body.indexOf("このペースだと")).as("表の上").isLessThan(body.indexOf("<table"));
-		assertThat(body.indexOf("このペースだと")).as("年と季節を選ぶ欄の下").isGreaterThan(body.indexOf("season-select"));
-		assertThat(body.indexOf(NOTE)).as("補足は、文の下").isGreaterThan(body.indexOf("このペースだと"));
+		assertThat(body.indexOf("comparison-card")).as("表の上").isLessThan(body.indexOf("<table"));
+		assertThat(body.indexOf("comparison-card")).as("年と季節を選ぶ欄の下").isGreaterThan(body.indexOf("season-select"));
+		assertThat(body.indexOf(NOTE)).as("補足は、見込みの数字の下").isGreaterThan(body.indexOf("約 80,400円"));
 	}
 
 	@Test
-	void theSameLineIsShownWhenTheCurrentSeasonIsGivenInTheUrl() throws Exception {
+	void theSameCardIsShownWhenTheCurrentSeasonIsGivenInTheUrl() throws Exception {
 		Category food = category("食費", 100_000, Season.AUTUMN, 2026);
 		recordingStartedLongAgo(food);
 		spend(food, 60_000);
 
-		assertThat(page("/comparison?year=2026&season=autumn")).contains(sentence("80,400", "100,000"));
+		assertThat(cardOf(page("/comparison?year=2026&season=autumn"))).contains(sentence("80,400", "100,000"));
 	}
 
 	@Test
@@ -160,7 +167,7 @@ class ComparisonLandingTest {
 		spend(transport, 46_000);
 		spend(unset, 5_000);                // 合計の実績 81,000、合計の予算 100,000 → 106,427.12… → 106,500
 
-		assertThat(page("/comparison")).contains(sentence("106,500", "100,000")).contains(OVER);
+		assertThat(cardOf(page("/comparison"))).contains(sentence("106,500", "100,000")).contains(OVER);
 	}
 
 	// ---- 「上回ります」：出る場合と出ない場合（金額で決まる） ----
@@ -173,8 +180,8 @@ class ComparisonLandingTest {
 
 		String body = page("/comparison");
 
-		assertThat(body).contains(sentence("100,300", "100,000"), OVER);
-		assertThat(body.indexOf(OVER)).as("上回る文は、見込みの文の下").isGreaterThan(body.indexOf("このペースだと"));
+		assertThat(cardOf(body)).contains(sentence("100,300", "100,000")).contains(OVER);
+		assertThat(body.indexOf(OVER)).as("上回る文は、見込みの数字の下").isGreaterThan(body.indexOf("約 100,300円"));
 		assertThat(body.indexOf(OVER)).as("表の上").isLessThan(body.indexOf("<table"));
 	}
 
@@ -185,7 +192,7 @@ class ComparisonLandingTest {
 		recordingStartedLongAgo(food);
 		spend(food, 69_000);
 
-		assertThat(page("/comparison")).contains(sentence("91,000", "91,000")).doesNotContain(OVER);
+		assertThat(cardOf(page("/comparison"))).contains(sentence("91,000", "91,000")).doesNotContain(OVER);
 	}
 
 	@Test
@@ -194,7 +201,7 @@ class ComparisonLandingTest {
 		recordingStartedLongAgo(food);
 		spend(food, 69_001);                // 91,001.24… → 91,100
 
-		assertThat(page("/comparison")).contains(sentence("91,100", "91,000"), OVER);
+		assertThat(cardOf(page("/comparison"))).contains(sentence("91,100", "91,000")).contains(OVER);
 	}
 
 	/**
@@ -228,40 +235,38 @@ class ComparisonLandingTest {
 				"/comparison?year=2025&season=autumn", "/comparison?year=2027&season=autumn" }) {
 			String body = page(path);
 
-			assertThat(body).as(path).contains("<table").doesNotContain("このペースだと", OVER, NOTE);
+			assertThat(body).as(path).contains("<table").doesNotContain("comparison-card", OVER, NOTE);
 		}
 	}
 
 	@Test
 	void notShownWhenTheBudgetIsUnsetOrTheBudgetTotalIsZeroOrThereIsNoCategory() throws Exception {
 		// 科目が 0 件
-		assertThat(page("/comparison")).doesNotContain("このペースだと", NOTE);
+		assertThat(page("/comparison")).doesNotContain("comparison-card", NOTE);
 
 		// 予算が未設定（科目はあるが、予算の行がない）
 		Category food = category("食費", null, Season.AUTUMN, 2026);
 		spend(food, 5_000);
-		assertThat(page("/comparison")).contains("<table").doesNotContain("このペースだと", OVER, NOTE);
+		assertThat(page("/comparison")).contains("<table").doesNotContain("comparison-card", OVER, NOTE);
 
 		// 予算の合計が 0 円
 		budgetRepository.save(new Budget(userId, food, 2026, Season.AUTUMN, 0));
-		assertThat(page("/comparison")).contains("<table").doesNotContain("このペースだと", OVER, NOTE);
+		assertThat(page("/comparison")).contains("<table").doesNotContain("comparison-card", OVER, NOTE);
 	}
 
 	// ---- 見た目：色も印もない。警告の言葉もない ----
 
 	@Test
-	void theLinesHaveNoColorClassNoMarkAndNoAlertWords() throws Exception {
+	void theCardHasNoColorClassNoMarkAndNoAlertWords() throws Exception {
 		Category food = category("食費", 100_000, Season.AUTUMN, 2026);
 		recordingStartedLongAgo(food);
 		spend(food, 90_000);                // 117,602.95… → 117,700（上回る）
 
 		String body = page("/comparison");
-		int mark = body.indexOf("<div class=\"comparison-landing\">");
-		assertThat(mark).as("見込みの囲み（<div class=\"comparison-landing\">）がある").isGreaterThanOrEqualTo(0);
-		String block = body.substring(mark, body.indexOf("<table"));
+		String block = cardOf(body);
 
-		assertThat(block).contains(sentence("117,700", "100,000"), OVER, NOTE);
-		assertThat(block).doesNotContain("row-over", "row-low", "row-within", "week-over", "week-low", "💮", "text-danger", "alert", "color:");
+		assertThat(block).contains(sentence("117,700", "100,000")).contains(OVER, NOTE);
+		assertThat(block).doesNotContain("diff-over", "diff-low", "row-within", "week-over", "week-low", "💮", "text-danger", "alert", "color:");
 		assertThat(body).doesNotContain("このままだと", "超えそう", "超えます", "超えてしまう", "予算を超えています", "着地", "予測");
 	}
 
@@ -278,7 +283,9 @@ class ComparisonLandingTest {
 		transactionRepository.save(new Transaction(otherId, TODAY, 900_000, otherFood, null,
 				vendorRepository.save(new Vendor(otherId, "取引先")), paymentMethodRepository.save(new PaymentMethod(otherId, "支払方法"))));
 
-		assertThat(page("/comparison")).contains(sentence("80,400", "100,000")).doesNotContain(OVER);
+		String body = page("/comparison");
+		assertThat(cardOf(body)).contains(sentence("80,400", "100,000"));
+		assertThat(body).doesNotContain(OVER).doesNotContain("900,000");
 	}
 
 }

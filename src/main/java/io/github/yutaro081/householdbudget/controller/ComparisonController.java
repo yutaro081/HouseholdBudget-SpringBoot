@@ -2,6 +2,9 @@ package io.github.yutaro081.householdbudget.controller;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
@@ -11,8 +14,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import io.github.yutaro081.householdbudget.domain.LandingForecast;
+import io.github.yutaro081.householdbudget.domain.PeriodProgress;
 import io.github.yutaro081.householdbudget.domain.SeasonPeriod;
 import io.github.yutaro081.householdbudget.dto.ComparisonResult;
+import io.github.yutaro081.householdbudget.dto.ComparisonRow;
 import io.github.yutaro081.householdbudget.exception.NotFoundException;
 import io.github.yutaro081.householdbudget.security.LoginUser;
 import io.github.yutaro081.householdbudget.service.ComparisonService;
@@ -51,9 +56,29 @@ public class ComparisonController {
 				.orElseThrow(NotFoundException::new);
 		ComparisonResult comparison = comparisonService.compare(loginUser.getUserId(), period);
 		model.addAttribute("comparison", comparison);
-		// 着地見込み（issue 018）：合計行の予算・実績から。今の季節だけ。予算が未設定・0円のときは出さない（null）
-		model.addAttribute("landing", LandingForecast.of(comparison.total().budget(), comparison.total().actual(), period, LocalDate.now(clock),
-				comparisonService.countingStart(loginUser.getUserId(), period, LocalDate.now(clock))).orElse(null));
+		LocalDate today = LocalDate.now(clock);
+		LocalDate countFrom = comparisonService.countingStart(loginUser.getUserId(), period, today);
+		// 着地見込み（issue 018、020）：合計行の予算・実績から。今の季節だけ。予算が未設定・0円のときは出さない（null）。
+		// 数え始めの日は、最初の取引の日が季節の途中にあるときだけ、その日（設計書 5.13）
+		Optional<LandingForecast.Result> landing = LandingForecast.of(comparison.total().budget(), comparison.total().actual(), period, today, countFrom);
+		model.addAttribute("landing", landing.orElse(null));
+		// 科目ごとの見込みの列（issue 020）：今の季節だけ。行と同じ並び。見込みを出さない科目（予算が未設定・0円）は null
+		boolean showForecast = period.equals(SeasonPeriod.from(today));
+		model.addAttribute("showForecast", showForecast);
+		List<LandingForecast.Result> rowLandings = new ArrayList<>();
+		for (ComparisonRow row : comparison.rows()) {
+			rowLandings.add(showForecast ? LandingForecast.of(row.budget(), row.actual(), period, today, countFrom).orElse(null) : null);
+		}
+		model.addAttribute("rowLandings", rowLandings);
+		// 要約カードの棒と文（トップの季節のメーターと同じ値の求め方。PeriodProgress）
+		if (landing.isPresent()) {
+			model.addAttribute("cardUsedPercent", PeriodProgress.usedPercent(comparison.total().budget(), comparison.total().actual()));
+			model.addAttribute("cardElapsedPercent", PeriodProgress.seasonElapsedPercent(period, today));
+			model.addAttribute("cardBarPermille", PeriodProgress.barPermille(comparison.total().budget(), comparison.total().actual()));
+			model.addAttribute("cardTodayPermille", PeriodProgress.seasonElapsedPermille(period, today));
+			// 最初の取引の日から数えたとき（その日が季節の初日より後のとき）だけ、カードに知らせる
+			model.addAttribute("countingFrom", countFrom.isAfter(period.startDate()) ? countFrom : null);
+		}
 		return "comparison/index";
 	}
 
