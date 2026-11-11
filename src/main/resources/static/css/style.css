@@ -44,6 +44,7 @@
     --hb-text-sub: #56625F;
     --hb-bg: #F6F8F8;
     --hb-line: #E2E8E8;
+    --hb-row-hover: #EEF3F3;
     --hb-input-border: #849290;
     --hb-input-bg: #FFFFFF;
     --hb-apricot: #FFF2E5;
@@ -1505,6 +1506,9 @@ main.list-wide {
 
 .list-card table.list {
     margin-bottom: 0;
+    /* 行にマウスを載せたときの色（issue 024）：薄い灰緑。薄いターコイズは使わない。Bootstrap の table-hover の変数を、この表だけで上書きする */
+    --bs-table-hover-bg: var(--hb-row-hover);
+    --bs-table-hover-color: var(--hb-text);
 }
 
 /* マスの左右の余白は 20px（案に合わせた例外。余白の目盛りの外。設計書 2.3）。見出しの行のマスも同じ */

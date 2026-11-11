@@ -235,7 +235,8 @@ class TransactionControllerTest {
 
 		String body = body(mockMvc.perform(get("/transactions").with(asA)).andReturn());
 
-		assertThat(body).contains("2026/10/19", "30,000円", "食費", "コンビニ", "現金");
+		assertThat(body).contains("2026/10/19", ">30,000<", "食費", "コンビニ", "現金");
+		assertThat(body).doesNotContain("30,000円");                                              // 「円」は見出しにまとめた（issue 024）
 		assertThat(body).contains("href=\"/transactions/" + t.getId() + "\"");                    // 詳細リンク
 		assertThat(body).contains("href=\"/transactions/new\"");                                  // 取引を登録
 		assertThat(body).contains(a.username());                                                  // ヘッダーのユーザー名
@@ -251,7 +252,7 @@ class TransactionControllerTest {
 
 		String body = body(mockMvc.perform(get("/transactions").with(asA)).andReturn());
 
-		assertThat(body).contains("1,000,000円", ">1円<");
+		assertThat(body).contains(">1,000,000<", ">1<").doesNotContain("1,000,000円", ">1円<");
 	}
 
 	@Test

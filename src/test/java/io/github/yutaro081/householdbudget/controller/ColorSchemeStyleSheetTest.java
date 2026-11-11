@@ -38,6 +38,7 @@ class ColorSchemeStyleSheetTest {
 			Map.entry("--hb-input-border", "#849290"),
 			Map.entry("--hb-input-bg", "#FFFFFF"),
 			Map.entry("--hb-apricot", "#FFF2E5"),
+			Map.entry("--hb-row-hover", "#EEF3F3"),
 			Map.entry("--hb-danger", "#B02A37"));
 
 	@Autowired
@@ -63,6 +64,17 @@ class ColorSchemeStyleSheetTest {
 			assertThat(root).as(e.getKey())
 					.containsPattern("(?i)" + Pattern.quote(e.getKey()) + ":\\s*" + Pattern.quote(e.getValue()) + "\\s*;");
 		}
+	}
+
+	/** 取引一覧の行にマウスを載せたときの色（issue 024）：薄い灰緑の変数。薄いターコイズは使わない。この表だけで上書きする */
+	@Test
+	void theTransactionListRowHoverUsesThePaleGrayGreenNotThePaleTeal() throws Exception {
+		String css = css("/css/style.css");
+		String rule = rule(css, ".list-card table.list");
+
+		assertThat(rule).contains("--bs-table-hover-bg: var(--hb-row-hover)");
+		assertThat(rule).doesNotContain("--hb-teal-pale");
+		assertThat(css.toLowerCase()).as("行の色に薄いターコイズの値を直接書かない").doesNotContain("--bs-table-hover-bg: #e1f3f2");
 	}
 
 	@Test
