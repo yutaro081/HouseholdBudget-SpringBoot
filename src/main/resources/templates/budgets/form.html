@@ -91,7 +91,7 @@
                     th:text="${auto.previousSeason != null} ? #{budget.auto.head.budget(${'' + auto.previousSeason.year}, #{|season.${auto.previousSeason.season.urlName}|})} : #{budget.auto.head.budget.none}">2026 年 秋の予算</th>
                 <th class="num budget-ref" th:if="${auto != null}"
                     th:text="${auto.previousSeason != null} ? (#{budget.auto.head.actual(${'' + auto.previousSeason.year}, #{|season.${auto.previousSeason.season.urlName}|})} + ${untilToday}) : #{budget.auto.head.actual.none}">2026 年 秋の実績（11/11 まで）</th>
-                <th class="budget-ref" th:if="${auto != null}" th:text="#{budget.auto.head.basis(${seasonName})}">根拠（過去 3 年の冬の中央値）</th>
+                <th class="num budget-ref budget-basis" th:if="${auto != null}" th:text="#{budget.auto.head.basis(${seasonName})}">根拠（過去 3 年の冬の中央値）</th>
                 <th class="num budget-amount">予算額（円）</th>
             </tr>
             </thead>
@@ -110,7 +110,7 @@
                     <small class="d-block text-nowrap auto-budget-note" th:if="${arow.paceAmount != null}"
                            th:text="#{budget.auto.pace(${#numbers.formatInteger(arow.paceAmount, 1, 'COMMA')})}">ペース 約 62,200</small>
                 </td>
-                <td class="budget-ref" th:if="${arow != null}" th:switch="${arow.basisKind.name()}"
+                <td class="num budget-ref budget-basis" th:if="${arow != null}" th:switch="${arow.basisKind.name()}"
                     th:with="amountText=${#numbers.formatInteger(arow.baseAmount, 1, 'COMMA')}">
                     <span th:case="'MEDIAN'" th:text="#{budget.auto.basis.median(${amountText})}">中央値 90,000 円（3 年）</span>
                     <span th:case="'AVERAGE'"

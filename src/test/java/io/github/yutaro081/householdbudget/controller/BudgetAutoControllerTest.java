@@ -675,9 +675,9 @@ class BudgetAutoControllerTest {
 
 		String body = winter("1");
 
-		assertRow(body, "食費", "95,000", "49,200", "ペース 約 62,200", "90,000（3 年）", "99000");
-		assertRow(body, "交通費", "40,000", "5,600", "ペース 約 7,100", "38,000（3 年）", "42000");
-		assertRow(body, "雑費", "30,000", "22,000", "ペース 約 27,900", "24,000（3 年）", "27000");
+		assertRow(body, "食費", "95,000", "49,200", "ペース 約 62,200", "90,000", "99000");
+		assertRow(body, "交通費", "40,000", "5,600", "ペース 約 7,100", "38,000", "42000");
+		assertRow(body, "雑費", "30,000", "22,000", "ペース 約 27,900", "24,000", "27000");
 		assertRow(body, "医療費", "—", "3,600", "ペース 約 4,600", "秋のペース 4,600", "5000");
 		assertRow(body, "日用品", "8,000", "0", null, "秋の予算 8,000", "8000");
 		assertRow(body, "娯楽", "—", "0", null, "材料なし", "5000");
@@ -1091,13 +1091,52 @@ class BudgetAutoControllerTest {
 		assertThat(auto.get(0)).doesNotContain("num");
 		assertThat(auto.get(1)).contains("num");
 		assertThat(auto.get(2)).contains("num");
-		assertThat(auto.get(3)).doesNotContain("num");
+		assertThat(auto.get(3)).as("根拠の列も、見出しを右寄せ").contains("num");
 		assertThat(auto.get(4)).contains("num");
 
 		List<String> plain = thTags(winter(null));
 		assertThat(plain).hasSize(2);
 		assertThat(plain.get(0)).doesNotContain("num");
 		assertThat(plain.get(1)).as("ふだんの画面の予算額も").contains("num");
+	}
+
+	/** 根拠の列：見出しもセルも右寄せ（num）で、実績の列との間をあける印（budget-basis）。他の列には付けない */
+	@Test
+	void basisColumnIsRightAlignedWithRoomOnTheLeft() throws Exception {
+		designExample();
+
+		String body = winter("1");
+		List<String> th = thTags(body);
+		List<String> td = tdTags(body, "食費");
+		assertThat(th.get(3)).contains("num").contains("budget-basis");
+		assertThat(td.get(3)).contains("num").contains("budget-basis");
+		for (int i : new int[] { 0, 1, 2, 4 }) {
+			assertThat(th.get(i)).as("見出し " + i).doesNotContain("budget-basis");
+			assertThat(td.get(i)).as("セル " + i).doesNotContain("budget-basis");
+		}
+	}
+
+	/** 自作の CSS：根拠のセルの左の余白を広げる（実績の列との間をあける） */
+	@Test
+	void styleSheetWidensTheGapBeforeTheBasisColumn() throws Exception {
+		String css = new String(new org.springframework.core.io.ClassPathResource("static/css/style.css").getContentAsByteArray(),
+				java.nio.charset.StandardCharsets.UTF_8);
+
+		assertThat(css).containsPattern("(?s)\\.budget-basis[^{]*\\{[^}]*padding-left:\\s*[0-9.]+(rem|px)");
+	}
+
+	/** 3 年分そろった中央値は数字だけ（「（3 年）」を付けない）。2 年・1 年・飛ぶ年・ペース・予算・材料なしは今までの言葉 */
+	@Test
+	void medianOfThreeYearsIsJustTheNumber() throws Exception {
+		designExample();
+
+		String text = plain(winter("1"));
+
+		assertThat(text).doesNotContain("（3 年）");
+		assertThat(rowOf(winter("1"), "食費").get(3)).isEqualTo("90,000");
+		assertThat(rowOf(winter("1"), "医療費").get(3)).isEqualTo("秋のペース 4,600");
+		assertThat(rowOf(winter("1"), "日用品").get(3)).isEqualTo("秋の予算 8,000");
+		assertThat(rowOf(winter("1"), "娯楽").get(3)).isEqualTo("材料なし");
 	}
 
 	/** 参考の 3 列（直前の季節の予算・実績・根拠）は budget-ref（灰色で小さい）。予算額の列は budget-amount（目立たせる） */

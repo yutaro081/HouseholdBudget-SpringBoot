@@ -1040,6 +1040,24 @@ main.auth-main {
     }
 }
 
+/* 2 列のとき：ヘッダーの下の残りの高さの、縦の真ん中に、紹介とカードを置く（設計書 2.3。ブラウザで見て決めた）。
+   画面の高さいっぱいを、ヘッダーと本体で分け、本体を縦に中央にそろえる。HTML は変えない。
+   せまいとき（カードが上）は、この規則を使わず、今のまま上から並べる。中身が高いときは、上から並んでスクロールする */
+@media (min-width: 768px) {
+    body:has(> main.auth-main) {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    body:has(> main.auth-main) main.auth-main {
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+}
+
 .auth-chip {
     display: inline-block;
     margin-bottom: 0.875rem;
@@ -1276,6 +1294,11 @@ main.list-wide {
 /* 参考の列：大きさは本文と同じ。色だけ補足の文字の色（#56625F。背景 #F6F8F8 との比 5.96、白との比 6.35） */
 .budget-table .budget-ref {
     color: var(--hb-text-sub);
+}
+
+/* 根拠の列：右寄せ（クラス num）。左の実績の列の数字とくっつかないよう、左の余白を広げる */
+.budget-table .budget-basis {
+    padding-left: 2.5rem;
 }
 
 /* 予算額の列：太字で目立たせる。入力欄は、セルの右に寄せて、見出し・合計の数字の右端にそろえる */
