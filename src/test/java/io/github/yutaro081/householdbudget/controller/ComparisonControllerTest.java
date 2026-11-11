@@ -388,7 +388,7 @@ class ComparisonControllerTest {
 
 		// 予算が未設定の行：予算「未設定」、実績は表示、差額は空欄
 		String unset = rowOf(body, "予算なし");
-		assertThat(unset).contains("<td class=\"num\">未設定</td>", "<td class=\"num\">700</td>").containsPattern("<td class=\"num\">\\s*</td>");
+		assertThat(unset).contains("<td class=\"num\">未設定</td>", "<td class=\"num\">700</td>").containsPattern("<td class=\"num diff-cell\">\\s*</td>");
 
 		// 合計行：予算は設定済みの科目の合計、実績は全科目の合計、差額は予算 − 実績
 		assertThat(rowOf(body, "合計")).contains("total-row", ">35,000<", ">13,200<", ">21,800<");

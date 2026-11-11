@@ -481,9 +481,10 @@ dl.detail dd {
     margin: 0 0 16px;
 }
 
-/* 予算設定の表：予算額の入力欄 */
+/* 予算設定の表：予算額の入力欄。文字を大きく（1.125rem。issue 020）。幅は文字の大きさに合わせて広がる */
 .budget-table input[type="text"] {
     width: 10em;
+    font-size: 1.125rem;
     text-align: right;
 }
 
@@ -515,7 +516,7 @@ dl.detail dd {
  * 予実比較の表（設計書 2.3、issue 020）：予算設定の表の見た目にそろえる。
  * 色は差額のセルだけ（赤 diff-over、青 diff-low）。意味の印（「予算超え」「使い残し」「予算超えの見込み」）は、数字の下の小さな文字（色は差額のセルから引き継ぐ。印そのものには色を付けない）。
  * <tr> のクラスは、予算内の行の row-within と、合計行の total-row だけ（row-over・row-low は、色が差額のセルだけになったのでなくした）。<tr> に Bootstrap のクラスを足さない。
- * 列の幅：表は 100% の幅（要約カードと左右の端をそろえる）。科目の列は全体の 25%、数字の列（予算・実績・見込み・差額）は幅を決めず、残りを等分する（table-layout: fixed）。
+ * 列の幅：表は 100% の幅（要約カードと左右の端をそろえる）。科目の列は全体の 18%、数字の列（予算・実績・見込み・差額）は幅を決めず、残りを等分する（table-layout: fixed）。
  * 印は、数字の左に置く同じ行の小さなチップ（どの行も同じ高さ）。
  */
 .comparison-table {
@@ -525,12 +526,18 @@ dl.detail dd {
 }
 
 .comparison-table th:first-child {
-    width: 25%;
+    width: 18%;
 }
 
 /* どの行も同じ高さ（チップのある行も、ない行も）。高さは最小の値で、合計行は大きな文字の分だけ高くなる */
 .comparison-table tbody td {
     height: 2.75rem;
+    font-size: 1.0625rem;
+}
+
+/* 差額のセルだけ、数字を太字にして目立たせる（issue 020）。差額のセルにだけ付くクラス diff-cell で指定する（「最後の列」ではない。列を足しても崩れない）。チップの文字は 400 のまま（.cell-mark） */
+.comparison-table td.diff-cell {
+    font-weight: 700;
 }
 
 .comparison-table th.num {
@@ -1425,14 +1432,29 @@ main.list-wide {
     color: var(--hb-text-sub);
 }
 
-/* 根拠の列：右寄せ（クラス num）。左の実績の列の数字とくっつかないよう、左の余白を広げる */
+/* 根拠の列：右寄せ（クラス num）。中身に合わせて狭くし（幅 1%、セルは折り返さない）、実績の列のすぐ右に寄せる（issue 020。それまでは、列が均等に広がって、実績との間が空いていた）。
+   左の実績の列の数字とくっつかないよう、左の余白は 1rem 残す */
 .budget-table .budget-basis {
-    padding-left: 2.5rem;
+    padding-left: 1rem;
 }
 
-/* 予算額の列：太字で目立たせる。入力欄は、セルの右に寄せて、見出し・合計の数字の右端にそろえる */
+.budget-table th.budget-basis {
+    width: 1%;
+    white-space: nowrap;
+}
+
+.budget-table td.budget-basis {
+    width: 1%;
+    white-space: nowrap;
+}
+
+/* 予算額の列：太字で目立たせる。入力欄は、セルの右に寄せて、見出し・合計の数字の右端にそろえる。見出しは濃いターコイズ（#0B6E6B。issue 020。大きさ・太さは、ほかの見出しと同じ） */
 .budget-table td.budget-amount {
     font-weight: 700;
+}
+
+.budget-table th.budget-amount {
+    color: var(--hb-teal-text);
 }
 
 .budget-table td.budget-amount input[type="text"] {

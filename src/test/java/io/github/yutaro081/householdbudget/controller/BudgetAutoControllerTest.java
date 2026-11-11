@@ -1125,13 +1125,16 @@ class BudgetAutoControllerTest {
 		}
 	}
 
-	/** 自作の CSS：根拠のセルの左の余白を広げる（実績の列との間をあける） */
+	/**
+	 * 自作の CSS：根拠のセルの左の余白は 1rem（実績の列の数字とくっつかない最小限。issue 020 の見直しで、2.5rem から狭めた）。
+	 * 値まで確かめる（余白が書いてあるだけでは、狭めても、広げても通ってしまう）。
+	 */
 	@Test
-	void styleSheetWidensTheGapBeforeTheBasisColumn() throws Exception {
-		String css = new String(new org.springframework.core.io.ClassPathResource("static/css/style.css").getContentAsByteArray(),
-				java.nio.charset.StandardCharsets.UTF_8);
+	void styleSheetKeepsTheLeftPaddingOfTheBasisColumnAt1rem() throws Exception {
+		String rules = String.join(" ", rulesWith(styleSheet(), ".budget-basis"));
 
-		assertThat(css).containsPattern("(?s)\\.budget-basis[^{]*\\{[^}]*padding-left:\\s*[0-9.]+(rem|px)");
+		assertThat(rules).containsPattern("padding-left:\\s*1rem\\s*;");
+		assertThat(rules).doesNotContainPattern("padding-left:\\s*+(?!1rem\\s*;)");
 	}
 
 	/** 3 年分そろった中央値は数字だけ（「（3 年）」を付けない）。2 年・1 年・飛ぶ年・ペース・予算・材料なしは今までの言葉 */

@@ -266,6 +266,33 @@ class ComparisonRedesignTest {
 		assertThat(rowOf(body, "余裕の科目")).contains("<small class=\"cell-mark\">使い残し</small><span>80,000</span>");
 	}
 
+	/** 差額のセルにだけ diff-cell が付く（科目の行も合計行も）。予算・実績・見込みのセルには付かない。色のクラス（diff-over・diff-low）とは別 */
+	@Test
+	void onlyTheDifferenceCellsHaveTheDiffCellClass() throws Exception {
+		fourCategories();
+
+		String body = page("/comparison");
+		String tbody = body.substring(body.indexOf("<tbody>"), body.indexOf("</tbody>"));
+
+		assertThat(count(tbody, "diff-cell")).as("科目 4 行と合計行の、5 つの差額のセル").isEqualTo(5);
+		for (String name : new String[] { "食費", "交通費", "雑費", "娯楽", "合計" }) {
+			String row = rowOf(body, name);
+			assertThat(count(row, "diff-cell")).as(name).isEqualTo(1);
+			assertThat(row.substring(row.lastIndexOf("<td"))).as(name + " の最後のセルが差額").contains("diff-cell");
+			assertThat(row.substring(0, row.lastIndexOf("<td"))).as(name + " の、ほかのセルには付かない").doesNotContain("diff-cell");
+		}
+	}
+
+	@Test
+	void thePastSeasonDifferenceCellsHaveTheDiffCellClassToo() throws Exception {
+		fourCategories();
+		category("夏の科目", 1_000, Season.SUMMER, 2026);
+
+		String body = page("/comparison?year=2026&season=summer");
+
+		assertThat(count(body.substring(body.indexOf("<tbody>"), body.indexOf("</tbody>")), "diff-cell")).as("科目 5 行（科目は季節によらず全部出る）と合計行").isEqualTo(6);
+	}
+
 	@Test
 	void theTotalRowChipIsAlsoToTheLeftOfTheForecast() throws Exception {
 		fourCategories();

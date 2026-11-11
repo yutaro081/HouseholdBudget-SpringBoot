@@ -36,10 +36,10 @@ class ComparisonStyleSheetTest {
 	}
 
 	@Test
-	void theCategoryColumnIsAQuarterAndTheNumberColumnsShareTheRestEqually() throws Exception {
+	void theCategoryColumnIs18PercentAndTheNumberColumnsShareTheRestEqually() throws Exception {
 		String css = css();
 
-		assertThat(rule(css, ".comparison-table th:first-child")).as("科目の列は全体の 4 分の 1").contains("width: 25%");
+		assertThat(rule(css, ".comparison-table th:first-child")).as("科目の列は全体の 18%（科目と予算の間の空きを減らす）").contains("width: 18%");
 		assertThat(rule(css, ".comparison-table th.num")).as("数字の列は幅を決めない（残りを等分する）").doesNotContain("width").contains("text-align: right");
 		assertThat(rule(css, ".comparison-table td.num")).doesNotContain("width").contains("text-align: right");
 	}
@@ -47,6 +47,26 @@ class ComparisonStyleSheetTest {
 	@Test
 	void everyRowHasTheSameMinimumHeightSoTheChipsDoNotMakeSomeRowsTaller() throws Exception {
 		assertThat(rule(css(), ".comparison-table tbody td")).contains("height: 2.75rem");
+	}
+
+	/** 表のセルの文字は、本文（1rem）より少し大きく（1.0625rem）。見出しは本文と同じ大きさのまま */
+	@Test
+	void theCellsAreASlightlyLargerThanTheBodyText() throws Exception {
+		String css = css();
+
+		assertThat(rule(css, ".comparison-table tbody td")).contains("font-size: 1.0625rem");
+		assertThat(rule(css, ".comparison-table thead th")).contains("font-size: var(--hb-font-size-body)");
+	}
+
+	/** 差額のセルだけ、数字を太字にして目立たせる（差額のセルにだけ付くクラス diff-cell。「最後の列」では指定しない。列を足しても崩れない）。チップの文字は 400 のまま */
+	@Test
+	void onlyTheDifferenceCellsAreBoldByTheirOwnClassNotByTheLastColumn() throws Exception {
+		String css = css();
+
+		assertThat(rule(css, ".comparison-table td.diff-cell")).contains("font-weight: 700");
+		assertThat(css).as("最後の列で指定しない（列を足すと、そちらが太字になってしまう）").doesNotContain(".comparison-table tbody td:last-child").doesNotContain("td:last-child {\n    font-weight: 700");
+		assertThat(rule(css, ".comparison-table td.num")).as("数字の列の全体は、太字にしない").doesNotContain("font-weight");
+		assertThat(rule(css, ".comparison-table .cell-mark")).contains("font-weight: 400");
 	}
 
 	@Test
