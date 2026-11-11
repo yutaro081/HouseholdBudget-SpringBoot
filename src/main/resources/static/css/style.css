@@ -1305,3 +1305,12 @@ main.list-wide {
     font-size: 1.25rem;
     border-top: 3px solid var(--hb-text);
 }
+
+/* 複写のお知らせの 1 行（alert-info。設計書 2.3「色の決まり」）：Bootstrap の標準の水色はやめて、白い地・左に 4px のターコイズの線・本文の色。
+   薄いターコイズは「メニューの今の項目と小さな印だけ」の決まりなので使わない。基本のターコイズは枠（border）だけ */
+.alert-info {
+    --bs-alert-color: var(--hb-text);
+    --bs-alert-bg: var(--hb-input-bg);
+    --bs-alert-border-color: var(--hb-line);
+    border-left: 4px solid var(--hb-teal);
+}

@@ -135,4 +135,19 @@ class ColorSchemeStyleSheetTest {
 				.contains(".btn-primary{--bs-btn-color:#fff;--bs-btn-bg:#0d6efd;").doesNotContain("--hb-");
 	}
 
+	/**
+	 * 複写のお知らせの 1 行（alert-info。issue 019 のあとのブラウザの確認）：Bootstrap の標準の水色をやめて、白い地・左に 4px のターコイズの線・本文の色。
+	 * 薄いターコイズは「メニューの今の項目と小さな印だけ」の決まりのまま使わない。基本のターコイズは border にだけ使う。
+	 */
+	@Test
+	void copyNoticeIsWhiteWithATealLeftLineAndBodyTextColor() throws Exception {
+		String css = css("/css/style.css");
+		String rule = rule(css, ".alert-info");
+
+		assertThat(rule).contains("--bs-alert-bg: var(--hb-input-bg)", "--bs-alert-color: var(--hb-text)", "border-left: 4px solid var(--hb-teal)");
+		assertThat(rule).as("薄いターコイズは使わない").doesNotContain("--hb-teal-pale").doesNotContain("--hb-teal-text").doesNotContain("--hb-teal-button");
+		assertThat(rule).as("Bootstrap の標準の水色（#cff4fc など）を書かない").doesNotContainIgnoringCase("#cff4fc").doesNotContainIgnoringCase("#9eeaf9").doesNotContainIgnoringCase("#055160");
+		assertThat(css("/css/style.css")).as("白は入力欄の地と同じ変数（--hb-input-bg）").containsPattern("--hb-input-bg:\s*#FFFFFF");
+	}
+
 }
