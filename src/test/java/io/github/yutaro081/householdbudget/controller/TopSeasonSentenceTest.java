@@ -202,7 +202,7 @@ class TopSeasonSentenceTest {
 		String css = css();
 
 		assertThat(rule(css, ".top-season-pace-big")).contains("font-size: 1.25rem");
-		assertThat(rule(css, ".top-week-pick")).contains("font-size: 1.0625rem");
+		assertThat(rule(css, ".top-week-pick")).as("今週のひとこと：4 段の本文（16px。issue 024 で、17px から）").contains("font-size: var(--hb-font-size-body)");
 		assertThat(rule(css, ".top-season-pace")).as("ほかは今のまま（濃いターコイズの太字）").contains("color: var(--hb-teal-text)", "font-weight: 700");
 	}
 

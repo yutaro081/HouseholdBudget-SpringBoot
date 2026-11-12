@@ -45,6 +45,16 @@
     --hb-bg: #F6F8F8;
     --hb-line: #E2E8E8;
     --hb-row-hover: #EEF3F3;
+    /* チップと予実比較の表（issue 024。設計書 2.3 の色の決まり）：赤・青は意味の色、予算内は薄いアプリコット（--hb-apricot）の地に、枠・文字・花のアイコンの色。縦の区切り線。数字の大きさは 1 か所（20px に戻すときは、列の割合も変える）*/
+    --hb-over: #C62828;
+    --hb-low: #1565C0;
+    --hb-within-border: #E8C9A8;
+    --hb-within-text: #7A3A10;
+    --hb-within-icon: #B4571A;
+    --hb-divider: #C9D2D1;
+    --hb-key-number-size: 1rem;
+    /* 予算設定：入力欄の数字の右端と、合計の数字の右端（一の位）をそろえる余白。入力欄の右の内側の余白と、合計のセルの右の余白に、同じ値を使う（issue 024） */
+    --hb-budget-digit-inset: 0.75rem;
     --hb-input-border: #849290;
     --hb-input-bg: #FFFFFF;
     --hb-apricot: #FFF2E5;
@@ -509,11 +519,12 @@ dl.detail dd {
     margin: 0 0 16px;
 }
 
-/* 予算設定の表：予算額の入力欄。取引の登録画面の金額の欄（.amount-input）と同じ形（issue 020）：2px のターコイズ（--hb-teal。基本のターコイズは枠にだけ使う）の枠、大きめの文字（1.125rem）、数字は右寄せ。幅は文字の大きさに合わせて広がる */
+/* 予算設定の表：予算額の入力欄。取引の登録画面の金額の欄（.amount-input）と同じ枠（issue 020）：2px のターコイズ（--hb-teal。基本のターコイズは枠にだけ使う）の枠、数字は右寄せ。文字は表のセルと同じ 1rem（issue 024）。一の位は、右の内側の余白（--hb-budget-digit-inset）で、合計の数字の右端にそろえる */
 .budget-table input[type="text"] {
     width: 10em;
     border: 2px solid var(--hb-teal);
-    font-size: 1.125rem;
+    padding-right: var(--hb-budget-digit-inset);
+    font-size: var(--hb-font-size-body);
     text-align: right;
 }
 
@@ -547,60 +558,74 @@ dl.detail dd {
 }
 
 /*
- * 予実比較の表（設計書 2.3、issue 020）：予算設定の表の見た目にそろえる。
- * 色は差額のセルだけ（赤 diff-over、青 diff-low）。意味の印（「予算超え」「使い残し」「予算超えの見込み」）は、数字の下の小さな文字（色は差額のセルから引き継ぐ。印そのものには色を付けない）。
- * <tr> のクラスは、予算内の行の row-within と、合計行の total-row だけ（row-over・row-low は、色が差額のセルだけになったのでなくした）。<tr> に Bootstrap のクラスを足さない。
- * 列の幅：表は 100% の幅（要約カードと左右の端をそろえる）。科目の列は全体の 18%、数字の列（予算・実績・見込み・差額）は幅を決めず、残りを等分する（table-layout: fixed）。
- * 印は、数字の左に置く同じ行の小さなチップ（どの行も同じ高さ）。
+ * 予実比較の表（設計書 2.3、issue 020、issue 024）：予算設定の表の見た目にそろえる。
+ * 状況は、チップ（今の状況・状況の列。.chip）。色は、チップと、残り（差額）・見込みとの差の赤い数字（diff-over・gap-over）だけ。青い数字・行の背景（row-within）・💮 は、なくした。
+ * <tr> のクラスは、合計行の total-row だけ。<tr> に Bootstrap のクラスを足さない。
+ * 列の幅：表は 100% の幅（要約カードと左右の端をそろえる）。割合で決める（table-layout: fixed）。
+ * 文字の大きさは 4 段だけ（28・20・16・13px）：セルは本文（1rem）、見出しは補足（13px）の太字。合計行だけ 1.25rem（20px）。
  */
 .comparison-table {
     width: 100%;
     min-width: 44rem;
     table-layout: fixed;
+    margin-bottom: 0;
 }
 
+/* 列の幅は、中身に合わせて配る。
+   過去・未来の季節（5 列）：科目 22%・状況 16%・予算 20%・実績 20%・差額 22%。
+   今の季節（7 列。表に has-forecast）：科目 13%・今の状況 11%・予算 13%・実績 13%・残り 13%・見込み 17%・見込みとの差 20%。
+   数字の 3 列（予算・実績・残り）は同じ幅。見込みと見込みとの差は、中身が長いので広くする（5 列を等分すると、見込みとの差が約 214px 必要で、横 1366px に収まらない）。 */
 .comparison-table th:first-child {
+    width: 22%;
+}
+
+.comparison-table th.col-status {
     width: 16%;
 }
 
-/* 列の幅は、中身に合わせて配る（issue 020 の見直し）。
-   過去・未来の季節（4 列）：科目 16%・予算 16%・実績 16%・差額 28%（足して 100% に満たない分は、割合に応じて配られる）。
-   今の季節（6 列。表に has-forecast）：科目 16%、数字の 5 列（予算・実績・残り・見込み・見込みとの差）は残りを等分（16.8% ずつ）。印付きの数字と「7,900 / 25,000」が 1 行に収まることを、横 1366px で確かめた。 */
 .comparison-table th.col-budget {
-    width: 16%;
+    width: 20%;
 }
 
 .comparison-table th.col-actual {
-    width: 16%;
+    width: 20%;
 }
 
 .comparison-table th.col-diff {
-    width: 28%;
+    width: 22%;
     color: var(--hb-teal-text);
 }
 
 .comparison-table.has-forecast {
-    min-width: 72rem;
+    min-width: 68rem;
+}
+
+.comparison-table.has-forecast th:first-child {
+    width: 13%;
+}
+
+.comparison-table.has-forecast th.col-status {
+    width: 11%;
 }
 
 .comparison-table.has-forecast th.col-budget {
-    width: 16.8%;
+    width: 13%;
 }
 
 .comparison-table.has-forecast th.col-actual {
-    width: 16.8%;
+    width: 13%;
 }
 
 .comparison-table.has-forecast th.col-remain {
-    width: 16.8%;
+    width: 13%;
 }
 
 .comparison-table.has-forecast th.col-forecast {
-    width: 16.8%;
+    width: 17%;
 }
 
 .comparison-table.has-forecast th.col-gap {
-    width: 16.8%;
+    width: 20%;
 }
 
 /* 残りと見込みとの差の見出しは濃いターコイズ（#0B6E6B） */
@@ -612,40 +637,48 @@ dl.detail dd {
     color: var(--hb-teal-text);
 }
 
-/* 実績・残りの組と、見込み・見込みとの差の組の間の、薄い縦の区切り線（見込みの列の左。見出しもセルも） */
+/* 「残り」と「見込み」の間の縦の区切り線（見込みの列の左。見出しもセルも。1px、#C9D2D1） */
 .comparison-table th.col-forecast {
-    border-left: 1px solid var(--hb-line);
+    border-left: 1px solid var(--hb-divider);
 }
 
 .comparison-table td.forecast-cell {
-    border-left: 1px solid var(--hb-line);
+    border-left: 1px solid var(--hb-divider);
 }
 
 /* どの行も同じ高さ（チップのある行も、ない行も）。高さは最小の値で、合計行は大きな文字の分だけ高くなる */
 .comparison-table tbody td {
     height: 2.75rem;
-    font-size: 1.0625rem;
+    font-size: var(--hb-font-size-body);
 }
 
-/* 差額のセルだけ、数字を太字にして目立たせる（issue 020）。差額のセルにだけ付くクラス diff-cell で指定する（「最後の列」ではない。列を足しても崩れない）。チップの文字は 400 のまま（.cell-mark） */
+.comparison-table td.status-cell {
+    white-space: nowrap;
+}
+
+/* 残り・見込みとの差・差額のセルだけ、数字を太字にして目立たせる。セルにだけ付くクラスで指定する（「最後の列」ではない。列を足しても崩れない）。
+   大きさは変数 --hb-key-number-size の 1 か所（今は 1rem）。見込みとの差のマイナスと、残り（差額）のマイナスは赤（予算超過の意味の色） */
 .comparison-table td.diff-cell {
-    font-size: 1.25rem;
+    font-size: var(--hb-key-number-size);
     font-weight: 700;
 }
 
-/* 今の季節は、残りと見込みとの差のセルを、同じくらい目立たせる（1.25rem、太字）。見込みとの差のマイナスは赤（予算超過の意味の色）。残りには、色と印（予算超え・使い残し）が付く */
 .comparison-table td.remain-cell {
-    font-size: 1.25rem;
+    font-size: var(--hb-key-number-size);
     font-weight: 700;
 }
 
 .comparison-table td.gap-cell {
-    font-size: 1.25rem;
+    font-size: var(--hb-key-number-size);
     font-weight: 700;
 }
 
 .comparison-table td.gap-over {
-    color: #c62828;
+    color: var(--hb-over);
+}
+
+.comparison-table td.diff-over {
+    color: var(--hb-over);
 }
 
 .comparison-table th.num {
@@ -658,18 +691,11 @@ dl.detail dd {
     font-variant-numeric: tabular-nums;
 }
 
-/* 表の見出しは、すべて同じ大きさ（本文と同じ）・同じ太さ（予算設定の表と同じ） */
+/* 表の見出しは、補足と同じ大きさ（13px）の太字、色は補足の文字（#56625F）。「残り」「見込みとの差」「差額」だけ、濃いターコイズ（上の規則）。13px の太字がにじまないかは、ブラウザで確かめる */
 .comparison-table thead th {
-    font-size: var(--hb-font-size-body);
+    font-size: var(--hb-font-size-small);
     font-weight: 700;
-}
-
-.comparison-table td.diff-over {
-    color: #c62828;
-}
-
-.comparison-table td.diff-low {
-    color: #1565c0;
+    color: var(--hb-text-sub);
 }
 
 /* 見込みのセルの「/ その科目の予算」：小さめの灰色（400）。トップの今週のメーターの「600円 / 2,000円」と同じ考え */
@@ -679,43 +705,68 @@ dl.detail dd {
     font-weight: 400;
 }
 
-.comparison-table .cell-mark {
-    display: inline-block;
-    margin-right: 0.375rem;
-    padding: 0 0.375rem;
-    border: 1px solid currentColor;
-    border-radius: 999px;
-    font-size: var(--hb-font-size-small);
-    font-weight: 400;
-    line-height: 1.25;
-    white-space: nowrap;
-    vertical-align: middle;
+/* 見込みとの差のセルの「超える見込み」のチップは、数字の左に、同じ行で並べる（数字の下の 2 行目に置くと、その行だけ高くなる）。状況のセルのチップは、左そろえ */
+.comparison-table td.num .chip {
+    margin-right: var(--hb-space-2);
 }
 
-/* 予算内の行（💮。設計書 2.3、F5）：薄いアプリコットの背景 #FFF2E5（--hb-apricot。issue 015 で、前の薄い緑から変えた。薄いターコイズ #E1F3F2 と区別できなかったため）。
-   赤・青は差額のセルの文字の色なので、重ならない。文字との明るさの比は、手順書 issue-015-colors.md に記録した。
-   Bootstrap の表の変数 --bs-table-bg だけを上書きするので、行にマウスを載せたときの色や、合計行の上の線は残る */
-.comparison-table tr.row-within {
-    --bs-table-bg: var(--hb-apricot);
-}
-
-/* 科目名の横の 💮（issue 020。右端の列から移した）：絵文字を大きくする（Q8-38） */
-.comparison-table .within-mark {
-    margin-left: 0.5rem;
-    font-size: 1.5em;
-    line-height: 1;
-}
-
-/* 合計行（予算設定の合計の行と同じ形）：大きな文字、上の線を太く */
+/* 合計行（予算設定の合計行と同じ形）：大きな文字（1.25rem。4 段の中の大きさ）、上の線を太く。チップの大きさは変わらない（13px） */
 .comparison-table tr.total-row td {
     font-size: 1.25rem;
     font-weight: 700;
     border-top: 3px solid var(--hb-text);
 }
 
-.comparison-table tr.total-row .cell-mark {
+/* チップ（設計書 2.3、issue 024）：状態を示す、角の丸い小さな札。13px、400（小さい日本語の太字は、にじむため）。枠 1px。
+   予算超え・超える見込み＝赤の枠と赤の文字、使い残し＝青の枠と青の文字（背景は白）、予算内＝あんず色の背景・枠 #E8C9A8・文字 #7A3A10・文字の左に花のアイコン（塗りの花。中心の縁 #B4571A）。
+   文字と背景の明るさの比は、ColorSchemeStyleSheetTest で確かめる */
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--hb-space-1);
+    padding: 0 var(--hb-space-2);
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    background-color: var(--hb-input-bg);
     font-size: var(--hb-font-size-small);
     font-weight: 400;
+    line-height: 1.5;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.chip-over {
+    color: var(--hb-over);
+    border-color: var(--hb-over);
+}
+
+.chip-low {
+    color: var(--hb-low);
+    border-color: var(--hb-low);
+}
+
+.chip-within {
+    color: var(--hb-within-text);
+    border-color: var(--hb-within-border);
+    background-color: var(--hb-apricot);
+}
+
+/* 花のアイコンは、塗りの花（色は SVG の中に固定で書く。飾りで、意味は持たせない）。中心の縁の色 --hb-within-icon は、アイコンの中の値と同じ（テストで確かめる） */
+.chip-within .chip-icon {
+    display: inline-flex;
+}
+
+/* 表の白いカード（設計書 2.3、issue 024）：背景 白、枠 1px（今ある --hb-line。新しい色は増やさない）、角丸 16px、影なし。表のあるすべての画面で使う（今は予実比較。取引一覧などは、あとの段階）。
+   中の表のセルの背景（Bootstrap の --bs-table-bg は、ふだんページの背景色）は透明にして、カードの白を見せる */
+.table-card {
+    background-color: var(--hb-input-bg);
+    border: 1px solid var(--hb-line);
+    border-radius: var(--hb-radius-card);
+    margin-bottom: var(--hb-space-3);
+}
+
+.table-card table {
+    --bs-table-bg: transparent;
 }
 
 /* 見込みの要約カード（issue 020）：白いカード。大きな数字は見出しと同じ大きさ（h1）。棒はトップの季節のメーターと同じ作り（.top-meter）。棒の長さの決め方は、issue 020 の 3 で決める */
@@ -727,42 +778,66 @@ dl.detail dd {
     margin-bottom: var(--hb-space-4);
 }
 
-.comparison-card h2 {
-    margin: 0 0 var(--hb-space-1);
-    font-size: var(--hb-font-size-body);
-    color: var(--hb-text-sub);
-}
-
-/* 上の段：大きな数字を横に 3 つ（見込み・予算・実績）。せまいときは折り返す */
+/* 上の段：カードの幅に合わせて、1：1：2 の 3 列に分ける（1 列目 予算、2 列目 実績、3 列目 見込みと差の文。列の中は左寄せ。間は 48px）。
+   幅 768px より狭いときは、縦に並ぶ（1 列）。3 列目に入らない差の文は、見込みの下に回り込む（.comparison-card-forecast-row）。
+   それぞれ「ラベルを上、数字を下」の 2 段。3 つの数字は同じ大きさ（28px）で、列は上そろえ（align-items: start）なので、数字の下の線は、いつも見込みの数字にそろう（差の文が見込みの下に回り込んでも、差の文の行にはそろわない）。
+   文字の大きさは 4 段：ラベルは 13px の 400（補足の文字の色）、予算・実績・見込みの数字は 28px（h1）の太字（issue 024） */
 .comparison-card-figures {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-    gap: var(--hb-space-2) var(--hb-space-4);
+    grid-template-columns: 1fr;
+    align-items: start;
+    gap: var(--hb-space-3) var(--hb-space-7);
     margin-bottom: var(--hb-space-3);
 }
 
-.comparison-card-amount {
+@media (min-width: 768px) {
+    .comparison-card-figures {
+        grid-template-columns: 1fr 1fr 2fr;
+    }
+}
+
+.comparison-card-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.comparison-card-label {
+    color: var(--hb-text-sub);
+    font-size: var(--hb-font-size-small);
+    font-weight: 400;
+}
+
+.comparison-card-figure {
     font-size: var(--hb-font-size-h1);
     font-weight: 700;
 }
 
-.comparison-card-labels {
+.comparison-card-forecast {
+    font-size: var(--hb-font-size-h1);
+    font-weight: 700;
+}
+
+/* 見込みの数字と、差の文を、同じ行に並べる（差の文は、数字のすぐ右。下の線をそろえる）。幅が足りないときは、差の文が下に回り込む */
+.comparison-card-forecast-row {
     display: flex;
     flex-wrap: wrap;
-    justify-content: space-between;
-    gap: 0 var(--hb-space-3);
+    align-items: baseline;
+    column-gap: var(--hb-space-4);
+}
+
+/* 差の文「予算より 約 ○円 少ない（多い）見込みです。」：16px の 400。多いときだけ赤（予算超過の意味の色。--hb-over。色だけに頼らず、「多い」の文字で言う） */
+.comparison-card-verdict {
     margin: 0;
-    color: var(--hb-text-sub);
-    font-size: var(--hb-font-size-small);
+    font-size: var(--hb-font-size-body);
+    font-weight: 400;
+}
+
+.comparison-card-verdict-over {
+    color: var(--hb-over);
 }
 
 .comparison-card-meter {
     margin-bottom: var(--hb-space-2);
-}
-
-.comparison-card-over {
-    margin: 0 0 var(--hb-space-1);
-    font-weight: 700;
 }
 
 .comparison-card-note {
@@ -833,7 +908,7 @@ dl.detail dd {
 }
 
 /*
- * 季節のメーター（issue 017）：左に合計、右に棒と割合の文。大きな数字は見出しと同じ 1.75rem。
+ * 季節のメーター（issue 017）：左に合計、右に棒と見込みの文（issue 024 で、棒の上の「予算のうち ○% を使った」は、なくした。左右は、上そろえ）。
  * 左は中身の幅だけ（flex: 0 0 auto）、右の棒が残りの幅を全部使う（flex: 1 1 auto）。左右の間は 40px（768px 以上）。せまいときは上下。
  */
 .top-season-grid {
@@ -854,23 +929,26 @@ dl.detail dd {
 @media (min-width: 768px) {
     .top-season-grid {
         flex-direction: row;
-        align-items: center;
+        align-items: flex-start;
         gap: 40px;
     }
 }
 
+/* 左のまとまり（issue 024）：ラベル「この季節に使った合計」は 16px、使った額は 34px の太字（ログイン・登録の大きな見出しと同じ例外 --hb-font-size-intro-title）、「/ 予算 ○円」と「残り ○円」は 20px */
 .top-season h2 {
     margin-bottom: var(--hb-space-1);
     color: var(--hb-text-sub);
-    font-size: var(--hb-font-size-small);
+    font-size: var(--hb-font-size-body);
 }
 
 .top-numbers .top-season-amount {
-    font-size: var(--hb-font-size-h1);
+    font-size: var(--hb-font-size-intro-title);
+    font-weight: 700;
 }
 
 .top-season-budget {
     color: var(--hb-text-sub);
+    font-size: var(--hb-font-size-h2);
 }
 
 .top-numbers {
@@ -881,21 +959,12 @@ dl.detail dd {
 .top-season-remaining {
     margin: 0;
     color: var(--hb-text-sub);
+    font-size: var(--hb-font-size-h2);
 }
 
 .top-season-remaining strong {
     color: var(--hb-text);
     font-weight: 700;
-}
-
-.top-season-labels {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: var(--hb-space-1) var(--hb-space-3);
-    margin: 0;
-    color: var(--hb-text-sub);
-    font-size: var(--hb-font-size-small);
 }
 
 /* ペースの一言（右側の棒のすぐ下）：濃いターコイズ（#0B6E6B。リンクと同じ色）の太字。ゆっくり／ほぼ同じ／速めのどれでも同じ色。赤・青（予実比較の意味の色）は使わない */
@@ -910,7 +979,7 @@ dl.detail dd {
     display: block;
 }
 
-/* 2 行目の「約 ○円（予算の ○%）」の部分だけ 1.25rem（今週のひとこと 1.0625rem より、数字が大きく見える） */
+/* 2 行目の「約 ○円（予算の ○%）」の部分だけ 1.25rem（今週のひとこと 16px より、数字が大きく見える） */
 .top-season-pace-big {
     font-size: 1.25rem;
 }
@@ -942,7 +1011,7 @@ dl.detail dd {
 
 @media (min-width: 992px) {
     .top-columns {
-        grid-template-columns: 440px minmax(0, 1fr);
+        grid-template-columns: 470px minmax(0, 1fr);
         align-items: start;
     }
 }
@@ -1029,7 +1098,7 @@ dl.detail dd {
     bottom: 0;
     left: var(--today);
     color: var(--hb-text);
-    font-size: 0.625rem;
+    font-size: var(--hb-font-size-small);
     line-height: 1;
     transform: translateX(-50%);
 }
@@ -1064,28 +1133,31 @@ dl.detail dd {
     border-left: 2px dotted var(--hb-text);
 }
 
-/* 円グラフ：背景は style 属性の conic-gradient。真ん中を白く抜いて、今週の合計を出す */
+/* 円グラフ：背景は style 属性の conic-gradient。真ん中を白く抜いて、今週の合計を出す。
+   円（180px）の右に、一覧を並べる（issue 024）。左の列（470px）の中で横に並ぶ。幅が足りないときは、一覧が円の下に回り込む（円は真ん中） */
 .top-pie-box {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
     align-items: center;
+    justify-content: center;
     gap: var(--hb-space-4);
 }
 
 .top-pie {
     position: relative;
     flex: none;
-    width: 220px;
-    height: 220px;
+    width: 180px;
+    height: 180px;
     border-radius: 50%;
 }
 
 .top-pie-center {
     position: absolute;
-    top: 22%;
-    right: 22%;
-    bottom: 22%;
-    left: 22%;
+    top: 18%;
+    right: 18%;
+    bottom: 18%;
+    left: 18%;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1101,7 +1173,8 @@ dl.detail dd {
 }
 
 .top-pie-list {
-    width: 100%;
+    flex: 1 1 13rem;
+    min-width: 0;
     margin-bottom: 0;
 }
 
@@ -1109,16 +1182,14 @@ dl.detail dd {
 .top-pie-list td {
     padding-top: 0.25rem;
     padding-bottom: 0.25rem;
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
     border-bottom-width: 0;
 }
 
-/* 今週の判定（今週の進み具合・予実比較と同じ意味の色）。赤・青は金額の文字の色。💮 は科目名の横（<td> の中）。行の背景は付けない。Bootstrap の表のセルの色より強くするため、td.num まで書く */
-.top-pie-list tr.pie-over td.num {
-    color: #c62828;
-}
-
-.top-pie-list tr.pie-low td.num {
-    color: #1565c0;
+/* 円の右に並べて、一覧の幅が狭くなっても、金額と割合は折り返さない（科目名は、長いときだけ折り返す） */
+.top-pie-list td.num {
+    white-space: nowrap;
 }
 
 /* 見出しと期間を同じ行に並べる。期間は小さい文字（.top-note）。入りきらないときだけ、期間が下に回る */
@@ -1228,12 +1299,12 @@ dl.detail dd {
     margin-top: var(--hb-space-3);
 }
 
-/* 文全体は、上の季節のカードの文（.top-season-pace）と同じ：濃いターコイズの太字。文字は 1.0625rem（issue 020） */
+/* 文全体は、上の季節のカードの文（.top-season-pace）と同じ：濃いターコイズの太字。文字は 4 段の本文（16px。issue 024 で、1.0625rem から） */
 .top-week-pick {
     margin: 0;
     padding-top: var(--hb-space-2);
     color: var(--hb-teal-text);
-    font-size: 1.0625rem;
+    font-size: var(--hb-font-size-body);
     font-weight: 700;
 }
 
@@ -1251,19 +1322,6 @@ dl.detail dd {
     height: 14px;
 }
 
-.top-weeks li.week-over {
-    color: #c62828;
-}
-
-.top-weeks li.week-low {
-    color: #1565c0;
-}
-
-.top-weeks li.week-within {
-    background: var(--hb-apricot);
-    border-radius: 10px;
-}
-
 @media (max-width: 575.98px) {
     .top-section {
         padding: var(--hb-space-3);
@@ -1275,13 +1333,12 @@ dl.detail dd {
 }
 
 /*
- * トップの「きょうのひとこと」の枠（設計書 2.3、5.12、issue 016）。白地に、左だけターコイズの線。
- * 薄いターコイズの大きな面は使わない。赤・青・💮 の色も使わない。--hb-teal は枠の線（border-left）だけ。
+ * トップの「きょうのひとこと」の枠（設計書 2.3、5.12、issue 016）。issue 024 で、ほかのカード（.top-section）と同じ形にした：ふつうの白いカード（左のターコイズの線は、なくした）。
+ * 見出しは、ほかのカードの見出しと同じ 20px の太字、本文の色。薄いターコイズの大きな面は使わない。赤・青・予算内の色も使わない。
  */
 .hitokoto-frame {
     background: #fff;
     border: 1px solid var(--hb-line);
-    border-left: 4px solid var(--hb-teal);
     border-radius: var(--hb-radius-card);
     padding: var(--hb-space-4) var(--hb-space-5);
     margin-bottom: var(--hb-space-4);
@@ -1289,8 +1346,7 @@ dl.detail dd {
 
 .hitokoto-frame h2 {
     margin-bottom: var(--hb-space-3);
-    color: var(--hb-teal-text);
-    font-size: var(--hb-font-size-body);
+    font-size: var(--hb-font-size-h2);
 }
 
 /* 行：左にアイコンの四角、右に文（issue 017）。行の間は区切り線 */
@@ -1562,20 +1618,33 @@ main.list-wide {
 }
 
 /* 予算設定の「自動予算」（設計書 2.3、issue 019）：ボタンと一言、選ぶリンク、最初の文、表の数字 */
+
+/* 自動予算のカード（issue 024）：ボタンと一言、案の文、1〜3 の切りかえ、保存を入れる白いカード。左に 4px のターコイズの線（複写のお知らせ alert-info と同じ形）。基本のターコイズは線だけ */
+.auto-budget-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--hb-space-3);
+    background-color: var(--hb-input-bg);
+    border: 1px solid var(--hb-line);
+    border-left: 4px solid var(--hb-teal);
+    border-radius: var(--hb-radius-card);
+    padding: var(--hb-space-4) var(--hb-space-5);
+    margin: 12px 0 var(--hb-space-4);
+}
+
 .auto-budget-action {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 8px 12px;
-    margin: 12px 0;
 }
 
-/* 「自動予算」ボタン：アプリのターコイズ（Bootstrap の青は、予実比較の意味の色なので使わない）。枠 2px（--hb-teal）、文字は濃いターコイズの太字、少し大きく。
+/* 「自動予算」ボタン：アプリのターコイズ（Bootstrap の青は、予実比較の意味の色なので使わない）。枠 2px（--hb-teal）、文字は濃いターコイズの太字、少し大きいボタン（文字は 1rem。issue 024）。
    強さの順は、保存（塗り）＞ このボタン ＞ 切りかえボタン（細い灰色の枠）。アイコンは文字の左 */
 .btn.auto-budget-button {
     --bs-btn-color: var(--hb-teal-text);
     --bs-btn-font-weight: 700;
-    --bs-btn-font-size: 1.0625rem;
+    --bs-btn-font-size: var(--hb-font-size-body);
     --bs-btn-padding-x: 1.125rem;
     --bs-btn-padding-y: 0.5rem;
     --bs-btn-hover-color: var(--hb-teal-text);
@@ -1600,7 +1669,6 @@ main.list-wide {
     flex-wrap: wrap;
     align-items: center;
     gap: 8px 32px;
-    margin: 12px 0;
 }
 
 /* 切りかえボタン（btn-group）：選んでいるものは、メニューの「今の画面」と同じ薄いターコイズの地に濃い文字（太さ 700）。保存は塗り、切りかえは枠線で、見た目を変える */
@@ -1616,6 +1684,10 @@ main.list-wide {
 
 .auto-budget-summary p {
     margin-bottom: 4px;
+}
+
+.auto-budget-summary p:last-child {
+    margin-bottom: 0;
 }
 
 .budget-table td.num,
@@ -1635,11 +1707,11 @@ main.list-wide {
     font-weight: 700;
 }
 
-/* 表のセルの文字（issue 020 の見直し）：本文と同じ濃さ（--hb-text ＝ #24302F）、予実比較の表と同じ大きさ（1.0625rem）。以前は、参考の 3 列を灰色にしていたが、薄くて読みにくかった。
+/* 表のセルの文字（issue 020 の見直し）：本文と同じ濃さ（--hb-text ＝ #24302F）、予実比較の表と同じ大きさ（4 段の本文 1rem。issue 024）。以前は、参考の 3 列を灰色にしていたが、薄くて読みにくかった。
    Bootstrap の表はセルの文字色を自分で決めるので、td に直接指定する。「ペース 約 …」の補足だけは、小さな灰色のまま（.auto-budget-note） */
 .budget-table tbody td {
     color: var(--hb-text);
-    font-size: 1.0625rem;
+    font-size: var(--hb-font-size-body);
 }
 
 /* 根拠の列：右寄せ（クラス num）。中身に合わせて狭くし（幅 1%、セルは折り返さない）、実績の列のすぐ右に寄せる（issue 020。それまでは、列が均等に広がって、実績との間が空いていた）。
@@ -1667,10 +1739,10 @@ main.list-wide {
     color: var(--hb-teal-text);
 }
 
-/* 案のもとにした数字（issue 020）：予算額の欄の枠と同じターコイズ（--hb-teal ＝ #0E9594）の 2px の下線と、太字。基本のターコイズは枠（線）にだけ使うので、下線は border-bottom。
-   どの数字かは、Service が決めた案のルール①〜④（AutoBudgetView.Row.source）。根拠のセルは、中の文字（span）に引く */
+/* 案のもとにした数字の目印（issue 020、issue 024）：薄いターコイズの背景（#E1F3F2）と太字。下線はやめた。文字の色は本文のまま（#24302F。背景との比 11.89 対 1）。
+   どの数字かは、Service が決めた案のルール①〜④（AutoBudgetView.Row.source）。根拠のセルは、中の文字（span）につける */
 .budget-table .auto-source {
-    border-bottom: 2px solid var(--hb-teal);
+    background-color: var(--hb-teal-pale);
     font-weight: 700;
 }
 
@@ -1685,7 +1757,7 @@ main.list-wide {
 }
 
 .budget-table td.auto-source-cell > span {
-    border-bottom: 2px solid var(--hb-teal);
+    background-color: var(--hb-teal-pale);
     font-weight: 700;
 }
 
@@ -1710,6 +1782,11 @@ main.list-wide {
 .budget-table tfoot td {
     font-size: 1.25rem;
     border-top: 3px solid var(--hb-text);
+}
+
+/* 合計の数字のセル：右の余白を、セルの余白（0.5rem）＋ 入力欄の枠（2px）＋ 入力欄の右の内側の余白に。入力欄の数字と合計の数字の一の位が、縦にそろう（issue 024） */
+.budget-table tfoot td.budget-total-cell {
+    padding-right: calc(0.5rem + 2px + var(--hb-budget-digit-inset));
 }
 
 /* 複写のお知らせの 1 行（alert-info。設計書 2.3「色の決まり」）：Bootstrap の標準の水色はやめて、白い地・左に 4px のターコイズの線・本文の色。

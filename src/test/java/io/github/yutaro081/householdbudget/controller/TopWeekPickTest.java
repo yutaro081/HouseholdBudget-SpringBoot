@@ -141,17 +141,22 @@ class TopWeekPickTest {
 		assertThat(comparison).contains("<span>5,900</span><span class=\"cell-sub\"> / 65,000</span>");
 	}
 
-	/** 置き場所（issue 020 の見直し）：「今週の進み具合」のメーターのすぐ下。注記（「点線：今日／実線：予算」）より上 */
+	/** 置き場所（issue 024 の見直し）：「今週の進み具合」の見出しと、週の予算の説明の行のすぐ下。メーター（科目の行）より上。注記より上 */
 	@Test
-	void theSentenceIsRightBelowTheWeeklyMetersAndAboveTheirLegend() throws Exception {
+	void theSentenceIsRightBelowTheHeadingAndTheWeeklyBudgetNoteAndAboveTheMeters() throws Exception {
 		foodAndFare();
 
 		String body = page("/");
 		int sentence = body.indexOf("class=\"top-week-pick\"");
+		int heading = body.indexOf("今週の進み具合</h2>");
+		int note = body.indexOf("週の予算＝今日が入っている季節の予算 ÷ 13");
+		int meters = body.indexOf("<ul class=\"top-weeks");
 
 		assertThat(sentence).isGreaterThanOrEqualTo(0);
-		assertThat(sentence).as("今週のメーターの下").isGreaterThan(body.indexOf("class=\"top-weeks"));
-		assertThat(sentence).as("メーター（科目の行）の下").isGreaterThan(body.indexOf("</ul>", body.indexOf("class=\"top-weeks")));
+		assertThat(heading).isGreaterThanOrEqualTo(0);
+		assertThat(sentence).as("見出しの下").isGreaterThan(heading);
+		assertThat(sentence).as("週の予算の説明の行の下").isGreaterThan(note);
+		assertThat(sentence).as("メーター（合計・科目の行）より上").isLessThan(meters);
 		assertThat(sentence).as("注記より上").isLessThan(body.indexOf("点線：今日／実線：予算"));
 		assertThat(body.split("class=\"top-week-pick\"", -1).length - 1).as("1 つだけ").isEqualTo(1);
 	}

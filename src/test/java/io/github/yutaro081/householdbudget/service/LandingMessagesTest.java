@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
  */
 class LandingMessagesTest {
 
-	private static final List<String> KEYS = List.of("top.landing.line1", "top.landing.line2.before", "top.landing.big.before", "top.landing.percent", "top.landing.big.after", "top.landing.line2.after", "comparison.landing.over", "comparison.landing.note", "comparison.card.title", "comparison.card.amount", "comparison.card.budget", "comparison.card.actual", "comparison.card.counting");
+	private static final List<String> KEYS = List.of("top.landing.line1", "top.landing.line2.before", "top.landing.big.before", "top.landing.percent", "top.landing.big.after", "top.landing.line2.after", "comparison.verdict.less", "comparison.verdict.more", "comparison.verdict.same", "comparison.landing.note", "comparison.card.amount", "comparison.card.budget", "comparison.card.actual", "comparison.card.budget.label", "comparison.card.actual.label", "comparison.card.amount.label", "comparison.card.counting");
 
 	private static Properties messages() throws Exception {
 		Properties properties = new Properties();
@@ -45,10 +45,19 @@ class LandingMessagesTest {
 		// issue 020：予実比較の 1 行の文（comparison.landing）は、要約カードに置きかえて、なくした。{0}＝見込みの額、{1}＝合計の予算
 		assertThat(p.getProperty("comparison.landing")).as("1 行の文は、なくした").isNull();
 		assertThat(p.getProperty("comparison.card.amount")).isEqualTo("約 {0}円");
-		assertThat(p.getProperty("comparison.card.budget")).isEqualTo("予算 {0}円");
-		assertThat(p.getProperty("comparison.card.actual")).isEqualTo("実績 {0}円（{1}%）");
+		assertThat(p.getProperty("comparison.card.budget")).as("数字（ラベルは別の行。issue 024）").isEqualTo("{0}円");
+		assertThat(p.getProperty("comparison.card.actual")).isEqualTo("{0}円");
+		// issue 024：3 つの数字は、ラベルを上、数字を下の 2 段。ラベル：「予算」「実績（予算の ○%）」「季節の終わりの見込み」。{0}＝実績が予算の何％か
+		assertThat(p.getProperty("comparison.card.budget.label")).isEqualTo("予算");
+		assertThat(p.getProperty("comparison.card.actual.label")).isEqualTo("実績（予算の {0}%）");
+		assertThat(p.getProperty("comparison.card.amount.label")).isEqualTo("季節の終わりの見込み");
 		assertThat(p.getProperty("comparison.card.counting")).isEqualTo("{0}/{1} に記録を始めたので、その日から数えています。");
-		assertThat(p.getProperty("comparison.landing.over")).isEqualTo("見込みは、予算を上回ります。");
+		// issue 024：「見込みは、予算を上回ります。」の 1 行は、見込みと予算の差の文に置きかえた。{0}＝差の額（100 円単位）。「多い」のときだけ赤（画面の CSS）
+		assertThat(p.getProperty("comparison.landing.over")).as("「見込みは、予算を上回ります。」は、なくした").isNull();
+		assertThat(p.getProperty("comparison.verdict.less")).isEqualTo("予算より 約 {0}円 少ない見込みです。");
+		assertThat(p.getProperty("comparison.verdict.more")).isEqualTo("予算より 約 {0}円 多い見込みです。");
+		assertThat(p.getProperty("comparison.verdict.same")).isEqualTo("予算どおりの見込みです。");
+		assertThat(p.getProperty("comparison.card.used")).as("メーター上の「予算のうち ○% を使った」は、なくした（実績のラベルと同じ数字のため）").isNull();
 		assertThat(p.getProperty("comparison.landing.note")).isEqualTo("月ごとにまとめて払うものは、払う日で見込みが上下します。");
 	}
 
@@ -65,7 +74,8 @@ class LandingMessagesTest {
 		assertThat(p.getProperty("top.landing.line2.before")).contains("このペースだと");
 		assertThat(p.getProperty("top.landing.line2.after")).contains("見込み");
 		assertThat(p.getProperty("top.landing.big.before")).contains("約");
-		assertThat(p.getProperty("comparison.card.title")).contains("見込み");
+		assertThat(p.getProperty("comparison.card.title")).as("カード上の見出し「この季節の見込み」は、なくした（見込みのラベルと同じことのため。issue 024）").isNull();
+		assertThat(p.getProperty("comparison.card.amount.label")).contains("見込み");
 		assertThat(p.getProperty("comparison.landing.note")).contains("見込み");
 
 		List<String> evaluation = List.of("使いすぎ", "使い過ぎ", "無駄", "節約", "控え", "気をつけ", "がんばって", "！", "!", "しましょう", "してください");

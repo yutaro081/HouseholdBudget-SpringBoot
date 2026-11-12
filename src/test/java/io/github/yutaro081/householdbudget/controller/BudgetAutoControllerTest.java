@@ -704,7 +704,7 @@ class BudgetAutoControllerTest {
 		assertThat(winter("1")).doesNotContain("budget-ref");
 	}
 
-	// ---- issue 020：案のもとにした数字に、ターコイズの下線（auto-source）。どの数字かは Service が決める ----
+	// ---- issue 020、024：案のもとにした数字に、薄いターコイズの背景と太字の目印（auto-source。issue 024 で、下線から変えた）。どの数字かは Service が決める ----
 
 	/** ① 中央値の行：根拠の列の数字だけ（印は 1 か所） */
 	@Test
@@ -725,7 +725,7 @@ class BudgetAutoControllerTest {
 		String row = rowHtml(winter("1"), "医療費");
 
 		assertThat(countOf(row, "auto-source")).isEqualTo(1);
-		assertThat(row).as("下線は、「ペース 約 …」の文字だけ（同じ行の右になっても、今までどおり引く。「/」には引かない）")
+		assertThat(row).as("目印は、「ペース 約 …」の文字だけ（同じ行の右になっても、今までどおり引く。「/」には引かない）")
 				.contains("<small class=\"auto-budget-note\"> / <span class=\"auto-source\">ペース 約 4,600</span></small>");
 	}
 
@@ -801,25 +801,25 @@ class BudgetAutoControllerTest {
 
 		assertThat(rowHtml(winter("1"), "合計")).doesNotContain("auto-source");
 		String plain = winter(null);
-		assertThat(plain).doesNotContain("auto-source").doesNotContain("ターコイズの下線");
+		assertThat(plain).doesNotContain("auto-source").doesNotContain("薄いターコイズの背景");
 	}
 
 	/** 表の下の注記：自動予算を押したあと（材料があるとき）だけ */
 	@Test
-	void theLegendExplainsTheUnderlineOnlyWhenThereIsAnythingUnderlined() throws Exception {
+	void theLegendExplainsTheMarkOnlyWhenThereIsAnythingUnderlined() throws Exception {
 		designExample();
 
-		assertThat(winter("1")).contains("ターコイズの下線：案のもとにした数字");
+		assertThat(winter("1")).contains("薄いターコイズの背景：案のもとにした数字").doesNotContain("下線");
 	}
 
 	@Test
-	void noLegendAndNoUnderlineWhenThereIsNoMaterial() throws Exception {
+	void noLegendAndNoMarkWhenThereIsNoMaterial() throws Exception {
 		category("食費");
 		flush();
 
 		String body = winter("1");
 
-		assertThat(body).doesNotContain("ターコイズの下線").doesNotContain("auto-source");
+		assertThat(body).doesNotContain("薄いターコイズの背景").doesNotContain("auto-source");
 	}
 
 	/** 科目の行は、すべて 5 つのセル（合計の行も）。科目の登録順 */
@@ -1665,4 +1665,154 @@ class BudgetAutoControllerTest {
 		assertThat(body).doesNotContain("<b>太字</b>");
 	}
 
+	// ================================================================
+	// issue 024 の段階 11：自動予算のカード、表のカード、保存の確認
+	// ================================================================
+
+	private static final String SAVE_CONFIRM_TOTAL = "2026 年 冬の予算を保存します（合計 {total} 円）。よろしいですか？";
+	private static final String SAVE_CONFIRM_PLAIN = "2026 年 冬の予算を保存します。よろしいですか？";
+
+	/** 「自動予算」の説明の文、1〜3 のボタン、保存が、白いカード（auto-budget-card）の中に入る。ふだんの画面は、ボタン・一言・保存 */
+	@ParameterizedTest(name = "auto={0}：自動予算のカード")
+	@ValueSource(strings = { "", "1", "2", "3" })
+	void theAutoBudgetPartsAreInsideOneCard(String auto) throws Exception {
+		designExample();
+
+		String body = winter(auto.isEmpty() ? null : auto);
+		int start = body.indexOf("class=\"auto-budget-card");
+
+		assertThat(start).as("カードがある").isGreaterThan(0);
+		assertThat(countOf(body, "class=\"auto-budget-card")).isEqualTo(1);
+		String card = body.substring(start, body.indexOf("<form", start));
+		assertThat(card).contains("auto-budget-button").contains(">保存</button>");
+		if (!auto.isEmpty()) {
+			assertThat(card).contains("auto-budget-summary").contains("btn-group").contains("直前の季節（");
+		}
+		assertThat(start).as("カードは表より前").isLessThan(body.indexOf("budget-table"));
+	}
+
+	/** 科目がないときは、カードも出さない */
+	@Test
+	void noCardWithoutCategories() throws Exception {
+		assertThat(winter(null)).doesNotContain("auto-budget-card");
+	}
+
+	/** 予算の表は、白いカード（table-card）の中。横に長いときの囲み（table-responsive）と一緒 */
+	@ParameterizedTest(name = "auto={0}：表は白いカードの中")
+	@ValueSource(strings = { "", "1" })
+	void theBudgetTableIsInsideATableCard(String auto) throws Exception {
+		designExample();
+
+		String body = winter(auto.isEmpty() ? null : auto);
+
+		assertThat(body).containsPattern("(?s)<div class=\"table-card table-responsive\">\\s*<table[^>]*budget-table");
+	}
+
+	/** 合計の数字のセルに、一の位をそろえる印（budget-total-cell）。ふだんも、案を入れたあとも、1 つだけ */
+	@ParameterizedTest(name = "auto={0}：合計のセルの印")
+	@ValueSource(strings = { "", "1" })
+	void theTotalCellHasTheAlignmentClass(String auto) throws Exception {
+		designExample();
+
+		String body = winter(auto.isEmpty() ? null : auto);
+
+		assertThat(countOf(body, "budget-total-cell")).isEqualTo(1);
+		assertThat(body).containsPattern("(?s)<td class=\"num budget-total-cell\">\\s*<strong[^>]*data-budget-total");
+	}
+
+	private static String formTag(String body) {
+		Matcher m = Pattern.compile("<form[^>]*\\bid=\"budget-form\"[^>]*>").matcher(body);
+		assertThat(m.find()).as("保存のフォームがある").isTrue();
+		return m.group();
+	}
+
+	/** 保存の確認の固定の文（年・季節入り）が、保存のフォームの属性で渡る。合計ありの文（{total} の所に JavaScript が数字を入れる）と、合計なしの文 */
+	@ParameterizedTest(name = "auto={0}：保存の確認の文が属性にある")
+	@ValueSource(strings = { "", "1" })
+	void theSaveConfirmationSentencesAreOnTheForm(String auto) throws Exception {
+		designExample();
+
+		String form = formTag(winter(auto.isEmpty() ? null : auto));
+
+		assertThat(form).contains("data-budget-save-confirm-total=\"" + SAVE_CONFIRM_TOTAL + "\"");
+		assertThat(form).contains("data-budget-save-confirm=\"" + SAVE_CONFIRM_PLAIN + "\"");
+	}
+
+	/** 年と季節は、画面の季節（URL）に合わせる。年は「2,026」にならない */
+	@Test
+	void theSaveConfirmationNamesTheShownSeason() throws Exception {
+		category("食費");
+		flush();
+
+		String form = formTag(page("2027", "spring", null));
+
+		assertThat(form).contains("data-budget-save-confirm=\"2027 年 春の予算を保存します。よろしいですか？\"");
+		assertThat(form).contains("2027 年 春の予算を保存します（合計 {total} 円）。よろしいですか？");
+	}
+
+	/** 保存の確認は、保存のフォームだけ。「自動予算」と 1〜3 の確認（data-budget-confirm の 4 つ）は、今のまま */
+	@Test
+	void theSaveConfirmationIsOnlyOnTheSaveForm() throws Exception {
+		designExample();
+
+		String body = winter("1");
+
+		assertThat(countOf(body, "data-budget-save-confirm=")).isEqualTo(1);
+		assertThat(countOf(body, "data-budget-save-confirm-total=")).isEqualTo(1);
+		assertThat(countOf(body, "data-budget-confirm=")).isEqualTo(4);
+	}
+
+	/** 保存の確認は JavaScript が付ける。JavaScript が無いときは、フォームはそのまま送れる（method=post、CSRF、保存ボタンの type=submit） */
+	@Test
+	void theFormStillSubmitsWithoutJavaScript() throws Exception {
+		designExample();
+
+		String body = winter(null);
+		String form = formTag(body);
+
+		assertThat(form).contains("method=\"post\"").contains("action=\"/budgets?year=2026&amp;season=winter\"");
+		assertThat(form).doesNotContain("onsubmit");
+		assertThat(body).contains("name=\"_csrf\"");
+		assertThat(saveButtonTag(body)).contains("type=\"submit\"").doesNotContain("onclick");
+	}
+
+	private static String script() throws Exception {
+		return java.nio.file.Files.readString(java.nio.file.Path.of("src", "main", "resources", "static", "js", "budget-total.js"));
+	}
+
+	/** budget-total.js：保存のフォームの submit で確認する。確認の窓 confirm、合計は今ある sumAmounts と formatTotal を使う */
+	@Test
+	void theScriptAsksForConfirmationOnSubmitWithTheSameSumFunction() throws Exception {
+		String script = script();
+
+		assertThat(script).contains("addEventListener('submit'");
+		assertThat(script).contains("data-budget-save-confirm-total").contains("data-budget-save-confirm");
+		assertThat(script).contains("window.confirm(");
+		assertThat(script).contains("preventDefault()");
+		assertThat(countOf(script, "function sumAmounts")).as("合計の計算は 1 つの関数").isEqualTo(1);
+		assertThat(script).contains("sumAmounts(currentTexts())").contains("formatTotal(");
+		assertThat(script).as("数字でない欄・空の欄があるときは、合計なしの文").contains("result.hasEmpty || result.hasNotNumber");
+	}
+
+	/** budget-total.js の決まり：画面に書くのは textContent だけ。通信しない。eval・innerHTML などを使わない。新しいファイルは作らない */
+	@Test
+	void theScriptKeepsItsRules() throws Exception {
+		String code = script().replaceAll("(?s)/\\*.*?\\*/", "").replaceAll("(?m)//.*$", "");
+
+		assertThat(code).doesNotContain("innerHTML", "outerHTML", "insertAdjacentHTML", "document.write", "eval(", "new Function");
+		assertThat(code).doesNotContain("fetch(", "XMLHttpRequest", "sendBeacon", "WebSocket");
+		assertThat(code).contains("textContent");
+		assertThat(script()).as("確認の文は JavaScript に書かない（HTML の属性から読む）").doesNotContain("の予算を保存します");
+		try (var files = java.nio.file.Files.list(java.nio.file.Path.of("src", "main", "resources", "static", "js"))) {
+			assertThat(files.map(f -> f.getFileName().toString()).toList()).as("新しいファイルは作らない").doesNotContain("budget-save.js", "save-confirm.js");
+		}
+	}
+
+	/** 「下線」の言葉が、画面の文に残っていない */
+	@Test
+	void noUnderlineWordOnTheScreen() throws Exception {
+		designExample();
+
+		assertThat(winter("1")).doesNotContain("下線");
+	}
 }

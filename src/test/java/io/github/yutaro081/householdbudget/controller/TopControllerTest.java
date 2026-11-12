@@ -188,17 +188,17 @@ class TopControllerTest {
 	}
 
 	@Test
-	void weekMeterUsesTheSameColorClassesAsTheComparisonRules() throws Exception {
+	void weekRowsUseTheSameChipsAsTheComparison() throws Exception {
 		Owner a = createOwner("topctl05");
 		Category over = category(a, "超過", 30_000);
 		Category within = category(a, "予算内", 30_000);
 		spend(a, over, SUNDAY, 2_401);       // 2,500 > 2,400 → 赤
-		spend(a, within, SUNDAY, 2_000);     // 2,000 → 💮
+		spend(a, within, SUNDAY, 2_000);     // 2,000 → 予算内のチップ
 
 		String body = topBody(a);
 
-		assertThat(body).contains("week-over", "week-within");
-		assertThat(body).contains("💮");
+		assertThat(body).contains("chip-over", "chip-within");
+		assertThat(body).doesNotContain("week-over", "week-within", "💮");
 	}
 
 	// ---- 0 件・未設定 ----
