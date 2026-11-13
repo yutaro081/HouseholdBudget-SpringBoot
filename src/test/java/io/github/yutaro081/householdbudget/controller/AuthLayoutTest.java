@@ -29,8 +29,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 class AuthLayoutTest {
 
-	/** 💮 の決まり（要件定義書 4.4）と同じ言い方（Q017-11 の A） */
-	private static final String LEAD = "取引を記録すると、季節（春・夏・秋・冬）ごとに、科目別の予算と実績が並びます。予算の 1/3 を超えて、予算以内に収まった科目には 💮 が付きます。";
+	/** 予算内のチップの決まり（要件定義書 4.4。issue 024 で、💮 から「予算内」の印に変えた）と同じ言い方（Q017-11 の A） */
+	private static final String LEAD = "取引を記録すると、季節（春・夏・秋・冬）ごとに、科目別の予算と実績が並びます。予算の 1/3 を超えて、予算以内に収まった科目には「予算内」の印が付きます。";
 
 	private static final Pattern SVG = Pattern.compile("<svg.*?</svg>", Pattern.DOTALL);
 
@@ -91,15 +91,15 @@ class AuthLayoutTest {
 		}
 	}
 
-	/** 案の「予算内に収まった科目には 💮」だと、1/3 以下（青）も予算内なのに 💮 が付かず、決まりと食い違う */
+	/** 案の「予算内に収まった科目には」だと、1/3 以下（青）も予算内なのに印が付かず、決まりと食い違う（issue 024：印は「予算内」のチップ） */
 	@Test
 	void theMarkSentenceMatchesTheComparisonRule() throws Exception {
 		String requirements = Files.readString(Path.of("docs", "reviews", "requirements.md"));
-		assertThat(requirements).as("決まり：1/3 を超え、予算以下に 💮").contains("予算の1/3を超え、予算以下");
+		assertThat(requirements).as("決まり：1/3 を超え、予算以下に「予算内」のチップ").contains("実績があって予算以下なら、「予算内」のチップ", "予算の1/3を超えて予算以内に収まった科目には「予算内」の印が付くこと");
 
 		for (String path : List.of("/login", "/register")) {
 			String main = main(page(path));
-			assertThat(main).as(path).contains("予算の 1/3 を超えて、予算以内に収まった科目には 💮 が付きます。");
+			assertThat(main).as(path).contains("予算の 1/3 を超えて、予算以内に収まった科目には「予算内」の印が付きます。").doesNotContain("💮");
 			assertThat(main).as(path + "：案の言い方は使わない").doesNotContain("予算内に収まった科目には");
 		}
 	}

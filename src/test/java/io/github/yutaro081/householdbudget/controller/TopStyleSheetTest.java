@@ -67,23 +67,54 @@ class TopStyleSheetTest {
 
 	/** 今週 何に使ったか：期間は見出しと同じ行（せまいときだけ折り返す）。一覧は、行の上下の余白が半分、行の間の線なし。赤・青は金額の色 */
 	@Test
-	void pieHeadingRowAndCompactListAndJudgementColors() throws Exception {
+	void pieHeadingRowAndCompactListAndNoJudgementColors() throws Exception {
 		String css = css();
 
 		assertThat(rule(css, ".top-pie-head")).contains("display: flex", "flex-wrap: wrap", "align-items: baseline");
 		assertThat(rule(css, ".top-pie-list td")).contains("padding-top: 0.25rem", "padding-bottom: 0.25rem", "border-bottom-width: 0");
-		assertThat(rule(css, ".top-pie-list tr.pie-over td.num")).containsIgnoringCase("#c62828");
-		assertThat(rule(css, ".top-pie-list tr.pie-low td.num")).containsIgnoringCase("#1565c0");
+		assertThat(withoutComments(css)).as("円グラフの一覧に、判定の色の規則はない（issue 024）").doesNotContain("pie-over", "pie-low");
 		assertThat(withoutComments(css)).as("行の背景（薄いアプリコット）は付けない").doesNotContainPattern("\\.top-pie[^{]*\\{[^}]*apricot");
 	}
 
+	/** 今週の進み具合の行に、色・背景の規則はない（状態は、チップで示す。issue 024） */
 	@Test
-	void weekRowColorsAreTheSameAsTheComparisonRules() throws Exception {
+	void weekRowsHaveNoRowColorOrBackgroundRules() throws Exception {
+		String css = withoutComments(css());
+
+		assertThat(css).doesNotContain(".top-weeks li.week-over", ".top-weeks li.week-low", ".top-weeks li.week-within");
+	}
+
+	/** トップの文字の大きさは 4 段だけ：4 段の外（17px・18px・10px・文字の 1.5 倍）は、トップの規則に使わない。今日の矢印は 13px、今週のひとことは 16px */
+	@Test
+	void theTopRulesUseOnlyTheFourFontSizes() throws Exception {
+		String css = withoutComments(css());
+
+		Matcher m = Pattern.compile("(?m)^(\\.top-[^{\\n]*|\\.hitokoto[^{\\n]*)\\{([^}]*)\\}").matcher(css);
+		int checked = 0;
+		while (m.find()) {
+			checked++;
+			assertThat(m.group(2)).as(m.group(1).strip()).doesNotContain("font-size: 1.0625rem", "font-size: 1.125rem", "font-size: 0.625rem", "font-size: 1.5em");
+		}
+		assertThat(checked).isGreaterThan(20);
+		assertThat(rule(css, ".top-meter-today-arrow")).contains("font-size: var(--hb-font-size-small)");
+		assertThat(rule(css, ".top-week-pick")).contains("font-size: var(--hb-font-size-body)");
+	}
+
+	/**
+	 * 円グラフの一覧は、円の右に並べる（issue 024）：円は 180px。左の列（470px）の中で、円と一覧が横に並ぶ。幅が足りないときは、一覧が円の下に回り込む（flex-wrap）。
+	 * 一覧は、残りの幅を使う（flex: 1 1 13rem）。一覧の中身（金額と割合だけ）は変えない
+	 */
+	@Test
+	void thePieAndItsListAreSideBySideAndTheListWrapsBelowWhenThereIsNoRoom() throws Exception {
 		String css = css();
 
-		assertThat(rule(css, ".top-weeks li.week-over")).containsIgnoringCase("#c62828");
-		assertThat(rule(css, ".top-weeks li.week-low")).containsIgnoringCase("#1565c0");
-		assertThat(rule(css, ".top-weeks li.week-within")).contains("var(--hb-apricot)");
+		assertThat(rule(css, ".top-pie-box")).contains("display: flex", "flex-direction: row", "flex-wrap: wrap").doesNotContain("flex-direction: column");
+		assertThat(rule(css, ".top-pie")).as("円は 180px").contains("width: 180px", "height: 180px", "border-radius: 50%");
+		assertThat(rule(css, ".top-pie-list")).as("一覧は、残りの幅を使う。入りきらないときは、下に回り込む").contains("flex: 1 1 13rem", "min-width: 0");
+		assertThat(rule(css, ".top-pie-list td.num")).as("狭くなった一覧でも、金額と割合は折り返さない（「4,200 / 円」にならない）").contains("white-space: nowrap");
+		assertThat(rule(css, ".top-pie-list td")).as("横の余白を詰める").contains("padding-left: 0.25rem", "padding-right: 0.25rem");
+		// 円（180px）＋ すきま（16px）＋ 一覧の最小の幅（13rem ＝ 208px）が、左の列の中の幅（470px − 左右の余白 48px − 枠 2px ＝ 420px）に収まる
+		assertThat(180 + 16 + 13 * 16).isLessThanOrEqualTo(470 - 2 * 24 - 2);
 	}
 
 	@Test

@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<!--/*
+  状況のチップの部品（設計書 2.3「予実比較」、5.9、要件定義書 4.4、issue 024）。予算超え（赤）・使い残し（青）・予算内（あんず色。花のアイコン）の 3 種類。
+  ・使い方：<th:block th:replace="~{fragments/chip :: status(${row.color.name()}, ${row.withinBudget})}"></th:block>
+    （色の名前 'RED' / 'BLUE' / 'NONE'、予算内かどうか）。判定は BudgetColorJudge で済んでいて、ここでは判定しない（言葉と形に直すだけ）。
+  ・色なし（予算が未設定、予算 0 円で実績 0 円など）は、何も出さない。予算内は、色なしの行だけに付く（判定の決まり）。
+  ・花のアイコン（16px。塗りの花）は飾りなので aria-hidden（fragments/icons）。「予算内」の文字は、画面に見える文字として出す。
+  ・statusWithAmount(color, within, overAmount)：トップの今週の進み具合用。予算超えのチップに、金額を添える（「予算超え ＋1,100円」。overAmount ＝ 実績 − 週の予算。Service が計算した値）。使い残し・予算内は同じ。
+  ・<span> の前後・間に空白を入れない（セルの中で、数字の左に並べるため）。
+*/-->
+<th:block th:fragment="status(color, within)"><span class="chip chip-over" th:if="${color == 'RED'}">予算超え</span><span class="chip chip-low" th:if="${color == 'BLUE'}">使い残し</span><span class="chip chip-within" th:if="${within and color != 'RED' and color != 'BLUE'}"><span class="chip-icon"><th:block th:replace="~{fragments/icons :: icon('flower', 16, 1.6)}"></th:block></span>予算内</span></th:block>
+<th:block th:fragment="statusWithAmount(color, within, overAmount)"><span class="chip chip-over" th:if="${color == 'RED'}" th:text="${overAmount != null} ? |予算超え ＋${#numbers.formatInteger(overAmount, 1, 'COMMA')}円| : '予算超え'">予算超え ＋1,100円</span><span class="chip chip-low" th:if="${color == 'BLUE'}">使い残し</span><span class="chip chip-within" th:if="${within and color != 'RED' and color != 'BLUE'}"><span class="chip-icon"><th:block th:replace="~{fragments/icons :: icon('flower', 16, 1.6)}"></th:block></span>予算内</span></th:block>
+</html>

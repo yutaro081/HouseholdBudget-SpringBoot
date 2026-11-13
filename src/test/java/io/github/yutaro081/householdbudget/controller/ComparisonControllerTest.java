@@ -392,7 +392,7 @@ class ComparisonControllerTest {
 
 		// 合計行：予算は設定済みの科目の合計、実績は全科目の合計、差額は予算 − 実績
 		assertThat(rowOf(body, "合計")).contains("total-row", ">35,000<", ">13,200<", ">21,800<");
-		assertThat(body).contains("差額の赤：予算超え／青：使い残し（予算の1/3以下）");
+		assertThat(body).contains("チップ：予算超え（赤）／使い残し（青。予算の1/3以下）／予算内（予算の1/3を超え、予算以下）");
 	}
 
 	/** 前の季節の予算は引き継がない：予算がない季節は、全科目が「未設定」 */
@@ -404,42 +404,50 @@ class ComparisonControllerTest {
 
 		String body = open(a, "2026", "winter");
 
-		assertThat(rowOf(body, "食費")).contains(">未設定<", ">0<").doesNotContain("row-", "diff-over", "diff-low");
-		assertThat(rowOf(body, "交通費")).contains(">未設定<").doesNotContain("row-", "diff-over", "diff-low");
-		assertThat(rowOf(body, "合計")).contains(">未設定<", ">0<").doesNotContain("row-within", "diff-over", "diff-low");
+		assertThat(rowOf(body, "食費")).contains(">未設定<", ">0<").doesNotContain("row-", "diff-over", "chip");
+		assertThat(rowOf(body, "交通費")).contains(">未設定<").doesNotContain("row-", "diff-over", "chip");
+		assertThat(rowOf(body, "合計")).contains(">未設定<", ">0<").doesNotContain("row-within", "diff-over", "chip");
 		assertThat(body).doesNotContain("20,000", "5,000");
 	}
 
 	// ================================================================
-	// 予算内の印（💮。Phase 8 の issue 005、設計書 2.3、5.9、Q8-27〜Q8-34）：新しい右端の列
+	// 予算内のチップ（Phase 8 の issue 005 の 💮 を、issue 024 で置きかえた。設計書 2.3、5.9、Q8-27〜Q8-34）：今の状況（過去・未来の季節では「状況」）の列
 	// ================================================================
 
-	private static final String MARK = "<span aria-hidden=\"true\">💮</span><span class=\"visually-hidden\">予算内</span>";
+	/** 予算内のチップ：あんず色の背景の札。花のアイコン（飾り）と、画面に見える文字「予算内」 */
+	private static final String CHIP_WITHIN = "<span class=\"chip chip-within\"><span class=\"chip-icon\"><svg";
 
-	/** 表の本体（&lt;tbody&gt; の中）。注記の 💮 を含めずに、行だけを調べるため */
+	/** 表の本体（&lt;tbody&gt; の中）。注記を含めずに、行だけを調べるため */
 	private static String tbodyOf(String body) {
 		int start = body.indexOf("<tbody>");
 		assertThat(start).as("表の本体がある").isGreaterThanOrEqualTo(0);
 		return body.substring(start, body.indexOf("</tbody>", start));
 	}
 
-	/** 行の右端のセル（最後の &lt;td&gt;）。issue 020 で 💮 の列がなくなり、右端は差額のセル */
+	/** 行の右端のセル（最後の &lt;td&gt;）。右端は差額のセル */
 	private static String lastCellOf(String row) {
 		return row.substring(row.lastIndexOf("<td"));
 	}
 
-	/** 行の左端のセル（科目名のセル。issue 020 で、💮 は科目名の横に移した） */
+	/** 行の左端のセル（科目名のセル） */
 	private static String firstCellOf(String row) {
 		return row.substring(row.indexOf("<td"), row.indexOf("</td>") + "</td>".length());
+	}
+
+	/** 行の 2 番目のセル（今の状況・状況。チップが入る） */
+	private static String statusCellOf(String row) {
+		int first = row.indexOf("</td>") + "</td>".length();
+		int start = row.indexOf("<td", first);
+		return row.substring(start, row.indexOf("</td>", start) + "</td>".length());
 	}
 
 	private static int count(String text, String part) {
 		return text.split(java.util.regex.Pattern.quote(part), -1).length - 1;
 	}
 
-	/** 予算内の行（色なしで実績がある。ちょうども）と合計行の、科目名のセルに出る（issue 020。右端の列から移した）。赤・青・予算が未設定・実績0円の行には出ない */
+	/** 予算内の行（色なしで実績がある。ちょうども）と合計行の、状況のセルに「予算内」のチップが出る。赤・青・予算が未設定・実績0円の行には出ない */
 	@Test
-	void withinBudgetRowsGetTheMarkNextToTheCategoryName() throws Exception {
+	void withinBudgetRowsGetTheWithinChipInTheStatusColumn() throws Exception {
 		Owner a = createOwner("ctrlcmp11");
 		autumn(a, category(a, "超過"), 5_000, 6_000);        // 赤
 		autumn(a, category(a, "余裕"), 20_000, 1_500);       // 青
@@ -450,20 +458,20 @@ class ComparisonControllerTest {
 
 		String body = open(a, "2026", "autumn");
 
-		assertThat(firstCellOf(rowOf(body, "ふつう"))).contains(MARK);
-		assertThat(firstCellOf(rowOf(body, "ちょうど"))).contains(MARK);
+		assertThat(statusCellOf(rowOf(body, "ふつう"))).contains(CHIP_WITHIN, "予算内</span>");
+		assertThat(statusCellOf(rowOf(body, "ちょうど"))).contains(CHIP_WITHIN, "予算内</span>");
 		for (String name : new String[] { "超過", "余裕", "予算なし", "実績なし" }) {
-			assertThat(rowOf(body, name)).as(name).doesNotContain("💮", "予算内");
+			assertThat(rowOf(body, name)).as(name).doesNotContain("chip-within", "予算内");
 		}
 		// 合計：予算 5,000＋20,000＋10,000＋10,000＋10,000 ＝ 55,000円、実績 6,000＋1,500＋5,000＋10,000＋700 ＝ 23,200円 → 色なしで予算内
-		String total = rowOf(body, "合計");
-		assertThat(firstCellOf(total)).contains(MARK);
-		assertThat(count(tbodyOf(body), "💮")).as("ふつう・ちょうど・合計の3か所").isEqualTo(3);
+		assertThat(statusCellOf(rowOf(body, "合計"))).contains(CHIP_WITHIN);
+		assertThat(count(tbodyOf(body), "chip-within\"")).as("ふつう・ちょうど・合計の3か所").isEqualTo(3);
+		assertThat(firstCellOf(rowOf(body, "ふつう"))).as("科目名のセルには、もう付かない（💮 は、なくなった）").doesNotContain("chip", "💮");
 	}
 
-	/** 過去の季節の行は 4 つのセル（科目・予算・実績・差額）。💮 の列はない（issue 020）。見込みの列は今の季節だけ */
+	/** 過去の季節の行は 5 つのセル（科目・状況・予算・実績・差額）。見込みの列は今の季節だけ */
 	@Test
-	void everyRowHasFourCellsAndNoSeparateMarkColumn() throws Exception {
+	void everyRowHasFiveCellsWithTheStatusColumn() throws Exception {
 		Owner a = createOwner("ctrlcmp12");
 		autumn(a, category(a, "ふつう"), 10_000, 5_000);
 		autumn(a, category(a, "余裕"), 20_000, 1_500);
@@ -471,65 +479,68 @@ class ComparisonControllerTest {
 		String body = open(a, "2026", "autumn");
 
 		for (String name : new String[] { "ふつう", "余裕", "合計" }) {
-			assertThat(count(rowOf(body, name), "<td")).as(name).isEqualTo(4);
+			assertThat(count(rowOf(body, name), "<td")).as(name).isEqualTo(5);
 		}
 		assertThat(rowOf(body, "ふつう")).contains("<td class=\"num\">10,000</td>", "<td class=\"num\">5,000</td>");
-		assertThat(lastCellOf(rowOf(body, "余裕"))).doesNotContain("💮", "visually-hidden");
+		assertThat(lastCellOf(rowOf(body, "余裕"))).doesNotContain("💮", "visually-hidden", "chip");
 	}
 
-	/** 見出しの行は、過去の季節で 4 列。単位「円」は見出しにまとめ、💮 の列の見出し「評価」はなくなった（issue 020） */
+	/** 見出しの行は、過去の季節で 5 列。単位「円」は見出しにまとめる。「状況」の列を足した */
 	@Test
-	void theHeaderHasFourColumnsWithTheYenInTheHeadingsAndNoColumnOnlyReadAloud() throws Exception {
+	void theHeaderHasFiveColumnsWithTheYenInTheHeadings() throws Exception {
 		Owner a = createOwner("ctrlcmp13");
 		autumn(a, category(a, "食費"), 10_000, 5_000);
 
 		String body = open(a, "2026", "autumn");
 
 		String head = body.substring(body.indexOf("<thead>") + "<thead>".length(), body.indexOf("</thead>"));
-		assertThat(count(head, "<th")).isEqualTo(4);
-		assertThat(head).contains("<th>科目</th>", "<th class=\"num col-budget\">予算（円）</th>", "<th class=\"num col-actual\">実績（円）</th>", "<th class=\"num col-diff\">差額（円）</th>");
+		assertThat(count(head, "<th")).isEqualTo(5);
+		assertThat(head).containsSubsequence("<th>科目</th>", "<th class=\"col-status\">状況</th>", "<th class=\"num col-budget\">予算（円）</th>",
+				"<th class=\"num col-actual\">実績（円）</th>", "<th class=\"num col-diff\">差額（円）</th>");
 		assertThat(head).doesNotContain("評価", "見込み");
 	}
 
-	/** 絵文字は飾りとして読ませず（aria-hidden）、「予算内」を画面に出さない文字で添える（Q8-31） */
+	/** 花のアイコンは飾りとして読ませず（aria-hidden）、「予算内」は画面に見える文字で出す（読み上げ用の隠し文字は使わない） */
 	@Test
-	void theMarkIsHiddenFromScreenReadersAndReadAsWithinBudget() throws Exception {
+	void theWithinChipShowsTheWordAndHidesTheFlowerFromScreenReaders() throws Exception {
 		Owner a = createOwner("ctrlcmp14");
 		autumn(a, category(a, "食費"), 10_000, 5_000);
 
 		String body = open(a, "2026", "autumn");
 
-		assertThat(rowOf(body, "食費")).contains("<span aria-hidden=\"true\">💮</span>", "<span class=\"visually-hidden\">予算内</span>");
+		String cell = statusCellOf(rowOf(body, "食費"));
+		assertThat(cell).contains("aria-hidden=\"true\"", "</svg></span>予算内</span>");
+		assertThat(rowOf(body, "食費")).doesNotContain("visually-hidden", "💮");
 	}
 
-	/** 色と印の注記に、💮 の説明がある。issue 020 で、色が差額のセルだけになり、文字の印（予算超え・使い残し）を足した */
+	/** 注記に、チップの説明がある（💮 は、なくなった） */
 	@Test
-	void theLegendExplainsTheMark() throws Exception {
+	void theLegendExplainsTheChips() throws Exception {
 		Owner a = createOwner("ctrlcmp15");
 		autumn(a, category(a, "食費"), 10_000, 5_000);
 
 		String body = open(a, "2026", "autumn");
 
-		assertThat(body).contains("差額の赤：予算超え／青：使い残し（予算の1/3以下）／💮：予算内（予算の1/3を超え、予算以下）");
+		assertThat(body).contains("チップ：予算超え（赤）／使い残し（青。予算の1/3以下）／予算内（予算の1/3を超え、予算以下）").doesNotContain("💮");
 	}
 
 	/** 予算が設定されていない季節（全科目が未設定）は、科目の行にも合計行にも出ない。科目が0件なら表ごと出ない */
 	@Test
-	void noMarkWhenNothingIsWithinBudget() throws Exception {
+	void noChipWhenNothingIsWithinBudget() throws Exception {
 		Owner a = createOwner("ctrlcmp16");
 		autumn(a, category(a, "食費"), 20_000, 5_000);
 
 		String unsetSeason = open(a, "2026", "winter");
-		assertThat(tbodyOf(unsetSeason)).doesNotContain("💮", "予算内");
+		assertThat(tbodyOf(unsetSeason)).doesNotContain("chip", "予算内");
 
 		Owner empty = createOwner("ctrlcmp17");
 		String noCategories = open(empty, "2026", "autumn");
-		assertThat(noCategories).doesNotContain("<table", "💮");
+		assertThat(noCategories).doesNotContain("<table", "chip-within");
 	}
 
-	/** 💮 の行（科目の行も合計行も）だけが row-within。ちょうどの行も付く。赤・青・未設定・実績0円・予算0円の行には付かない（Q8-39） */
+	/** 行に、予算内の背景のクラス（row-within）は付かない。合計行だけ total-row。チップは、予算内の行（合計行も）に 3 つ（Q8-39 を置きかえた） */
 	@Test
-	void onlyTheWithinBudgetRowsGetTheRowWithinClass() throws Exception {
+	void onlyTheTotalRowHasARowClassAndTheWithinChipsAreOnTheWithinRows() throws Exception {
 		Owner a = createOwner("ctrlcmp18");
 		autumn(a, category(a, "超過"), 5_000, 6_000);          // 赤
 		autumn(a, category(a, "余裕"), 20_000, 1_500);         // 青
@@ -541,40 +552,37 @@ class ComparisonControllerTest {
 
 		String body = open(a, "2026", "autumn");
 
-		assertThat(rowOf(body, "ふつう")).startsWith("<tr class=\"row-within\">");
-		assertThat(rowOf(body, "ちょうど")).startsWith("<tr class=\"row-within\">");
-		assertThat(rowOf(body, "合計")).startsWith("<tr class=\"total-row row-within\">");
-		assertThat(rowOf(body, "超過")).startsWith("<tr>").doesNotContain("row-within");     // 赤：行にクラスはなく、色は差額のセル（issue 020）
-		assertThat(rowOf(body, "余裕")).startsWith("<tr>").doesNotContain("row-within");     // 青：同じ
-		for (String name : new String[] { "予算なし", "実績なし", "ゼロ" }) {
-			assertThat(rowOf(body, name)).as(name).doesNotContain("row-within");
+		assertThat(tbodyOf(body)).doesNotContain("row-within");
+		for (String name : new String[] { "超過", "余裕", "ふつう", "ちょうど", "予算なし", "実績なし", "ゼロ" }) {
+			assertThat(rowOf(body, name)).as(name).startsWith("<tr>");
 		}
-		assertThat(rowOf(body, "予算なし")).startsWith("<tr>");
-		assertThat(rowOf(body, "ゼロ")).startsWith("<tr>");
-		assertThat(count(tbodyOf(body), "row-within")).as("ふつう・ちょうど・合計の3か所").isEqualTo(3);
+		assertThat(rowOf(body, "合計")).startsWith("<tr class=\"total-row\">");
+		assertThat(rowOf(body, "ゼロ")).as("予算0円・実績0円は、チップなし").doesNotContain("chip");
+		assertThat(count(tbodyOf(body), "chip-within\"")).as("ふつう・ちょうど・合計の3か所").isEqualTo(3);
 	}
 
-	/** 合計行が赤・青のときは row-within は付かず、色は合計の差額のセルだけ（背景と文字の色は重ならない。issue 020：行のクラス row-over・row-low はなくなった） */
+	/** 合計行が赤・青のときは、予算内のチップは付かず、合計の状況のチップ（予算超え・使い残し）が付く。赤い数字は、合計の差額のセルだけ */
 	@Test
-	void totalRowHasOnlyTheDifferenceCellColoredWhenItIsNotWithinBudget() throws Exception {
+	void totalRowHasItsOwnChipAndOnlyTheDifferenceCellIsRedWhenItIsNotWithinBudget() throws Exception {
 		Owner blue = createOwner("ctrlcmp19");
 		autumn(blue, category(blue, "食費"), 30_000, 1_000);
 		String blueTotal = rowOf(open(blue, "2026", "autumn"), "合計");
-		assertThat(blueTotal).startsWith("<tr class=\"total-row\">").contains("diff-low", "使い残し").doesNotContain("row-within", "diff-over");
+		assertThat(blueTotal).startsWith("<tr class=\"total-row\">").contains("chip-low", "使い残し").doesNotContain("chip-within", "diff-over");
 
 		Owner red = createOwner("ctrlcmp20");
 		autumn(red, category(red, "食費"), 30_000, 30_001);
 		String redTotal = rowOf(open(red, "2026", "autumn"), "合計");
-		assertThat(redTotal).startsWith("<tr class=\"total-row\">").contains("diff-over", "予算超え").doesNotContain("row-within", "diff-low");
+		assertThat(redTotal).startsWith("<tr class=\"total-row\">").contains("chip-over", "予算超え", "diff-over").doesNotContain("chip-within", "chip-low");
 	}
 
-	/** style.css に、row-within と within-mark の規則がある（クラス名の食い違いに気づくため。色の値は ColorSchemeStyleSheetTest で確かめる） */
+	/** style.css に、チップの規則がある。行の背景と 💮 の規則は、なくなった（クラス名の食い違いに気づくため。色の値は ColorSchemeStyleSheetTest で確かめる） */
 	@Test
-	void styleSheetHasTheRulesForTheWithinBudgetRowAndMark() throws Exception {
+	void styleSheetHasTheChipRulesAndNoLongerTheWithinRowRules() throws Exception {
 		String css = mockMvc.perform(get("/css/style.css")).andExpect(status().isOk())
 				.andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
 
-		assertThat(css).contains(".comparison-table tr.row-within", "--bs-table-bg", ".comparison-table .within-mark", "font-size");
+		assertThat(css).contains(".chip-over", ".chip-low", ".chip-within", ".chip-icon");
+		assertThat(css).doesNotContain(".comparison-table tr.row-within", ".comparison-table .within-mark");
 	}
 
 	/** XSS 対策（設計書 7.5）：科目名の < > は文字として出る。タグとしては出ない（科目名が表の行に出る画面。Phase 8 の 4.14） */
@@ -592,31 +600,32 @@ class ComparisonControllerTest {
 	}
 
 	// ================================================================
-	// 色：差額のセルだけに付け、文字の印を添える（issue 020。F4 を置きかえた）。合計行も同じ
+	// チップと赤い数字：状況のチップ（予算超え・使い残し・予算内）と、差額のセルの赤（issue 024 で、文字の印を置きかえた）。合計行も同じ
 	// ================================================================
 
-	/** 赤・青は差額のセルのクラス（diff-over、diff-low）と文字の印（予算超え、使い残し）。<tr> にはクラスがない。予算内の行は row-within（背景。Q8-39）、予算が未設定の行は色も印もない */
+	/** 赤・青・予算内は、状況のセルのチップ（chip-over・chip-low・chip-within）。差額のセルの赤（diff-over）は、赤のときだけ。青の数字はない。<tr> にはクラスがない。予算が未設定の行はチップも色もない */
 	@Test
-	void colorAndMarkAreOnTheDifferenceCellOnly() throws Exception {
+	void theChipIsInTheStatusCellAndOnlyRedHasARedNumber() throws Exception {
 		Owner a = createOwner("ctrlcmp9");
 		autumn(a, category(a, "超過"), 5_000, 6_000);       // 赤
 		autumn(a, category(a, "余裕"), 20_000, 1_500);      // 青
-		autumn(a, category(a, "ふつう"), 10_000, 5_000);    // 色なしで予算内（5,000×3 ＞ 10,000）：row-within
-		autumn(a, category(a, "予算なし"), null, 700);       // 予算が未設定：色なし、クラスなし
+		autumn(a, category(a, "ふつう"), 10_000, 5_000);    // 色なしで予算内（5,000×3 ＞ 10,000）
+		autumn(a, category(a, "予算なし"), null, 700);       // 予算が未設定：色なし、チップなし
 
 		String body = open(a, "2026", "autumn");
 
 		String over = rowOf(body, "超過");
-		assertThat(over).startsWith("<tr>").contains("diff-over", "予算超え").doesNotContain("diff-low", "使い残し");
-		assertThat(count(over, "diff-over")).as("色のクラスは差額のセルだけ").isEqualTo(1);
+		assertThat(over).startsWith("<tr>").contains("chip-over", "予算超え", "diff-over").doesNotContain("chip-low", "使い残し", "chip-within");
+		assertThat(count(over, "diff-over")).as("赤い数字のクラスは差額のセルだけ").isEqualTo(1);
+		assertThat(statusCellOf(over)).contains("<span class=\"chip chip-over\">予算超え</span>");
 		String low = rowOf(body, "余裕");
-		assertThat(low).startsWith("<tr>").contains("diff-low", "使い残し").doesNotContain("diff-over", "予算超え");
-		assertThat(count(low, "diff-low")).isEqualTo(1);
+		assertThat(low).startsWith("<tr>").contains("chip-low", "使い残し").doesNotContain("diff-over", "diff-low", "chip-over", "予算超え");
+		assertThat(statusCellOf(low)).contains("<span class=\"chip chip-low\">使い残し</span>");
 		String normal = rowOf(body, "ふつう");
-		assertThat(normal).startsWith("<tr class=\"row-within\">").doesNotContain("diff-over", "diff-low", "予算超え", "使い残し");
-		assertThat(rowOf(body, "予算なし")).startsWith("<tr>").doesNotContain("diff-over", "diff-low", "予算超え", "使い残し");
-		// 合計行：予算 35,000、実績 13,200 → 色なしで予算内（13,200×3 ＞ 35,000）：total-row row-within
-		assertThat(rowOf(body, "合計")).startsWith("<tr class=\"total-row row-within\">");
+		assertThat(normal).startsWith("<tr>").contains("chip-within").doesNotContain("diff-over", "diff-low", "chip-over", "chip-low", "予算超え", "使い残し");
+		assertThat(rowOf(body, "予算なし")).startsWith("<tr>").doesNotContain("diff-over", "diff-low", "chip");
+		// 合計行：予算 35,000、実績 13,200 → 色なしで予算内（13,200×3 ＞ 35,000）
+		assertThat(rowOf(body, "合計")).startsWith("<tr class=\"total-row\">").contains("chip-within");
 	}
 
 	@Test
@@ -626,8 +635,8 @@ class ComparisonControllerTest {
 
 		String body = open(a, "2026", "autumn");
 
-		assertThat(rowOf(body, "食費")).startsWith("<tr>").contains("diff-low", "使い残し");
-		assertThat(rowOf(body, "合計")).startsWith("<tr class=\"total-row\">").contains("diff-low", "使い残し");
+		assertThat(rowOf(body, "食費")).startsWith("<tr>").contains("chip-low", "使い残し");
+		assertThat(rowOf(body, "合計")).startsWith("<tr class=\"total-row\">").contains("chip-low", "使い残し");
 	}
 
 	@Test
@@ -637,8 +646,8 @@ class ComparisonControllerTest {
 
 		String body = open(a, "2026", "autumn");
 
-		assertThat(rowOf(body, "食費")).startsWith("<tr>").contains("diff-over", "予算超え");
-		assertThat(rowOf(body, "合計")).startsWith("<tr class=\"total-row\">").contains("diff-over", "予算超え");
+		assertThat(rowOf(body, "食費")).startsWith("<tr>").contains("chip-over", "予算超え", "diff-over");
+		assertThat(rowOf(body, "合計")).startsWith("<tr class=\"total-row\">").contains("chip-over", "予算超え", "diff-over");
 		assertThat(rowOf(body, "合計")).contains(">-1,000<");
 	}
 

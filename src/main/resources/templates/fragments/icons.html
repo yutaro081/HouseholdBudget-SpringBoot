@@ -4,12 +4,12 @@
   アイコンの部品（設計書 2.3「アイコン」、4.4.2、7.5、issue 017）。自作の線の SVG。ライブラリは使わない。
   ・使い方：<th:block th:replace="~{fragments/icons :: icon('top', 18, 2)}"></th:block>
     （名前, 大きさ[px], 線の太さ）。名前は固定の文字だけで渡す（利用者の入力は使わない）。知らない名前では、何も出さない。
-  ・13 個：logo、メニューの 7 つ（top、transactions、categories、vendors、payment-methods、budgets、comparison）、plus、sun、pie、check（ログイン・登録の紹介のチェックの印）、sparkle（予算設定の「自動予算」ボタン。issue 019）。
-  ・飾りなので aria-hidden="true"（意味は、隣の文字で伝わる）。色は currentColor（文字の色に合わせる）。
+  ・14 個：logo、メニューの 7 つ（top、transactions、categories、vendors、payment-methods、budgets、comparison）、plus、sun、pie、check（ログイン・登録の紹介のチェックの印）、sparkle（予算設定の「自動予算」ボタン。issue 019）、flower（「予算内」のチップの花。issue 024。ほかと違って、塗りの花：花びら #F0A060、中心 #FFF8EE、中心の縁 #B4571A。飾りの色で、意味は持たせない）。
+  ・飾りなので aria-hidden="true"（意味は、隣の文字で伝わる）。色は currentColor（文字の色に合わせる）。ただし flower だけは、塗りの花で、色を SVG の中に固定で書く（小さいと、線の花は星に見えるため）。
   ・xmlns、style 属性、script、use、image、外部の URL は書かない（テストが確かめる）。
   ・<svg> の前後に空白を入れない（<a> の中の文字との間に余白ができるため）。
 */-->
-<th:block th:fragment="icon(name, size, stroke)"><svg th:if="${name == 'logo' or name == 'top' or name == 'transactions' or name == 'categories' or name == 'vendors' or name == 'payment-methods' or name == 'budgets' or name == 'comparison' or name == 'plus' or name == 'sun' or name == 'pie' or name == 'check' or name == 'sparkle'}" th:attr="width=${size},height=${size},stroke-width=${stroke}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><th:block th:switch="${name}">
+<th:block th:fragment="icon(name, size, stroke)"><svg th:if="${name == 'logo' or name == 'top' or name == 'transactions' or name == 'categories' or name == 'vendors' or name == 'payment-methods' or name == 'budgets' or name == 'comparison' or name == 'plus' or name == 'sun' or name == 'pie' or name == 'check' or name == 'sparkle' or name == 'flower'}" th:attr="width=${size},height=${size},stroke-width=${stroke}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><th:block th:switch="${name}">
 <th:block th:case="'logo'"><rect x="3" y="5" width="18" height="14" rx="2.5"></rect><path d="M3 10h18"></path><path d="M7 15h4"></path></th:block>
 <th:block th:case="'top'"><path d="M3 11l9-7 9 7"></path><path d="M5 10v10h14V10"></path></th:block>
 <th:block th:case="'transactions'"><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><path d="M3 6h.01"></path><path d="M3 12h.01"></path><path d="M3 18h.01"></path></th:block>
@@ -23,5 +23,6 @@
 <th:block th:case="'pie'"><path d="M21 12a9 9 0 1 1-9-9v9z"></path><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"></path></th:block>
 <th:block th:case="'check'"><path d="M5 12l5 5 9-10"></path></th:block>
 <th:block th:case="'sparkle'"><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"></path><path d="M19 3v4"></path><path d="M17 5h4"></path></th:block>
+<th:block th:case="'flower'"><g fill="#F0A060" stroke="none"><circle cx="12" cy="6.3" r="4.3"></circle><circle cx="17.4" cy="10.2" r="4.3"></circle><circle cx="15.3" cy="16.6" r="4.3"></circle><circle cx="8.7" cy="16.6" r="4.3"></circle><circle cx="6.6" cy="10.2" r="4.3"></circle></g><circle cx="12" cy="12" r="3.2" fill="#FFF8EE" stroke="#B4571A" stroke-width="1.6"></circle></th:block>
 </th:block></svg></th:block>
 </html>

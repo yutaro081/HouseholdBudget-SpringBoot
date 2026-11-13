@@ -61,7 +61,8 @@ class ComparisonLandingTest {
 
 	/** 要約カードの大きな数字と予算（issue 020。issue 018 の 1 行の文を置きかえた）。{0}＝見込みの額、{1}＝合計の予算 */
 	private static String[] sentence(String amount, String budget) {
-		return new String[] { "約 " + amount + "円", "予算 " + budget + "円" };
+		return new String[] { "<strong class=\"comparison-card-forecast\">約 " + amount + "円</strong>",
+				"<span class=\"comparison-card-label\">予算</span><strong class=\"comparison-card-figure\">" + budget + "円</strong>" };
 	}
 
 	/** 要約カード（&lt;section class="comparison-card"&gt; から &lt;/section&gt; まで） */
@@ -71,7 +72,8 @@ class ComparisonLandingTest {
 		return body.substring(start, body.indexOf("</section>", start));
 	}
 
-	private static final String OVER = "見込みは、予算を上回ります。";
+	/** 見込みが予算を上回るときの文（issue 024：「見込みは、予算を上回ります。」を、「予算より 約 ○円 多い見込みです。」に置きかえた）。この部分が、含まれるかどうかで確かめる */
+	private static final String OVER = "多い見込みです。";
 	private static final String NOTE = "月ごとにまとめて払うものは、払う日で見込みが上下します。";
 
 	@Autowired
@@ -288,4 +290,65 @@ class ComparisonLandingTest {
 		assertThat(body).doesNotContain(OVER).doesNotContain("900,000");
 	}
 
+
+	// ---- 差の文（予算より 約 ○円 少ない・多い見込みです。同じなら「予算どおりの見込みです。」。多いときだけ赤。issue 024） ----
+
+	@Test
+	void theVerdictSentenceTellsHowMuchMoreOrLessTheForecastIsThanTheBudget() throws Exception {
+		Category food = category("食費", 100_000, Season.AUTUMN, 2026);
+		recordingStartedLongAgo(food);
+		spend(food, 76_000);                // 見込み 100,300、予算 100,000 → 300 円 多い
+
+		String more = cardOf(page("/comparison"));
+		assertThat(more).contains("予算より 約 300円 多い見込みです。").doesNotContain("少ない見込みです。", "予算どおりの見込みです。");
+		assertThat(more).as("多いときだけ赤").contains("comparison-card-verdict comparison-card-verdict-over");
+	}
+
+	@Test
+	void aLessVerdictAndASameVerdictAreNotRed() throws Exception {
+		Category food = category("食費", 100_000, Season.AUTUMN, 2026);
+		recordingStartedLongAgo(food);
+		spend(food, 60_000);                // 見込み 80,400 → 19,600 円 少ない（実績 60,000、季節の 72 日目）
+
+		String less = cardOf(page("/comparison"));
+		assertThat(less).contains("予算より 約 19,600円 少ない見込みです。").doesNotContain(OVER, "予算どおりの見込みです。", "comparison-card-verdict-over");
+		assertThat(less).contains("class=\"comparison-card-verdict\"");
+	}
+
+	@Test
+	void whenTheForecastIsExactlyTheBudgetTheSentenceSaysAsPlannedAndIsNotRed() throws Exception {
+		Category food = category("食費", 91_000, Season.AUTUMN, 2026);
+		recordingStartedLongAgo(food);
+		spend(food, 69_000);                // 見込み ＝ 予算 ＝ 91,000
+
+		String card = cardOf(page("/comparison"));
+
+		assertThat(card).contains("予算どおりの見込みです。", "class=\"comparison-card-verdict\"").doesNotContain("少ない見込みです。", OVER, "comparison-card-verdict-over");
+	}
+
+	/** 差は、表の見込みとの差の列（合計行）と同じ値。表示する見込みの額（100 円単位に切り上げ）と予算の差 */
+	@Test
+	void theVerdictAmountIsTheSameAsTheTotalGapInTheTable() throws Exception {
+		Category food = category("食費", 100_000, Season.AUTUMN, 2026);
+		recordingStartedLongAgo(food);
+		spend(food, 90_000);                // 117,700 → 17,700 円 多い
+
+		String body = page("/comparison");
+
+		assertThat(cardOf(body)).contains("予算より 約 17,700円 多い見込みです。");
+		assertThat(body.substring(body.indexOf("class=\"total-row\""))).contains("-17,700");
+	}
+
+	/** 差の文の金額は、百万円を超える額でも、3 桁ごとにカンマが付く（メッセージの引数 {0} が、MessageFormat で書式付きになるため。2 本目の確かめ：「約 1234000円」にならない） */
+	@Test
+	void theVerdictAmountOfMillionsHasCommas() throws Exception {
+		Category food = category("食費", 100_000, Season.AUTUMN, 2026);
+		recordingStartedLongAgo(food);
+		spend(food, 1_000_000);             // 見込みは 100 万円台 → 予算との差も 100 万円台の「多い」
+
+		String card = cardOf(page("/comparison"));
+
+		assertThat(card).containsPattern("予算より 約 [0-9]{1,3}(,[0-9]{3}){2}円 多い見込みです。");
+		assertThat(card).doesNotContainPattern("約 [0-9]{4,}円");
+	}
 }

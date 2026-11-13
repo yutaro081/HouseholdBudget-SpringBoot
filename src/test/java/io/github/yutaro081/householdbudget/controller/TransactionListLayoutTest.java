@@ -144,7 +144,7 @@ class TransactionListLayoutTest {
 		save(100, "昼食");
 		String main = list();
 
-		assertThat(main.indexOf("class=\"list-card")).isPositive().isLessThan(main.indexOf("<table"));
+		assertThat(main.indexOf("class=\"table-card list-card")).isPositive().isLessThan(main.indexOf("<table"));
 		String head = main.substring(main.indexOf("<thead>"), main.indexOf("</thead>"));
 		List<String> labels = new ArrayList<>();
 		Matcher m = Pattern.compile("<th[^>]*>(.*?)</th>", Pattern.DOTALL).matcher(head);

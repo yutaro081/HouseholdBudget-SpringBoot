@@ -28,7 +28,8 @@
          過去の同じ季節が範囲（2000年春）より前しかないとき、科目が0件のときは出さない（autoAvailable）。
          「保存」ボタンは上にだけ置く（下にはない）。表を囲むフォームの外にあるので、form 属性で同じフォームを送る（CSRF のトークンはフォームの中）。
          ふだんの画面では、この行の右端。案を入れたあと（選ぶリンクがあるとき）は、選ぶリンクの行の右端 */-->
-    <div class="auto-budget-action" th:if="${hasRows and (budgetView.autoAvailable or !saveInChoices)}">
+    <section class="auto-budget-card" th:if="${hasRows}">
+    <div class="auto-budget-action" th:if="${budgetView.autoAvailable or !saveInChoices}">
         <a class="btn auto-budget-button" th:if="${budgetView.autoAvailable}" th:attr="data-budget-confirm=#{budget.auto.confirm}"
            th:href="@{/budgets(year=${budgetView.period.year}, season=${budgetView.period.season.urlName}, auto=1)}"><th:block th:replace="~{fragments/icons :: icon('sparkle', 20, 2)}"></th:block><span th:text="#{budget.auto.button}">自動予算</span></a>
         <span class="auto-budget-note" th:if="${budgetView.autoAvailable}" th:text="#{budget.auto.note}">手で直した額は、ボタンを押すと消えます。</span>
@@ -72,6 +73,7 @@
         </div>
         <button type="submit" form="budget-form" class="btn btn-primary budget-save">保存</button>
     </div>
+    </section>
 
     <!--/* 科目ごとの予算額の入力。科目の登録順。保存先は、年と季節を含む URL（設計書 5.7）。
          入力欄には、カンマも「円」も使わない。数字だけを入力する（設計書 2.3）。画面側では必須・範囲の制限を付けない（G1）。
@@ -81,8 +83,10 @@
          案を入れたあとだけ、表は5列（科目／案の根拠／予算額／直前の季節の実績／直前の季節の予算。issue 020 で、決める列を科目のすぐ右に置く並びに変えた。合計の行も同じ並び）。ふだんは2列 */-->
     <form id="budget-form" th:unless="${#lists.isEmpty(budgetView.rows)}"
           th:action="@{/budgets(year=${budgetView.period.year}, season=${budgetView.period.season.urlName})}"
-          th:object="${budgetForm}" method="post" novalidate>
-        <div class="table-responsive">
+          th:object="${budgetForm}" method="post" novalidate
+          th:attr="data-budget-save-confirm=#{budget.save.confirm(${'' + budgetView.period.year}, ${seasonName})},
+                   data-budget-save-confirm-total=#{budget.save.confirm.total(${'' + budgetView.period.year}, ${seasonName}, '{total}')}">
+        <div class="table-card table-responsive">
         <table class="list budget-table table align-middle">
             <thead>
             <tr>
@@ -137,7 +141,7 @@
             <tr>
                 <th scope="row">合計</th>
                 <td th:if="${auto != null}"></td>
-                <td class="num">
+                <td class="num budget-total-cell">
                     <strong class="budget-total budget-sum" data-budget-total th:text="${budgetView.total != null} ? ${#numbers.formatInteger(budgetView.total, 1, 'COMMA')} : '—'">186,000</strong>
                     <div class="small text-danger" hidden data-budget-not-number th:text="#{budget.total.notNumber}">数字でない欄があります</div>
                     <div class="small text-danger" hidden data-budget-empty th:text="#{budget.total.empty}">空の欄があります</div>
@@ -156,7 +160,7 @@
         </div>
         <p class="budget-hint"><small th:text="#{budget.amount.hint}">0〜3,000,000 の整数</small></p>
         <!--/* 案のもとにした数字の印（issue 020）：「自動予算」を押したあとで、材料があるときだけ。どの数字に引くかは、Service が決めた arow.source（案のルール①〜④）。ここでは計算しない */-->
-        <p class="legend" th:if="${auto != null and !auto.noMaterial}" th:text="#{budget.auto.source.legend}">ターコイズの下線：案のもとにした数字</p>
+        <p class="legend" th:if="${auto != null and !auto.noMaterial}" th:text="#{budget.auto.source.legend}">薄いターコイズの背景：案のもとにした数字</p>
     </form>
 </main>
 <script defer th:src="@{/js/budget-total.js}"></script>

@@ -364,16 +364,16 @@ class TopServiceTest {
 		assertThat(view.pieStops()).startsWith("var(--hb-chart-1) 0.0%").endsWith("100.0%");
 	}
 
-	/** 円グラフの一覧の判定は、「今週の進み具合」の行と同じ（週の予算 ＝ 予算 ÷ 13 を 100 円単位で切り上げ）。issue 017 の見直し */
+	/** 円グラフの一覧は、判定を持たない（issue 024）。金額と割合だけ。判定は「今週の進み具合」の行（WeekRow）だけにある */
 	@Test
-	void eachPieSliceHasTheSameJudgementAsTheWeekRowOfTheSameCategory() {
+	void thePieSlicesHaveNoJudgementWhileTheWeekRowsStillHaveIt() {
 		Owner a = createOwner("toptest30");
 		Category food = category(a, "食費");
 		budget(a, food, AUTUMN_2026, 40_000);       // 週の予算 3,100
 		spend(a, food, SUNDAY, 4_200);              // 超過 → 赤
 		Category misc = category(a, "雑費");
 		budget(a, misc, AUTUMN_2026, 30_000);       // 週の予算 2,400
-		spend(a, misc, SUNDAY, 2_000);              // 1/3 を超えて予算以下 → 💮
+		spend(a, misc, SUNDAY, 2_000);              // 1/3 を超えて予算以下 → 予算内
 		Category transport = category(a, "交通費");
 		budget(a, transport, AUTUMN_2026, 25_000);  // 週の予算 2,000
 		spend(a, transport, SUNDAY, 600);           // 1/3 以下 → 青
@@ -383,35 +383,26 @@ class TopServiceTest {
 		TopView view = top(a, SUNDAY);
 
 		assertThat(view.slices()).extracting(s -> s.name()).containsExactly("食費", "雑費", "交通費", "予算なし科目");
-		assertThat(view.slices().get(0).color()).isEqualTo(BudgetColor.RED);
-		assertThat(view.slices().get(1).color()).isEqualTo(BudgetColor.NONE);
-		assertThat(view.slices().get(1).withinBudget()).isTrue();
-		assertThat(view.slices().get(2).color()).isEqualTo(BudgetColor.BLUE);
-		assertThat(view.slices().get(3).color()).isEqualTo(BudgetColor.NONE);
-		assertThat(view.slices().get(3).withinBudget()).isFalse();
-		for (var slice : view.slices()) {
-			var row = view.rows().stream().filter(r -> slice.name().equals(r.categoryName())).findFirst().orElseThrow();
-			assertThat(slice.color()).as(slice.name() + " の色").isEqualTo(row.color());
-			assertThat(slice.withinBudget()).as(slice.name() + " の 💮").isEqualTo(row.withinBudget());
-		}
+		assertThat(view.slices()).extracting(s -> s.amount()).containsExactly(4_200L, 2_000L, 600L, 500L);
+		assertThat(view.rows().get(0).color()).as("今週の進み具合の行には、判定が残る").isEqualTo(BudgetColor.RED);
+		assertThat(view.rows().get(1).withinBudget()).isTrue();
+		assertThat(view.rows().get(2).color()).isEqualTo(BudgetColor.BLUE);
 	}
 
 	@Test
-	void theOtherSliceHasNoJudgement() {
+	void theOtherSliceMergesTheRestOfTheCategories() {
 		Owner a = createOwner("toptest31");
 		for (int i = 1; i <= 8; i++) {
 			Category c = category(a, "科目" + i);
-			budget(a, c, AUTUMN_2026, 0);            // 予算 0 円で実績あり → 赤
+			budget(a, c, AUTUMN_2026, 0);
 			spend(a, c, SUNDAY, i * 100);
 		}
 
 		TopView view = top(a, SUNDAY);
 
 		assertThat(view.slices()).hasSize(6);
-		assertThat(view.slices().subList(0, 5)).extracting(s -> s.color()).containsOnly(BudgetColor.RED);
 		assertThat(view.slices().get(5).name()).isEqualTo(PieSlices.OTHER_NAME);
-		assertThat(view.slices().get(5).color()).isEqualTo(BudgetColor.NONE);
-		assertThat(view.slices().get(5).withinBudget()).isFalse();
+		assertThat(view.slices().get(5).mergedCount()).isEqualTo(3);
 	}
 
 	// ---- 他の人のデータ ----
@@ -511,12 +502,18 @@ class TopServiceTest {
 
 		TopView view = top(a, SUNDAY);
 
-		assertThat(view.rows().get(0).statusKey()).isEqualTo("top.status.over");
-		assertThat(view.rows().get(0).statusAmount()).isEqualTo(100L);
-		assertThat(view.rows().get(1).statusKey()).isEqualTo("top.status.low");
-		assertThat(view.rows().get(2).statusKey()).isEqualTo("top.status.within");
-		assertThat(view.rows().get(3).statusKey()).isEqualTo("top.status.none");    // 予算なし
-		assertThat(view.rows().get(4).statusKey()).isNull();                         // 予算 0 円で実績 0 円（色なし）
+		// チップの種類は色と予算内の印（判定済み）で決まる。予算超えのときだけ、金額（実績 − 週の予算）を持つ（issue 024：「予算超え ＋100円」）
+		assertThat(view.rows().get(0).color()).isEqualTo(BudgetColor.RED);
+		assertThat(view.rows().get(0).overAmount()).isEqualTo(100L);
+		assertThat(view.rows().get(1).color()).isEqualTo(BudgetColor.BLUE);
+		assertThat(view.rows().get(1).overAmount()).isNull();
+		assertThat(view.rows().get(2).withinBudget()).isTrue();
+		assertThat(view.rows().get(2).overAmount()).isNull();
+		assertThat(view.rows().get(3).budget()).as("予算なし（週の予算が未設定）").isNull();
+		assertThat(view.rows().get(3).overAmount()).isNull();
+		assertThat(view.rows().get(4).color()).as("予算 0 円で実績 0 円（色なし）").isEqualTo(BudgetColor.NONE);
+		assertThat(view.rows().get(4).withinBudget()).isFalse();
+		assertThat(view.rows().get(4).overAmount()).isNull();
 	}
 
 	@Test
@@ -528,8 +525,8 @@ class TopServiceTest {
 
 		WeekRow total = top(a, SUNDAY).total();
 
-		assertThat(total.statusKey()).isEqualTo("top.status.over");
-		assertThat(total.statusAmount()).isEqualTo(600L);
+		assertThat(total.color()).isEqualTo(BudgetColor.RED);
+		assertThat(total.overAmount()).isEqualTo(600L);
 	}
 
 	// ---- issue 018：着地見込み（トップの一文の数字） ----

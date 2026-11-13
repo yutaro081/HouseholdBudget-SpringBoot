@@ -22,9 +22,9 @@ import org.thymeleaf.spring6.SpringTemplateEngine;
 @SpringBootTest
 class IconsFragmentTest {
 
-	/** 設計書 2.3「アイコン」の 13 個（issue 017 の 2 回目で check、issue 019 で sparkle を足した） */
+	/** 設計書 2.3「アイコン」の 14 個（issue 017 の 2 回目で check、issue 019 で sparkle、issue 024 で flower を足した） */
 	private static final List<String> NAMES = List.of("logo", "top", "transactions", "categories", "vendors",
-			"payment-methods", "budgets", "comparison", "plus", "sun", "pie", "check", "sparkle");
+			"payment-methods", "budgets", "comparison", "plus", "sun", "pie", "check", "sparkle", "flower");
 
 	private static final Pattern SVG = Pattern.compile("<svg.*?</svg>", Pattern.DOTALL);
 
@@ -49,7 +49,7 @@ class IconsFragmentTest {
 	}
 
 	@Test
-	void eachOfTheThirteenNamesGivesOneSvg() {
+	void eachOfTheFourteenNamesGivesOneSvg() {
 		for (String name : NAMES) {
 			List<String> svgs = svgs(render(List.of(name), 18, 2));
 			assertThat(svgs).as(name).hasSize(1);
@@ -57,14 +57,14 @@ class IconsFragmentTest {
 	}
 
 	@Test
-	void theThirteenIconsAreAllDifferent() {
+	void theFourteenIconsAreAllDifferent() {
 		Set<String> shapes = new HashSet<>();
 		for (String name : NAMES) {
 			String svg = svgs(render(List.of(name), 18, 2)).get(0);
 			// 形（中身）だけを比べる
 			shapes.add(svg.substring(svg.indexOf('>') + 1));
 		}
-		assertThat(shapes).hasSize(13);
+		assertThat(shapes).hasSize(14);
 	}
 
 	@Test
@@ -88,7 +88,7 @@ class IconsFragmentTest {
 	@Test
 	void noIconContainsAnythingUnsafeOrExternal() {
 		String all = String.join(" ", svgs(render(NAMES, 18, 2)));
-		assertThat(svgs(all)).hasSize(13);
+		assertThat(svgs(all)).hasSize(14);
 
 		assertThat(all).doesNotContain("<script", "<use", "<image", "xmlns", "style=", "http", "onclick", "onload", "href", "url(");
 	}
@@ -123,6 +123,22 @@ class IconsFragmentTest {
 
 		assertThat(svg).contains("<path d=\"M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z\"></path>", "<path d=\"M19 3v4\"></path>", "<path d=\"M17 5h4\"></path>",
 				"aria-hidden=\"true\"", "width=\"18\"");
+	}
+
+	/**
+	 * issue 024：「予算内」のチップの花。塗りの花（5 つの丸の花びらと、まん中の丸）。16px で、星に見えない。飾り（aria-hidden）で、意味は持たせない。
+	 * 花びらの塗り #F0A060 と、中心の塗り #FFF8EE は、飾りの色（設計書 2.3）。中心の縁 #B4571A（線の太さ 1.6）が、チップの背景との明るさの比 3 以上を確かめる対象
+	 */
+	@Test
+	void theFlowerIconIsAFilledFlowerWithFivePetalCirclesAndACenterRing() {
+		String svg = svgs(render(List.of("flower"), 16, 1.6)).get(0);
+
+		assertThat(svg).contains("<g fill=\"#F0A060\" stroke=\"none\">", "aria-hidden=\"true\"", "width=\"16\"", "height=\"16\"", "viewBox=\"0 0 24 24\"");
+		assertThat(svg).contains("<circle cx=\"12\" cy=\"6.3\" r=\"4.3\"></circle>", "<circle cx=\"17.4\" cy=\"10.2\" r=\"4.3\"></circle>", "<circle cx=\"15.3\" cy=\"16.6\" r=\"4.3\"></circle>",
+				"<circle cx=\"8.7\" cy=\"16.6\" r=\"4.3\"></circle>", "<circle cx=\"6.6\" cy=\"10.2\" r=\"4.3\"></circle>");
+		assertThat(svg).contains("<circle cx=\"12\" cy=\"12\" r=\"3.2\" fill=\"#FFF8EE\" stroke=\"#B4571A\" stroke-width=\"1.6\"></circle>");
+		assertThat(svg.split("<circle", -1).length - 1).as("花びら 5 つと、中心 1 つ").isEqualTo(6);
+		assertThat(svg).as("線の花はやめた").doesNotContain("<path");
 	}
 
 }

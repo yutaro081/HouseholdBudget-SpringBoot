@@ -178,8 +178,8 @@ class AuthAndListStyleSheetTest {
 
 		assertThat(rule(css, ".page-head")).contains("display: flex", "flex-wrap: wrap", "justify-content: space-between");
 		assertThat(rule(css, ".page-sub")).contains("color: var(--hb-text-sub)", "font-size: var(--hb-font-size-small)");
-		String card = rule(css, ".list-card");
-		assertThat(card).contains("background: #fff", "border: 1px solid var(--hb-line)", "border-radius: var(--hb-radius-card)");
+		String card = rule(css, ".table-card");   // 段階 12：カードの見た目は .table-card が決める
+		assertThat(card).contains("background-color: var(--hb-input-bg)", "border: 1px solid var(--hb-line)", "border-radius: var(--hb-radius-card)");
 		assertThat(card).doesNotContain("box-shadow");
 	}
 

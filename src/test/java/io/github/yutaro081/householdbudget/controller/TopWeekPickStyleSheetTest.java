@@ -33,7 +33,7 @@ class TopWeekPickStyleSheetTest {
 		String pick = rule(css, ".top-week-pick");
 		String season = rule(css, ".top-season-pace");
 
-		assertThat(pick).contains("color: var(--hb-teal-text)", "font-weight: 700", "font-size: 1.0625rem");
+		assertThat(pick).contains("color: var(--hb-teal-text)", "font-weight: 700", "font-size: var(--hb-font-size-body)");
 		assertThat(season).as("上の季節のカードの文と、同じ色・太さ").contains("color: var(--hb-teal-text)", "font-weight: 700");
 		assertThat(css).contains("--hb-teal-text: #0B6E6B");
 	}

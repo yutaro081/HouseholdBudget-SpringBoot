@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import io.github.yutaro081.householdbudget.domain.LandingForecast;
+import io.github.yutaro081.householdbudget.domain.LandingVerdict;
 import io.github.yutaro081.householdbudget.domain.MeterScale;
 import io.github.yutaro081.householdbudget.domain.PeriodProgress;
 import io.github.yutaro081.householdbudget.domain.SeasonPeriod;
@@ -82,6 +83,8 @@ public class ComparisonController {
 		model.addAttribute("totalGap", landing.isPresent() ? comparison.total().budget() - landing.get().amount() : null);
 		// 要約カードの棒と文（トップの季節のメーターと同じ値の求め方。PeriodProgress）
 		if (landing.isPresent()) {
+			// 差の文（issue 024）：予算 − 見込みの額（表の見込みとの差の合計行と同じ値）を domain の LandingVerdict に渡して、向き・額・赤かどうかを決める。テンプレートでは判定しない
+			model.addAttribute("verdict", LandingVerdict.of(comparison.total().budget() - landing.get().amount()));
 			model.addAttribute("cardUsedPercent", PeriodProgress.usedPercent(comparison.total().budget(), comparison.total().actual()));
 			model.addAttribute("cardElapsedPercent", PeriodProgress.seasonElapsedPercent(period, today));
 			model.addAttribute("cardMeter", MeterScale.of(comparison.total().budget(), comparison.total().actual(), PeriodProgress.seasonElapsedPermille(period, today)));

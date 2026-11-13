@@ -39,6 +39,12 @@ class ColorSchemeStyleSheetTest {
 			Map.entry("--hb-input-bg", "#FFFFFF"),
 			Map.entry("--hb-apricot", "#FFF2E5"),
 			Map.entry("--hb-row-hover", "#EEF3F3"),
+			Map.entry("--hb-over", "#C62828"),
+			Map.entry("--hb-low", "#1565C0"),
+			Map.entry("--hb-within-border", "#E8C9A8"),
+			Map.entry("--hb-within-text", "#7A3A10"),
+			Map.entry("--hb-within-icon", "#B4571A"),
+			Map.entry("--hb-divider", "#C9D2D1"),
 			Map.entry("--hb-danger", "#B02A37"));
 
 	@Autowired
@@ -88,6 +94,15 @@ class ColorSchemeStyleSheetTest {
 		assertThat(ratio(variable(css, "hb-text-sub"), hover)).as("補足の文字（日付・支払方法・摘要）").isGreaterThanOrEqualTo(4.5).isBetween(5.6, 5.7);
 	}
 
+	/** 花のアイコンの中心の縁の色（#B4571A）は、変数 --hb-within-icon と、アイコンの部品（icons.html）の中の値が、同じ。花びら #F0A060 と中心 #FFF8EE は、飾りの色（意味は持たせない。比べない） */
+	@Test
+	void theFlowerRingColorInTheIconIsTheSameAsTheVariable() throws Exception {
+		String icons = java.nio.file.Files.readString(java.nio.file.Path.of("src", "main", "resources", "templates", "fragments", "icons.html"));
+		String ring = variable(css("/css/style.css"), "hb-within-icon");
+
+		assertThat(icons).contains("stroke=\"" + ring + "\"", "fill=\"#F0A060\"", "fill=\"#FFF8EE\"");
+	}
+
 	private static String variable(String css, String name) {
 		Matcher m = Pattern.compile("--" + Pattern.quote(name) + ":\s*(#[0-9A-Fa-f]{6})").matcher(css);
 		assertThat(m.find()).as("--" + name).isTrue();
@@ -109,15 +124,33 @@ class ColorSchemeStyleSheetTest {
 		return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
 	}
 
+	/** 予算内は、チップの背景の薄いアプリコット（#FFF2E5）。行の背景の規則（row-within）と、前の薄い緑（#e3f8e9）は、どこにも残っていない（issue 024：💮 と行の背景を、チップに置きかえた） */
 	@Test
-	void withinBudgetRowBackgroundIsApricotAndTheOldGreenIsGone() throws Exception {
+	void withinBudgetIsAnApricotChipAndTheOldRowBackgroundAndGreenAreGone() throws Exception {
 		String css = css("/css/style.css");
-		assertThat(rule(css, ".comparison-table tr.row-within")).as("💮 の行の背景は、薄いアプリコットの変数")
-				.contains("--bs-table-bg: var(--hb-apricot)");
+		assertThat(rule(css, ".chip-within")).as("予算内のチップの背景は、薄いアプリコットの変数")
+				.contains("background-color: var(--hb-apricot)");
+		assertThat(css).as("行の背景の規則は、なくなった").doesNotContain("tr.row-within");
 		assertThat(css.toLowerCase()).as("前の薄い緑（#e3f8e9）が、どこにも残っていない").doesNotContain("e3f8e9");
-		// 赤・青は意味の色で、色の値は今のまま。issue 020 で、付ける場所は行の文字全体から差額のセルだけになった
-		assertThat(rule(css, ".comparison-table td.diff-over")).containsIgnoringCase("#c62828");
-		assertThat(rule(css, ".comparison-table td.diff-low")).containsIgnoringCase("#1565c0");
+		// 赤・青は意味の色で、色の値は今のまま。issue 024 で、青い数字はなくなり、青はチップだけ
+		assertThat(rule(css, ".comparison-table td.diff-over")).contains("color: var(--hb-over)");
+		assertThat(rule(css, ".chip-over")).contains("var(--hb-over)");
+		assertThat(rule(css, ".chip-low")).contains("var(--hb-low)");
+	}
+
+	/** チップの文字と背景の明るさの比（設計書 2.3、手順書 2.2）：予算超え 5.62、使い残し 5.75、予算内 7.82（いずれも 4.5 以上）。花のアイコンは飾りの図なので 3 以上（4.42）。表の見出し 6.35、「残り」「見込みとの差」の見出し 6.07 */
+	@Test
+	void theChipsAndTheTableHeadingsKeepTheTextReadable() throws Exception {
+		String css = css("/css/style.css");
+		String white = variable(css, "hb-input-bg");
+		String apricot = variable(css, "hb-apricot");
+
+		assertThat(ratio(variable(css, "hb-over"), white)).as("予算超え（赤の文字と白）").isGreaterThanOrEqualTo(4.5).isBetween(5.6, 5.7);
+		assertThat(ratio(variable(css, "hb-low"), white)).as("使い残し（青の文字と白）").isGreaterThanOrEqualTo(4.5).isBetween(5.7, 5.8);
+		assertThat(ratio(variable(css, "hb-within-text"), apricot)).as("予算内（文字とあんず色の背景）").isGreaterThanOrEqualTo(4.5).isBetween(7.8, 7.9);
+		assertThat(ratio(variable(css, "hb-within-icon"), apricot)).as("花のアイコン（飾りの図。3 対 1 が目安）").isGreaterThanOrEqualTo(3.0).isBetween(4.4, 4.5);
+		assertThat(ratio(variable(css, "hb-text-sub"), white)).as("表の見出し（#56625F と白）").isGreaterThanOrEqualTo(4.5).isBetween(6.3, 6.4);
+		assertThat(ratio(variable(css, "hb-teal-text"), white)).as("「残り」「見込みとの差」の見出し（#0B6E6B と白）").isGreaterThanOrEqualTo(4.5).isBetween(6.0, 6.1);
 	}
 
 	@Test

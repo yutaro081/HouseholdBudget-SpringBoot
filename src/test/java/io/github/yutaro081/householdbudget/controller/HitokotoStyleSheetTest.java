@@ -28,13 +28,24 @@ class HitokotoStyleSheetTest {
 	}
 
 	@Test
-	void theFrameIsWhiteWithOnlyTheLeftLineInTeal() throws Exception {
-		String frame = rule(css(), ".hitokoto-frame");
+	void theFrameIsAPlainWhiteCardLikeTheOtherCardsWithoutTheLeftTealLine() throws Exception {
+		String css = css();
+		String frame = rule(css, ".hitokoto-frame");
 
-		assertThat(frame).contains("background: #fff");
-		assertThat(frame).contains("border-left: 4px solid var(--hb-teal)");
-		// 左以外の線は、ふつうの区切り線の色（ターコイズではない）
-		assertThat(frame).contains("border: 1px solid var(--hb-line)");
+		assertThat(frame).contains("background: #fff", "border: 1px solid var(--hb-line)", "border-radius: var(--hb-radius-card)");
+		assertThat(frame).as("左の 4px のターコイズの線は、なくした（issue 024。ほかのカードと同じ形）").doesNotContain("border-left", "var(--hb-teal)");
+		assertThat(rule(css, ".top-section")).as("ほかのカードと同じ余白").contains("padding: var(--hb-space-4) var(--hb-space-5)");
+		assertThat(frame).contains("padding: var(--hb-space-4) var(--hb-space-5)");
+	}
+
+	/** 見出し「きょうのひとこと」は、ほかのカードの見出し（.top-section h2）と同じ：20px の太字、本文の色（ターコイズにしない） */
+	@Test
+	void theHeadingIsTheSameAsTheOtherCardHeadingsTwentyPxBoldInTheBodyColor() throws Exception {
+		String css = css();
+		String h2 = rule(css, ".top-section h2,\n.hitokoto-frame h2");   // 段階 12：ほかのカードの見出しと同じ規則
+
+		assertThat(h2).contains("font-size: var(--hb-font-size-h2)");
+		assertThat(h2).doesNotContain("color:", "font-size: var(--hb-font-size-body)");
 	}
 
 	/**

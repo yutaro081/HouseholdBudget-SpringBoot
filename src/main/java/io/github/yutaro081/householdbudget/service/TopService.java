@@ -102,8 +102,8 @@ public class TopService {
 			long actual = WeeklyAmount.roundUpActual(weekActualOf.getOrDefault(category.getId(), 0L));
 			WeekRow weekRow = row(category.getName(), weeklyBudget, actual, weekElapsedPermille);
 			rows.add(weekRow);
-			// 円グラフの一覧の判定は、「今週の進み具合」の同じ科目の行と同じ（issue 017 の見直し）。「その他」にまとめた行は、PieSlices が判定なしにする
-			pieEntries.add(new PieSlices.Entry(category.getName(), actual, weekRow.color(), weekRow.withinBudget()));
+			// 円グラフの一覧には、判定を出さない（issue 024）。判定は、「今週の進み具合」の行（weekRow）のチップだけ
+			pieEntries.add(new PieSlices.Entry(category.getName(), actual));
 			commentRows.add(new GraphComment.Row(category.getName(), weeklyBudget, actual));
 
 			totalActual += actual;
@@ -169,21 +169,10 @@ public class TopService {
 		Long difference = weeklyBudget == null ? null : weeklyBudget - actual;
 		BudgetColor color = BudgetColorJudge.judge(weeklyBudget, actual);
 		boolean within = BudgetColorJudge.isWithinBudget(weeklyBudget, actual);
-		// 状態の短い文（issue 017）：赤＝○円オーバー、青＝1/3以下、💮＝予算内、予算なし。予算0円で実績0円（色なし）は文なし
-		String statusKey = null;
-		Long statusAmount = null;
-		if (weeklyBudget == null) {
-			statusKey = "top.status.none";
-		} else if (color == BudgetColor.RED) {
-			statusKey = "top.status.over";
-			statusAmount = actual - weeklyBudget;
-		} else if (color == BudgetColor.BLUE) {
-			statusKey = "top.status.low";
-		} else if (within) {
-			statusKey = "top.status.within";
-		}
+		// 状態のチップ（issue 024）：予算超え・使い残し・予算内は、色と予算内の印（判定済み）から、画面が決める。予算超えのときだけ、金額（実績 − 週の予算）を持つ
+		Long overAmount = color == BudgetColor.RED && weeklyBudget != null ? Long.valueOf(actual - weeklyBudget) : null;
 		return new WeekRow(name, weeklyBudget, actual, difference, color, within,
-				MeterScale.of(weeklyBudget, actual, weekElapsedPermille), statusKey, statusAmount);
+				MeterScale.of(weeklyBudget, actual, weekElapsedPermille), overAmount);
 	}
 
 }

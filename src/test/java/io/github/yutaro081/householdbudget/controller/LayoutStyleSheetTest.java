@@ -60,13 +60,13 @@ class LayoutStyleSheetTest {
 	}
 
 	@Test
-	void twoColumnsStartAt992pxWithAFixed440pxLeftColumn() throws Exception {
+	void twoColumnsStartAt992pxWithAFixed470pxLeftColumn() throws Exception {
 		String css = css();
 
 		assertThat(rule(css, ".top-columns")).as("せまいときは 1 列").contains("grid-template-columns: 1fr");
 		List<String> blocks = mediaBlocks(css, "(min-width: 992px)");
 		String twoColumns = blocks.stream().filter(b -> b.contains(".top-columns")).findFirst().orElse("");
-		assertThat(twoColumns).as("992px 以上で 2 列").contains("grid-template-columns: 440px minmax(0, 1fr)");
+		assertThat(twoColumns).as("992px 以上で 2 列").contains("grid-template-columns: 470px minmax(0, 1fr)");
 	}
 
 	/**
@@ -81,7 +81,8 @@ class LayoutStyleSheetTest {
 		assertThat(rule(css, ".top-season-main")).as("左は中身の幅だけ").contains("flex: 0 0 auto");
 		assertThat(rule(css, ".top-season-bar")).as("右の棒が残りの幅を全部使う").contains("flex: 1 1 auto", "min-width: 0");
 		String wide = mediaBlocks(css, "(min-width: 768px)").stream().filter(b -> b.contains(".top-season-grid")).findFirst().orElse("");
-		assertThat(wide).as("768px 以上で左右に並べる").contains("flex-direction: row", "gap: 40px");
+		assertThat(wide).as("768px 以上で左右に並べる。上をそろえる（左のまとまりと、メーターの上の位置）").contains("flex-direction: row", "gap: 40px", "align-items: flex-start");
+		assertThat(wide).doesNotContain("align-items: center");
 	}
 
 	/** 見込みの一文（issue 018。issue 017 のペースの一言を置きかえた）：濃いターコイズ（#0B6E6B、リンクと同じ色）の太字。赤・青の意味の色は使わない */
@@ -173,11 +174,12 @@ class LayoutStyleSheetTest {
 		assertThat(rule(css, ".top-weeks .top-meter")).contains("height: 10px");
 	}
 
+	/** 今週の進み具合の行は、背景なし（issue 024：薄いアプリコットの行の背景は、なくした。状態は、チップ） */
 	@Test
-	void progressRowsKeepTheMeaningColorsAndTheApricotBackgroundWithRoundedCorners() throws Exception {
+	void progressRowsHaveNoBackgroundOrMeaningColorOfTheirOwn() throws Exception {
 		String css = css();
 
-		assertThat(rule(css, ".top-weeks li.week-within")).contains("var(--hb-apricot)", "border-radius: 10px");
+		assertThat(css).doesNotContain(".top-weeks li.week-within", ".top-weeks li.week-over", ".top-weeks li.week-low");
 	}
 
 	// ---- 色・文字の決まりを破っていない ----
@@ -193,4 +195,16 @@ class LayoutStyleSheetTest {
 		assertThat(css).doesNotContain("url(\"data:").doesNotContain("mask");
 	}
 
+
+	/** 季節のカードの左のまとまり（issue 024）：使った額は 34px の太字（ログイン画面の大きな見出しと同じ例外 --hb-font-size-intro-title）、ラベルは 16px、「/ 予算 ○円」と「残り ○円」は 20px */
+	@Test
+	void theLeftGroupOfTheSeasonCardIsBiggerWithTheAmountAs34pxBold() throws Exception {
+		String css = css();
+
+		assertThat(rule(css, ".top-numbers .top-season-amount")).contains("font-size: var(--hb-font-size-intro-title)", "font-weight: 700");
+		assertThat(rule(css, ":root")).contains("--hb-font-size-intro-title: 2.125rem");
+		assertThat(rule(css, ".top-season h2")).as("ラベル「この季節に使った合計」").contains("font-size: var(--hb-font-size-body)");
+		assertThat(rule(css, ".top-season-budget")).as("/ 予算 ○円").contains("font-size: var(--hb-font-size-h2)");
+		assertThat(rule(css, ".top-season-remaining")).as("残り ○円").contains("font-size: var(--hb-font-size-h2)");
+	}
 }

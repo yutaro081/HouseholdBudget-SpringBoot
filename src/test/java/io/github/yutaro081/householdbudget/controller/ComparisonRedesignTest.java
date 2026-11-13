@@ -198,16 +198,16 @@ class ComparisonRedesignTest {
 
 		assertThat(thead(body)).doesNotContain("見込み");
 		assertThat(body).doesNotContain("comparison-card");
-		assertThat(columns(thead(body))).as("科目・予算・実績・差額の 4 列（💮 の列もない）").isEqualTo(4);
+		assertThat(columns(thead(body))).as("科目・状況・予算・実績・差額の 5 列").isEqualTo(5);
 	}
 
 	@Test
-	void theCurrentSeasonHasSixColumnsAndNoColumnForTheMark() throws Exception {
+	void theCurrentSeasonHasSevenColumnsWithTheStatusColumn() throws Exception {
 		fourCategories();
 
 		String body = page("/comparison");
 
-		assertThat(columns(thead(body))).isEqualTo(6);
+		assertThat(columns(thead(body))).isEqualTo(7);
 	}
 
 	// ---- 要約カード ----
@@ -223,37 +223,54 @@ class ComparisonRedesignTest {
 		assertThat(card).as("表の上").isLessThan(body.indexOf("<table"));
 		assertThat(card).as("年と季節を選ぶ欄の下").isGreaterThan(body.indexOf("season-select"));
 		String cardText = body.substring(card, body.indexOf("<table"));
-		assertThat(cardText).contains("約 50,500円", "予算 50,000円", "実績 39,900円（80%）", "class=\"top-meter\"", "予算のうち 80% を使った", "今日（79%）");
-		assertThat(cardText).contains("見込みは、予算を上回ります。", "月ごとにまとめて払うものは、払う日で見込みが上下します。");
+		assertThat(cardText).contains("約 50,500円", "<strong class=\"comparison-card-figure\">50,000円</strong>", "<strong class=\"comparison-card-figure\">39,900円</strong>",
+				"実績（予算の 80%）", "季節の終わりの見込み", "class=\"top-meter\"", "今日（79%）");
+		assertThat(cardText).contains("予算より 約 500円 多い見込みです。", "月ごとにまとめて払うものは、払う日で見込みが上下します。");
+		assertThat(cardText).as("メーター上の文と、置きかえた 1 行は、なくした").doesNotContain("予算のうち", "見込みは、予算を上回ります。");
 	}
 
-	/** 上の段に大きな数字が横に 3 つ（見込み・予算・実績の順）。その下にメーター。説明のラベルはメーターのすぐ上。補足は一番下 */
+	/**
+	 * 3 つの数字は、それぞれ「ラベルを上、数字を下」の 2 段（予算 → 実績 → 見込みの順。見込みがいちばん大きな字）。
+	 * 差の文は、見込みの数字のすぐ右（同じ行）。その下にメーター（「今日」の名前は、棒の上）。補足は一番下（issue 024）
+	 */
 	@Test
-	void theCardHasThreeFiguresThenTheMeterWithItsLabelsAboveAndTheNotesAtTheBottom() throws Exception {
+	void theCardHasThreeLabeledFiguresWithTheVerdictRightOfTheForecastThenTheMeterAndTheNotes() throws Exception {
 		fourCategories();
 
 		String body = page("/comparison");
 		String card = body.substring(body.indexOf("class=\"comparison-card\""), body.indexOf("<table"));
 
-		assertThat(count(card, "class=\"comparison-card-amount\"")).as("大きな数字は 3 つ").isEqualTo(3);
-		int forecast = card.indexOf("約 50,500円");
-		int budget = card.indexOf("予算 50,000円");
-		int actual = card.indexOf("実績 39,900円（80%）");
-		int labels = card.indexOf("予算のうち 80% を使った");
+		assertThat(count(card, "class=\"comparison-card-label\"")).as("ラベルは 3 つ").isEqualTo(3);
+		assertThat(count(card, "class=\"comparison-card-figure\"")).as("予算と実績の数字は 2 つ").isEqualTo(2);
+		assertThat(count(card, "class=\"comparison-card-forecast\"")).as("見込みの数字は、いちばん大きな字で 1 つ").isEqualTo(1);
+		String budgetLabel = "<span class=\"comparison-card-label\">予算</span><strong class=\"comparison-card-figure\">50,000円</strong>";
+		String actualLabel = "<span class=\"comparison-card-label\">実績（予算の 80%）</span><strong class=\"comparison-card-figure\">39,900円</strong>";
+		String forecastLabel = "<span class=\"comparison-card-label\">季節の終わりの見込み</span>";
+		assertThat(card).as("ラベルが上、数字が下").contains(budgetLabel, actualLabel, forecastLabel);
+		int budget = card.indexOf(budgetLabel);
+		int actual = card.indexOf(actualLabel);
+		int forecastItem = card.indexOf(forecastLabel);
+		int row = card.indexOf("class=\"comparison-card-forecast-row\"");
+		int forecast = card.indexOf("<strong class=\"comparison-card-forecast\">約 50,500円</strong>");
+		int verdict = card.indexOf("予算より 約 500円 多い見込みです。");
 		int today = card.indexOf("今日（79%）");
 		int meter = card.indexOf("class=\"top-meter\"");
-		assertThat(forecast).isGreaterThanOrEqualTo(0).isLessThan(budget);
-		assertThat(budget).isLessThan(actual);
-		assertThat(actual).as("数字の下にメーター").isLessThan(labels);
-		assertThat(labels).as("ラベルは、メーターの上（使った割合）。その下の行に、「今日」の名前（issue 020 の見直し）").isLessThan(today);
+		assertThat(budget).isGreaterThanOrEqualTo(0).isLessThan(actual);
+		assertThat(actual).as("実績のあとに見込み").isLessThan(forecastItem);
+		assertThat(forecastItem).as("見込みのラベルの下に、数字と差の文の行").isLessThan(row);
+		assertThat(row).isLessThan(forecast);
+		assertThat(forecast).as("差の文は、見込みの数字のすぐ右（同じ行の中）").isLessThan(verdict);
+		assertThat(card.indexOf("</div>", row)).as("差の文は、見込みの行の中").isGreaterThan(verdict);
+		assertThat(verdict).as("差の文の下に、メーター（「今日」の名前は、棒の上）").isLessThan(today);
 		assertThat(today).isLessThan(meter);
-		assertThat(card.indexOf("見込みは、予算を上回ります。")).as("上回る文は、メーターの下").isGreaterThan(meter);
-		assertThat(card.indexOf("月ごとにまとめて払うもの")).as("補足は、一番下").isGreaterThan(card.indexOf("見込みは、予算を上回ります。"));
+		assertThat(card.indexOf("月ごとにまとめて払うもの")).as("補足は、一番下").isGreaterThan(meter);
+		assertThat(card).as("メーター上の「予算のうち ○% を使った」は、なくした").doesNotContain("予算のうち", "comparison-card-labels");
+		assertThat(card).as("カード上の見出し「この季節の見込み」は、なくした（見込みのラベルと同じことのため）").doesNotContain("この季節の見込み", "<h2");
 	}
 
-	/** 印は、数字の左に、同じ行の小さなチップ（数字の下の 2 行目ではない） */
+	/** 「超える見込み」は、数字の左の、同じ行のチップ（数字の下の 2 行目ではない）。「予算超え」「使い残し」は、状況のセルのチップ */
 	@Test
-	void theMarksAreChipsToTheLeftOfTheNumbers() throws Exception {
+	void theChipsAreOnTheSameLineAsTheNumbers() throws Exception {
 		fourCategories();
 		Category extra = category("超過の科目", 1_000, Season.AUTUMN, 2026);
 		spend(extra, LocalDate.of(2026, 11, 3), 2_000);
@@ -262,9 +279,9 @@ class ComparisonRedesignTest {
 
 		String body = page("/comparison");
 
-		assertThat(rowOf(body, "交通費")).contains("<small class=\"cell-mark\">超える見込み</small><span>-2,500</span>");
-		assertThat(rowOf(body, "超過の科目")).contains("<small class=\"cell-mark\">予算超え</small><span>-1,000</span>");
-		assertThat(rowOf(body, "余裕の科目")).contains("<small class=\"cell-mark\">使い残し</small><span>80,000</span>");
+		assertThat(rowOf(body, "交通費")).contains("<span class=\"chip chip-over\">超える見込み</span><span>-2,500</span>");
+		assertThat(rowOf(body, "超過の科目")).contains("<span class=\"chip chip-over\">予算超え</span>", "<span>-1,000</span>");
+		assertThat(rowOf(body, "余裕の科目")).contains("<span class=\"chip chip-low\">使い残し</span>", "<span>80,000</span>");
 	}
 
 	/** 差額のセルにだけ diff-cell が付く（科目の行も合計行も）。予算・実績・見込みのセルには付かない。色のクラス（diff-over・diff-low）とは別 */
@@ -273,11 +290,11 @@ class ComparisonRedesignTest {
 		fourCategories();
 
 		String current = thead(page("/comparison"));
-		assertThat(current).containsSubsequence("<th>科目</th>", "<th class=\"num col-budget\">予算（円）</th>", "<th class=\"num col-actual\">実績（円）</th>",
+		assertThat(current).containsSubsequence("<th>科目</th>", "<th class=\"col-status\">今の状況</th>", "<th class=\"num col-budget\">予算（円）</th>", "<th class=\"num col-actual\">実績（円）</th>",
 				"<th class=\"num col-remain\">残り（円）</th>", "<th class=\"num col-forecast\">見込み（円）</th>", "<th class=\"num col-gap\">見込みとの差（円）</th>");
 
 		String past = thead(page("/comparison?year=2026&season=summer"));
-		assertThat(past).containsSubsequence("<th>科目</th>", "<th class=\"num col-budget\">予算（円）</th>", "<th class=\"num col-actual\">実績（円）</th>", "<th class=\"num col-diff\">差額（円）</th>");
+		assertThat(past).containsSubsequence("<th>科目</th>", "<th class=\"col-status\">状況</th>", "<th class=\"num col-budget\">予算（円）</th>", "<th class=\"num col-actual\">実績（円）</th>", "<th class=\"num col-diff\">差額（円）</th>");
 		assertThat(past).as("過去の季節には、見込みの列がない").doesNotContain("col-forecast");
 	}
 
@@ -312,7 +329,7 @@ class ComparisonRedesignTest {
 	void theTotalRowChipIsAlsoToTheLeftOfTheForecast() throws Exception {
 		fourCategories();
 
-		assertThat(rowOf(page("/comparison"), "合計")).contains("<span>50,500</span>", "<small class=\"cell-mark\">超える見込み</small><span>-500</span>");
+		assertThat(rowOf(page("/comparison"), "合計")).contains("<span>50,500</span>", "<span class=\"chip chip-over\">超える見込み</span><span>-500</span>");
 	}
 
 	@Test
@@ -323,14 +340,15 @@ class ComparisonRedesignTest {
 	}
 
 	@Test
-	void theOverLineIsNotShownWhenTheTotalForecastIsWithinTheBudget() throws Exception {
+	void theVerdictIsTheLessSentenceAndNotRedWhenTheTotalForecastIsWithinTheBudget() throws Exception {
 		Category food = category("食費", 100_000, Season.AUTUMN, 2026);
 		recordingStartedLongAgo(food);
 		spend(food, LocalDate.of(2026, 11, 3), 10_000);        // 見込みは予算より小さい
 
 		String body = page("/comparison");
 
-		assertThat(body).contains("class=\"comparison-card\"").doesNotContain("見込みは、予算を上回ります。");
+		assertThat(body).contains("class=\"comparison-card\"").doesNotContain("見込みは、予算を上回ります。", "多い見込みです。", "comparison-card-verdict-over");
+		assertThat(body).containsPattern("予算より 約 [0-9,]+円 少ない見込みです。");
 	}
 
 	@Test
@@ -362,10 +380,10 @@ class ComparisonRedesignTest {
 		assertThat(page("/comparison")).doesNotContain("に記録を始めたので");
 	}
 
-	// ---- 色と印：差額のセルだけ ----
+	// ---- チップと赤い数字 ----
 
 	@Test
-	void theRedDifferenceCellHasTheOverMarkAndOnlyThatCellIsColored() throws Exception {
+	void theRedDifferenceCellIsRedAndTheOverChipIsInTheStatusCell() throws Exception {
 		fourCategories();
 		Category extra = category("超過の科目", 1_000, Season.AUTUMN, 2026);
 		spend(extra, LocalDate.of(2026, 11, 3), 2_000);
@@ -374,34 +392,35 @@ class ComparisonRedesignTest {
 
 		assertThat(row).startsWith("<tr>");
 		assertThat(count(row, "diff-over")).as("色のクラスは差額のセルだけ").isEqualTo(1);
+		assertThat(row).contains("<span class=\"chip chip-over\">予算超え</span>");
 		String diff = row.substring(row.indexOf("diff-over") - 20);
-		assertThat(diff).contains("予算超え", "-1,000");
+		assertThat(diff).contains("-1,000").doesNotContain("予算超え");
 	}
 
 	@Test
-	void theBlueDifferenceCellHasTheLeftoverMark() throws Exception {
+	void theBlueRowHasTheLeftoverChipAndNoBlueNumber() throws Exception {
 		Category food = category("食費", 90_000, Season.AUTUMN, 2026);
 		recordingStartedLongAgo(food);
 		spend(food, LocalDate.of(2026, 11, 3), 10_000);          // 実績 × 3 ≦ 予算 → 青
 
 		String row = rowOf(page("/comparison"), "食費");
 
-		assertThat(row).startsWith("<tr>").contains("diff-low", "使い残し");
+		assertThat(row).startsWith("<tr>").contains("chip-low", "使い残し").doesNotContain("diff-low", "diff-over");
 		assertThat(row).doesNotContain("予算超え");
 	}
 
 	@Test
-	void aRowWithoutColorHasNoMarkInTheDifferenceCell() throws Exception {
+	void aRowWithoutColorHasOnlyTheWithinChip() throws Exception {
 		Category food = category("食費", 40_000, Season.AUTUMN, 2026);
 		recordingStartedLongAgo(food);
-		spend(food, LocalDate.of(2026, 11, 3), 30_000);          // 予算内（💮）
+		spend(food, LocalDate.of(2026, 11, 3), 30_000);          // 予算内（チップ）
 
 		String row = rowOf(page("/comparison"), "食費");
 
-		assertThat(row).doesNotContain("diff-over", "diff-low", "予算超え", "使い残し");
+		assertThat(row).contains("chip-within").doesNotContain("diff-over", "diff-low", "予算超え", "使い残し");
 	}
 
-	// ---- 円は見出しに、💮 は科目名の横に、合計の行 ----
+	// ---- 円は見出しに、予算内のチップは状況の列に、合計の行 ----
 
 	@Test
 	void theCellsHaveNoYenSignBecauseTheHeadingsSayIt() throws Exception {
@@ -415,21 +434,24 @@ class ComparisonRedesignTest {
 	}
 
 	@Test
-	void theWithinMarkIsNextToTheCategoryNameInTheFirstCell() throws Exception {
+	void theWithinChipIsInTheStatusCellNotNextToTheCategoryName() throws Exception {
 		Category food = category("食費", 40_000, Season.AUTUMN, 2026);
 		recordingStartedLongAgo(food);
-		spend(food, LocalDate.of(2026, 11, 3), 30_000);          // 予算内（💮）
+		spend(food, LocalDate.of(2026, 11, 3), 30_000);          // 予算内（チップ）
 
 		String row = rowOf(page("/comparison"), "食費");
-		String firstCell = row.substring(row.indexOf("<td"), row.indexOf("</td>"));
+		int firstEnd = row.indexOf("</td>");
+		String firstCell = row.substring(row.indexOf("<td"), firstEnd);
+		String statusCell = row.substring(row.indexOf("<td", firstEnd), row.indexOf("</td>", firstEnd + 5));
 
-		assertThat(row).contains("<tr class=\"row-within\"");
-		assertThat(firstCell).contains("食費", "💮", "予算内");
-		assertThat(count(row, "💮")).isEqualTo(1);
+		assertThat(row).startsWith("<tr>").doesNotContain("row-within", "💮");
+		assertThat(firstCell).contains("食費").doesNotContain("chip", "予算内");
+		assertThat(statusCell).contains("status-cell", "chip-within", "予算内");
+		assertThat(count(row, "chip-within\"")).isEqualTo(1);
 	}
 
 	@Test
-	void theTotalRowKeepsItsClassAndTheLegendNamesTheMarks() throws Exception {
+	void theTotalRowKeepsItsClassAndTheLegendNamesTheChips() throws Exception {
 		fourCategories();
 
 		String body = page("/comparison");
@@ -437,6 +459,6 @@ class ComparisonRedesignTest {
 		assertThat(rowOf(body, "合計")).contains("total-row");
 		assertThat(body).contains("class=\"legend\"");
 		String legend = body.substring(body.indexOf("class=\"legend\""));
-		assertThat(legend).contains("予算超え", "使い残し", "💮");
+		assertThat(legend).contains("予算超え", "使い残し", "予算内").doesNotContain("💮");
 	}
 }

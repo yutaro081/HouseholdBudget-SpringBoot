@@ -48,9 +48,6 @@
                 <p class="top-season-remaining" th:if="${top.seasonBudget != null}">残り <strong th:text="|${#numbers.formatInteger(top.seasonRemaining, 1, 'COMMA')}円|">45,674円</strong></p>
             </div>
             <div class="top-season-bar" th:if="${top.seasonBudget != null}">
-                <p class="top-season-labels">
-                    <span th:if="${top.seasonUsedPercent != null}" th:text="|予算のうち ${top.seasonUsedPercent}% を使った|">予算のうち 65% を使った</span>
-                </p>
                 <!--/* メーター（issue 020。部品 fragments/meter。縮尺は MeterScale：予算 ＝ 棒の 70％。予算の線の下に「予算」） */-->
                 <th:block th:replace="~{fragments/meter :: meter(${top.seasonMeter}, true, #{meter.today(${top.seasonElapsedPercent})})}"></th:block>
                 <!--/* 見込みの一文（issue 018。issue 017 のペースの一言を置きかえた）：事実の文〔季節の％と使った割合。メーターと同じ値〕と、着地見込み〔予実比較の合計と同じ値。100円単位に切り上げ〕。
@@ -61,7 +58,7 @@
         <p class="top-season-unset" th:if="${top.seasonBudget == null}">今の季節の予算がまだありません。<a th:href="@{/budgets}">予算の画面で設定してください</a></p>
     </section>
 
-    <!--/* 2 列の部分（992px 以上で 2 列。左 360px、右は残り。せまいときは縦 1 列で、HTML の順に並ぶ）。
+    <!--/* 2 列の部分（992px 以上で 2 列。左 470px、右は残り。せまいときは縦 1 列で、HTML の順に並ぶ）。
          左の列：今週 何に使ったか → きょうのひとこと。右の列：今週の進み具合 */-->
     <div class="top-columns">
         <div class="top-col-left">
@@ -82,15 +79,14 @@
                             <strong th:text="|${#numbers.formatInteger(top.pieTotal, 1, 'COMMA')}円|">2,800円</strong>
                         </div>
                     </div>
-                    <!--/* 頭の行（科目・金額・割合）は出さない。読み上げ用に aria-label を付ける。各行に、今週の判定：赤・青は金額の文字の色（行のクラス pie-over／pie-low）、💮 は科目名の横。「その他」は判定なし。行の背景は付けない */-->
+                    <!--/* 頭の行（科目・金額・割合）は出さない。読み上げ用に aria-label を付ける。判定（赤・青の金額の色、予算内の印、状態の文）は出さない（issue 024）：金額と割合だけ。判定は、隣の「今週の進み具合」のチップだけで見せる。行の背景は付けない */-->
                     <table class="list top-pie-list table align-middle" aria-label="今週の科目ごとの金額と割合">
                         <tbody>
-                        <tr th:each="slice : ${top.slices}" th:class="${slice.color.name() == 'RED'} ? 'pie-over' : (${slice.color.name() == 'BLUE'} ? 'pie-low' : null)">
+                        <tr th:each="slice : ${top.slices}">
                             <td><span class="top-chip" th:classappend="|chart-${slice.colorNumber}|" aria-hidden="true"></span></td>
                             <td>
                                 <span th:text="${slice.name}">食費</span>
                                 <span class="top-note" th:if="${slice.mergedCount > 1}" th:text="|（${slice.mergedCount}科目）|">（2科目）</span>
-                                <th:block th:if="${slice.withinBudget}"><span aria-hidden="true">💮</span><span class="visually-hidden">予算内</span></th:block>
                             </td>
                             <td class="num" th:text="|${#numbers.formatInteger(slice.amount, 1, 'COMMA')}円|">1,200円</td>
                             <td class="num" th:text="|${slice.percent}%|">24%</td>
@@ -108,19 +104,25 @@
         <div class="top-col-right">
 
             <!--/* 今週の進み具合：いちばん上に合計の行、そのあと科目の登録順に全科目。1科目が2行（1行目：科目名・状態の短い文・実績 / 週の予算、2行目：棒と「今日」の線）。
-                 色は予実比較と同じ決まり（週の予算と切り上げた実績で判定済み）。状態の短い文は、色が見えなくても伝わるように添える。 */-->
+                 状態は、予実比較と同じ決まり（週の予算と切り上げた実績で判定済み）のチップ（予算超え・使い残し・予算内）で、科目名の横に出す（issue 024）。予算超えは金額つき。週の予算が未設定の科目は、チップなしで「予算なし」の文字。行の色・背景はない。 */-->
             <section class="top-section top-weeks-section">
                 <div class="top-weeks-head">
                     <h2>今週の進み具合</h2>
                     <span class="top-note" th:text="|点線は『今日』（週の ${top.weekDayNumber} 日目）|">点線は『今日』（週の 1 日目）</span>
                 </div>
                 <p class="top-note">週の予算＝今日が入っている季節の予算 ÷ 13（100円単位で切り上げ）</p>
+                <!--/* 今週の科目のひとこと（issue 020。要件4.5、設計書 5.15）：今週の進み具合の見出しと、週の予算の説明の行のすぐ下（メーターより上。issue 024 で、メーターの下から移した）。今週いちばん進んでいる科目の、季節の見込み。「きょうのひとこと」の行と同じように、左に小さなアイコンの四角（hitokoto-icon）。文は 3 つの部分（前・「予算の ○%」・あと）。見込みが予算を超えるときだけ、「予算の ○%」を赤（Service が決めた weekPick.overBudget）。選び方と見込みは Service が決めた値（weekPick）。出さないときは null。科目名は th:text（th:utext は使わない。7.5）。赤・青は使わない */-->
+                <div class="top-week-pick-row hitokoto-row" th:if="${top.weekPick != null}">
+                    <span class="hitokoto-icon"><th:block th:replace="~{fragments/icons :: icon('comparison', 20, 2)}"></th:block></span>
+                    <div class="hitokoto-body">
+                        <p class="top-week-pick"><span th:text="#{top.weekPick.before(${top.weekPick.categoryName}, ${top.weekPick.forecastAmount})}">今週いちばん進んでいる食費は、季節では約 58,000円（</span><span class="top-week-pick-percent" th:classappend="${top.weekPick.overBudget} ? 'top-week-pick-over'" th:text="#{top.weekPick.percent(${top.weekPick.forecastPercent})}">予算の 90%</span><span th:text="#{top.weekPick.after}">）の見込みです。</span></p>
+                    </div>
+                </div>
                 <ul class="top-weeks list-unstyled">
-                    <li class="top-week-row top-week-total"
-                        th:classappend="${top.total.color.name() == 'RED'} ? 'week-over' : (${top.total.color.name() == 'BLUE'} ? 'week-low' : (${top.total.withinBudget} ? 'week-within'))">
+                    <li class="top-week-row top-week-total">
                         <div class="top-week-line">
                             <span class="top-week-name">合計</span>
-                            <span class="top-week-status" th:if="${top.total.statusKey != null}"><span aria-hidden="true" th:if="${top.total.withinBudget}">💮</span> <th:block th:text="#{${top.total.statusKey}(${top.total.statusAmount})}">赤：1,100円オーバー</th:block></span>
+                            <span class="top-week-status" th:if="${top.total.budget != null}"><th:block th:replace="~{fragments/chip :: statusWithAmount(${top.total.color.name()}, ${top.total.withinBudget}, ${top.total.overAmount})}"></th:block></span><span class="top-week-status" th:if="${top.total.budget == null}">予算なし</span>
                             <span class="top-week-amounts">
                                 <span th:text="|${#numbers.formatInteger(top.total.actual, 1, 'COMMA')}円|">200円</span>
                                 /
@@ -130,11 +132,10 @@
                         <th:block th:if="${top.total.budget != null}"><th:block th:replace="~{fragments/meter :: meter(${top.total.meter}, false, null)}"></th:block></th:block>
                     </li>
                     <li class="top-week-separator" aria-hidden="true"></li>
-                    <li class="top-week-row" th:each="row : ${top.rows}"
-                        th:classappend="${row.color.name() == 'RED'} ? 'week-over' : (${row.color.name() == 'BLUE'} ? 'week-low' : (${row.withinBudget} ? 'week-within'))">
+                    <li class="top-week-row" th:each="row : ${top.rows}">
                         <div class="top-week-line">
                             <span class="top-week-name" th:text="${row.categoryName}">食費</span>
-                            <span class="top-week-status" th:if="${row.statusKey != null}"><span aria-hidden="true" th:if="${row.withinBudget}">💮</span> <th:block th:text="#{${row.statusKey}(${row.statusAmount})}">赤：1,100円オーバー</th:block></span>
+                            <span class="top-week-status" th:if="${row.budget != null}"><th:block th:replace="~{fragments/chip :: statusWithAmount(${row.color.name()}, ${row.withinBudget}, ${row.overAmount})}"></th:block></span><span class="top-week-status" th:if="${row.budget == null}">予算なし</span>
                             <span class="top-week-amounts">
                                 <span th:text="|${#numbers.formatInteger(row.actual, 1, 'COMMA')}円|">1,300円</span>
                                 /
@@ -144,14 +145,7 @@
                         <th:block th:if="${row.budget != null}"><th:block th:replace="~{fragments/meter :: meter(${row.meter}, false, null)}"></th:block></th:block>
                     </li>
                 </ul>
-                <!--/* 今週の科目のひとこと（issue 020。要件4.5、設計書 5.15）：メーターのすぐ下、注記より上。今週いちばん進んでいる科目の、季節の見込み。「きょうのひとこと」の行と同じように、左に小さなアイコンの四角（hitokoto-icon）。文は 3 つの部分（前・「予算の ○%」・あと）。見込みが予算を超えるときだけ、「予算の ○%」を赤（Service が決めた weekPick.overBudget）。選び方と見込みは Service が決めた値（weekPick）。出さないときは null。科目名は th:text（th:utext は使わない。7.5）。赤・青は使わない */-->
-                <div class="top-week-pick-row hitokoto-row" th:if="${top.weekPick != null}">
-                    <span class="hitokoto-icon"><th:block th:replace="~{fragments/icons :: icon('comparison', 20, 2)}"></th:block></span>
-                    <div class="hitokoto-body">
-                        <p class="top-week-pick"><span th:text="#{top.weekPick.before(${top.weekPick.categoryName}, ${top.weekPick.forecastAmount})}">今週いちばん進んでいる食費は、季節では約 58,000円（</span><span class="top-week-pick-percent" th:classappend="${top.weekPick.overBudget} ? 'top-week-pick-over'" th:text="#{top.weekPick.percent(${top.weekPick.forecastPercent})}">予算の 90%</span><span th:text="#{top.weekPick.after}">）の見込みです。</span></p>
-                    </div>
-                </div>
-                <p class="legend">赤：週の予算を超過／青：週の予算の1/3以下／💮：週の予算内（1/3を超え、予算以下）／点線：今日／実線：予算</p>
+                <p class="legend">チップ：予算超え（赤）／使い残し（青。週の予算の1/3以下）／予算内（1/3を超え、予算以下）／点線：今日／実線：予算</p>
             </section>
 
         </div>

@@ -75,7 +75,7 @@ public record AutoBudgetView(
 	}
 
 	/**
-	 * 案のもとにした数字（issue 020）。表で、どの数字にターコイズの下線を引くか。Service が、案のルール①〜④から決める（テンプレートでは計算しない）。
+	 * 案のもとにした数字（issue 020）。表で、どの数字に目印（薄いターコイズの背景と太字）をつけるか。Service が、案のルール①〜④から決める（テンプレートでは計算しない）。
 	 */
 	public enum Source {
 		/** ① 根拠の列の数字 */
@@ -104,7 +104,7 @@ public record AutoBudgetView(
 	 * @param yearsConsecutive years が 1 年ずつ続いているか（飛んでいると false。「2023・2025 年」と書き分ける）
 	 * @param baseAmount       根拠の額（ルール①：もとの額（中央値・平均・その年の額）、②：ペースの表示額または実績、③：直前の季節の予算、④：今の値）
 	 * @param amount           案の額（円）
-	 * @param source           案のもとにした数字（表で、下線を引く場所）。ルールから Service が決める
+	 * @param source           案のもとにした数字（表で、目印をつける場所）。ルールから Service が決める
 	 */
 	public record Row(
 			Long categoryId,

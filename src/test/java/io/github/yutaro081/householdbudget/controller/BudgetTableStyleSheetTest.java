@@ -45,15 +45,16 @@ class BudgetTableStyleSheetTest {
 		assertThat(basis).doesNotContain("2.5rem");
 	}
 
-	/** 表のセルの文字は、本文と同じ濃さ（#24302F）で、予実比較の表と同じ大きさ（1.0625rem）。灰色にしない */
+	/** 表のセルの文字は、本文と同じ濃さ（#24302F）。灰色にしない。大きさは、予実比較の表と同じ（4 段の本文 1rem。issue 024 の段階 11） */
 	@Test
 	void theCellsHaveTheBodyColorAndTheSameSizeAsTheComparisonTable() throws Exception {
 		String css = css();
 		String cells = rule(css, ".budget-table tbody td");
 
 		assertThat(css).contains("--hb-text: #24302F");
-		assertThat(cells).contains("color: var(--hb-text)", "font-size: 1.0625rem");
-		assertThat(rule(css, ".comparison-table tbody td")).as("予実比較の表と同じ大きさ").contains("font-size: 1.0625rem");
+		assertThat(cells).contains("color: var(--hb-text)", "font-size: var(--hb-font-size-body)");
+		assertThat(cells).as("1.0625rem は 4 段の外").doesNotContain("1.0625rem");
+		assertThat(rule(css, ".comparison-table tbody td")).as("予実比較の表と同じ大きさ").contains("font-size: var(--hb-font-size-body)");
 	}
 
 	/** 参考の列を灰色にする規則（.budget-ref）は、なくした */
@@ -70,17 +71,55 @@ class BudgetTableStyleSheetTest {
 		assertThat(note).contains("color: var(--hb-text-sub)", "font-size: var(--hb-font-size-small)");
 	}
 
-	/** 案のもとにした数字：予算額の欄の枠と同じターコイズ（#0E9594）の 2px の下線と、太字。基本のターコイズは枠（線）にだけ使う決まりなので、下線は border-bottom */
+	/** 案のもとにした数字の目印（issue 024 の段階 11）：下線をやめ、薄いターコイズの背景（#E1F3F2）と太字。文字は本文の色のまま */
 	@Test
-	void theSourceOfTheProposalHasATealUnderlineAndIsBold() throws Exception {
+	void theSourceOfTheProposalHasAPaleTealBackgroundAndIsBold() throws Exception {
 		String css = css();
 
 		for (String selector : new String[] { ".budget-table .auto-source", ".budget-table td.auto-source-cell > span" }) {
 			String rule = rule(css, selector);
-			assertThat(rule).as(selector).contains("border-bottom: 2px solid var(--hb-teal)", "font-weight: 700");
-			assertThat(rule).as(selector + "：基本のターコイズは、線だけ").doesNotContain("color: var(--hb-teal)");
+			assertThat(rule).as(selector).contains("background-color: var(--hb-teal-pale)", "font-weight: 700");
+			assertThat(rule).as(selector + "：下線をやめた").doesNotContain("border-bottom", "underline");
+			assertThat(rule).as(selector + "：文字の色は変えない（本文の色）").doesNotContainPattern("(?<![-a-z])color:");
 		}
-		assertThat(css).contains("--hb-teal: #0E9594");
+		assertThat(css).contains("--hb-teal-pale: #E1F3F2");
+	}
+
+	/** 自動予算のカード：白い地、左に 4px のターコイズの線（複写のお知らせ alert-info と同じ形）、角丸 16px、影なし。基本のターコイズは線にだけ使う */
+	@Test
+	void theAutoBudgetCardIsWhiteWithA4pxTealLineOnTheLeft() throws Exception {
+		String card = rule(css(), ".auto-budget-card");
+
+		assertThat(card).contains("background-color: var(--hb-input-bg)", "border-left: 4px solid var(--hb-teal)",
+				"border-radius: var(--hb-radius-card)");
+		assertThat(card).contains("border: 1px solid var(--hb-line)");
+		assertThat(card).doesNotContain("box-shadow");
+		assertThat(card.replace("border-left: 4px solid var(--hb-teal);", "")).as("基本のターコイズは線だけ").doesNotContain("var(--hb-teal)");
+	}
+
+	/** 一の位をそろえる：入力欄の数字の右端と、合計の数字の右端は、同じ余白の変数（1 つ）で決める */
+	@Test
+	void theLastDigitOfTheInputsAndTheTotalAreAlignedByOneVariable() throws Exception {
+		String css = css();
+		Matcher definition = Pattern.compile("--hb-budget-digit-inset:\s*([^;]+);").matcher(css);
+
+		assertThat(definition.find()).as("余白の変数がある").isTrue();
+		assertThat(definition.find()).as("変数は 1 つだけ決める").isFalse();
+		assertThat(rule(css, ".budget-table input[type=\"text\"]")).contains("padding-right: var(--hb-budget-digit-inset)");
+		String total = rule(css, ".budget-table tfoot td.budget-total-cell");
+		assertThat(total).as("合計のセルの右の余白 ＝ セルの余白 ＋ 入力欄の枠 2px ＋ 入力欄の内側の余白")
+				.contains("padding-right: calc(0.5rem + 2px + var(--hb-budget-digit-inset))");
+	}
+
+	/** 文字の大きさは 4 段（入力欄・セル・「自動予算」ボタンは 1rem）。合計の行は、20px の太字のまま（上の太い線 3px も） */
+	@Test
+	void sizesAreOnTheFourStepsAndTheTotalRowStaysAt20px() throws Exception {
+		String css = css();
+
+		assertThat(rule(css, ".budget-table input[type=\"text\"]")).contains("font-size: var(--hb-font-size-body)").doesNotContain("1.125rem");
+		assertThat(rule(css, ".btn.auto-budget-button")).contains("--bs-btn-font-size: var(--hb-font-size-body)").doesNotContain("1.0625rem");
+		assertThat(rule(css, ".budget-table .budget-sum")).contains("font-size: 1.25rem", "font-weight: 700");
+		assertThat(rule(css, ".budget-table tfoot th,\n.budget-table tfoot td")).contains("font-size: 1.25rem", "border-top: 3px solid var(--hb-text)");
 	}
 
 	/** 右の 2 列（前の季節の実績・前の季節の予算）は、同じ幅（18%）。「5,600 / ペース 約 7,100」が 1 行に収まるよう、折り返さない */
@@ -113,20 +152,20 @@ class BudgetTableStyleSheetTest {
 		assertThat(heading).as("見出しの大きさは、ほかの列と同じ（規則で変えない）").doesNotContain("font-size");
 	}
 
-	/** 予算額の入力欄の文字を大きく（1.125rem） */
+	/** 予算額の入力欄の文字は、表のセルと同じ 1rem（4 段の本文。issue 024 の段階 11） */
 	@Test
-	void theAmountInputsHaveBiggerText() throws Exception {
-		assertThat(rule(css(), ".budget-table input[type=\"text\"]")).contains("font-size: 1.125rem");
+	void theAmountInputsHaveTheBodySize() throws Exception {
+		assertThat(rule(css(), ".budget-table input[type=\"text\"]")).contains("font-size: var(--hb-font-size-body)");
 	}
 
-	/** 予算額の入力欄は、取引の登録画面の金額の欄（.amount-input）と同じ形：2px のターコイズ（#0E9594）の枠、大きめの文字、右寄せ */
+	/** 予算額の入力欄は、取引の登録画面の金額の欄（.amount-input）と同じ枠：2px のターコイズ（#0E9594）の枠、右寄せ */
 	@Test
 	void theAmountInputsLookLikeTheAmountFieldOfTheTransactionForm() throws Exception {
 		String css = css();
 		String input = rule(css, ".budget-table input[type=\"text\"]");
 
 		assertThat(css).contains("--hb-teal: #0E9594");
-		assertThat(input).contains("border: 2px solid var(--hb-teal)", "text-align: right", "font-size: 1.125rem");
+		assertThat(input).contains("border: 2px solid var(--hb-teal)", "text-align: right", "font-size: var(--hb-font-size-body)");
 		assertThat(rule(css, ".amount-input")).as("取引の登録画面の金額の欄と、枠が同じ").contains("border: 2px solid var(--hb-teal)");
 	}
 

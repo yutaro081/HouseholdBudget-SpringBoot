@@ -73,6 +73,7 @@ class ComparisonCountingStartTest {
 		String body = mockMvc.perform(get("/comparison").with(user(new LoginUser(id, "cmpstart1", "x"))))
 				.andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
 
-		assertThat(body).contains("約 54,700円", "予算 175,000円", "10/31 に記録を始めたので、その日から数えています。");
+		assertThat(body).contains("約 54,700円", "<span class=\"comparison-card-label\">予算</span><strong class=\"comparison-card-figure\">175,000円</strong>",
+				"10/31 に記録を始めたので、その日から数えています。");
 	}
 }
