@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ja" xmlns:th="http://www.thymeleaf.org">
 <!--/*
-  季節の見出しと、「前の季節」「次の季節」のリンク、真ん中の「今の季節」ボタン（設計書 2.3、2.4、4.4.2、Q6-5）。
+  季節の見出しと、「‹ 前の季節」「次の季節 ›」のリンク（issue 025：画面の両端ではなく、季節の名前のすぐ左右に寄せて、名前と一緒に中央にまとめた。間は 16px。範囲の端では、出さない側に空の入れ物を残さない。HTML の順がそのまま「前・名前・次」で、狭くて折り返しても順は変わらない）、真ん中の「今の季節」ボタン（設計書 2.3、2.4、4.4.2、Q6-5）。
   予算設定（/budgets）と予実比較（/comparison）で共有する。リンクの先の URL は、引数 path で渡す。
   ・period：表示する季節（SeasonPeriod）。previous / next：前・次の季節。範囲の端（2000年春の前、2100年冬の次）では null で、リンクを出さない（B15）。
   ・見出しは「2026年 春（3月〜5月）」。冬は年をまたぐので「2026年 冬（2026年12月〜2027年2月）」。
@@ -14,10 +14,8 @@
 */-->
 <th:block th:fragment="nav(period, previous, next, path)">
 <div class="season-nav">
-    <span class="season-link prev">
-        <a class="btn btn-outline-secondary btn-sm" th:if="${previous != null}"
-           th:href="@{${path}(year=${previous.year}, season=${previous.season.urlName})}">前の季節</a>
-    </span>
+    <a class="btn btn-outline-secondary btn-sm" th:if="${previous != null}"
+       th:href="@{${path}(year=${previous.year}, season=${previous.season.urlName})}">‹ 前の季節</a>
     <div class="season-center">
         <h2 class="season-title">
             <span th:text="|${period.year}年 #{season.__${period.season.urlName}__}|">2026年 春</span>
@@ -27,10 +25,8 @@
                   th:text="|（${period.startDate.year}年${period.startDate.monthValue}月〜${period.endDateExclusive.minusMonths(1).year}年${period.endDateExclusive.minusMonths(1).monthValue}月）|">（2026年12月〜2027年2月）</span>
         </h2>
     </div>
-    <span class="season-link next">
-        <a class="btn btn-outline-secondary btn-sm" th:if="${next != null}"
-           th:href="@{${path}(year=${next.year}, season=${next.season.urlName})}">次の季節</a>
-    </span>
+    <a class="btn btn-outline-secondary btn-sm" th:if="${next != null}"
+       th:href="@{${path}(year=${next.year}, season=${next.season.urlName})}">次の季節 ›</a>
 </div>
 <form method="get" th:action="@{${path}}" class="season-select">
     <label class="form-label mb-0" for="season-year">年</label>

@@ -61,7 +61,6 @@ class TableCardScreensTest {
 		assertThat(rule(css, ".list-card th")).contains("font-size: var(--hb-font-size-small)", "padding-left: 1.25rem");
 		assertThat(rule(css, ".list-card td")).contains("padding-left: 1.25rem", "padding-right: 1.25rem");
 		assertThat(rule(css, ".list-card td.num")).contains("font-weight: 700");
-		assertThat(rule(css, ".list-card table.list")).contains("--bs-table-hover-bg: var(--hb-row-hover)");
 	}
 
 	/** 「きょうのひとこと」の見出しは、ほかのカードの見出し（.top-section h2）と同じ 1 つの規則（大きさ・字間を同じに）。字間は標準のまま */
@@ -73,5 +72,63 @@ class TableCardScreensTest {
 		assertThat(m.find()).isTrue();
 		assertThat(m.group(1)).as("同じ規則の中に入っている").contains(".hitokoto-frame h2");
 		assertThat(m.group(2)).contains("font-size: var(--hb-font-size-h2)", "letter-spacing: normal");
+	}
+
+	// ---- issue 025 の段階 1：行にマウスを載せたときの色を、表のあるすべての画面で #EEF3F3 にそろえる ----
+
+	/** 行の色（変数 --hb-row-hover ＝ #EEF3F3）の指定は .table-card の中の表で 1 回だけ。取引一覧だけの目印 .list-card には持たせない */
+	@Test
+	void theRowHoverColorIsSetOnceForEveryTableCard() throws Exception {
+		String css = css();
+
+		assertThat(css).contains("--hb-row-hover: #EEF3F3");
+		assertThat(rule(css, ".table-card table")).contains("--bs-table-hover-bg: var(--hb-row-hover)", "--bs-table-hover-color: var(--hb-text)");
+		assertThat(rule(css, ".list-card table.list")).as("取引一覧の目印には、行の色を持たせない（.table-card と二重にしない）")
+				.doesNotContain("--bs-table-hover-bg", "--bs-table-hover-color");
+		assertThat(css.split("--bs-table-hover-bg:", -1).length - 1).as("行の色の指定は 1 か所").isEqualTo(1);
+	}
+
+	/** .table-card の中の表には、すべて table-hover が付いている（付いていないと、行の色が変わらない）。6 画面 */
+	@ParameterizedTest(name = "{0}：表に table-hover")
+	@ValueSource(strings = { "transactions/list.html", "categories/list.html", "vendors/list.html", "payment-methods/list.html",
+			"comparison/index.html", "budgets/form.html" })
+	void everyTableInATableCardHasTableHover(String name) throws Exception {
+		String html = template(name);
+		Matcher m = Pattern.compile("(?s)<div class=\"table-card[^\"]*\"[^>]*>\\s*<table([^>]*)>").matcher(html);
+
+		assertThat(m.find()).as("白いカードの中の表がある").isTrue();
+		assertThat(m.group(1)).containsPattern("class=\"[^\"]*\\btable-hover\\b");
+	}
+
+	/** 白いカードではない表（トップの円グラフの一覧）には、付けない（対象外） */
+	@Test
+	void theTopPieListIsNotATableCardAndHasNoTableHover() throws Exception {
+		assertThat(template("top/index.html")).doesNotContain("table-card").doesNotContain("table-hover");
+	}
+
+	// ---- 月の見出しの行の CSS（issue 025 の段階 2）----
+
+	/** 灰色の帯（#F6F8F8 ＝ --hb-bg）。マウスを載せても色が変わらない。左右に分ける（左に年月、右に件数と合計） */
+	@Test
+	void theMonthRowIsAGrayBandThatDoesNotChangeOnHover() throws Exception {
+		String css = css();
+
+		assertThat(css).contains("--hb-bg: #F6F8F8");
+		String cell = rule(css, ".table-card .month-row > td");
+		assertThat(cell).contains("background-color: var(--hb-bg)", "--bs-table-bg-state: var(--hb-bg)");
+		assertThat(rule(css, ".table-card table.table-hover > tbody > tr.month-row:hover > *")).as("マウスを載せても、帯の色のまま")
+				.contains("--bs-table-bg-state: var(--hb-bg)");
+		String head = rule(css, ".month-head");
+		assertThat(head).contains("display: flex", "justify-content: space-between", "flex-wrap: wrap");
+	}
+
+	/** 文字の大きさは 4 段：年月は 16px の太字、「○ 件・合計」は 16px の補足の色、金額は 16px の 400 で本文の色 */
+	@Test
+	void theMonthRowTextUsesTheFourSizes() throws Exception {
+		String css = css();
+
+		assertThat(rule(css, ".month-name")).contains("font-size: var(--hb-font-size-body)", "font-weight: 700");
+		assertThat(rule(css, ".month-sum")).as("右側も 16px（小さすぎたので 13px から変えた）。「○ 件・合計」は補足の色").contains("font-size: var(--hb-font-size-body)", "color: var(--hb-text-sub)").doesNotContain("font-weight");
+		assertThat(rule(css, ".month-amount")).as("金額は太字にしない（400）、色は本文の色（#24302F）").contains("font-weight: 400", "color: var(--hb-text)").doesNotContain("font-size", "700");
 	}
 }

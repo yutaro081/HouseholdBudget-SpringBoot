@@ -302,7 +302,7 @@ class TransactionFormLayoutTest {
 	@Test
 	void amountInputIsBigRightAlignedAndHasATealBorder() throws Exception {
 		String r = rule(css(), ".amount-input");
-		assertThat(r).contains("border: 2px solid var(--hb-teal)", "text-align: right", "font-size: var(--hb-font-size-h1)");
+		assertThat(r).contains("border: 2px solid var(--hb-teal)", "text-align: right", "font-size: var(--hb-font-size-h2)", "font-weight: 700");   // issue 025：28px から 20px の太字に
 		assertThat(r).as("文字の大きさは rem の変数。px を書かない").doesNotContainPattern("font-size:\\s*[0-9.]+px");
 	}
 
@@ -357,5 +357,48 @@ class TransactionFormLayoutTest {
 
 	private static String stripComments(String css) {
 		return css.replaceAll("(?s)/\\*.*?\\*/", "");
+	}
+
+	// ---- issue 025 の段階 4：金額の欄と、金額ボタン、操作の行の CSS ----
+
+	/** 金額の欄：数字は 20px の太字、右寄せ。枠は今の 2px のターコイズ */
+	@Test
+	void theAmountInputIs20pxBoldRightAlignedWithTheTealBorder() throws Exception {
+		String r = rule(css(), ".amount-input");
+
+		assertThat(r).contains("font-size: var(--hb-font-size-h2)", "font-weight: 700", "text-align: right", "border: 2px solid var(--hb-teal)");
+		assertThat(r).doesNotContain("--hb-font-size-h1");
+	}
+
+	/** 「足す」「税込にする」のまとまり：外枠 1 つ（1px。枠は #56625F）、角丸、ボタンの間は線。4 段の大きさだけ */
+	@Test
+	void theGroupsAreOneConnectedShapeWithOneOuterBorderAndLinesBetween() throws Exception {
+		String css = css();
+		String group = rule(css, ".amount-group");
+
+		assertThat(group).contains("display: inline-flex", "border: 1px solid var(--hb-text-sub)", "border-radius: var(--hb-radius-control)", "overflow: hidden",
+				"background-color: var(--hb-input-bg)");
+		String button = rule(css, ".amount-btn");
+		assertThat(button).contains("border: 0", "font-size: var(--hb-font-size-body)", "color: var(--hb-text)");
+		assertThat(rule(css, ".amount-btn + .amount-btn")).as("ボタンの間の線").contains("border-left: 1px solid var(--hb-text-sub)");
+		assertThat(rule(css, ".amount-btn:disabled")).as("押せないとき（税込）：灰色の地と文字、押せない形のカーソル").contains("cursor: not-allowed", "color: var(--hb-text-sub)");
+		assertThat(css).doesNotContain("btn-sm");
+	}
+
+	/** ラベル「足す」「税込にする」は 13px の灰色。「金額をクリア」は文字のリンクの見た目（濃いターコイズ、下線、枠も背景もない）。説明は 13px */
+	@Test
+	void theLabelsAreSmallGrayTheClearIsATextLinkAndTheNoteIs13px() throws Exception {
+		String css = css();
+
+		assertThat(rule(css, ".amount-row-label")).contains("font-size: var(--hb-font-size-small)", "color: var(--hb-text-sub)");
+		String clear = rule(css, ".amount-clear");
+		assertThat(clear).contains("border: 0", "background: none", "color: var(--hb-teal-text)", "text-decoration: underline", "font-size: var(--hb-font-size-small)");
+		assertThat(rule(css, ".amount-note")).contains("font-size: var(--hb-font-size-small)", "color: var(--hb-text-sub)");
+	}
+
+	/** 「キャンセル」「保存」の上に区切り線（1px、--hb-line） */
+	@Test
+	void aSeparatorLineIsAboveTheCancelAndSaveButtons() throws Exception {
+		assertThat(rule(css(), ".form-actions")).contains("border-top: 1px solid var(--hb-line)", "padding-top: var(--hb-space-4)", "justify-content: flex-end");
 	}
 }

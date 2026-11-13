@@ -9,16 +9,19 @@
     <h1>科目の変更</h1>
 
     <!--/* 今の名前の入ったフォーム。入力エラー・重複のときは、この画面を表示し直し、入力値とエラーを入れる（設計書 6.9） */-->
-    <form th:action="@{/categories/{id}/edit(id=${categoryId})}" th:object="${categoryForm}" method="post" novalidate>
+    <form th:action="@{/categories/{id}/edit(id=${categoryId})}" th:object="${categoryForm}" method="post" class="form-card" novalidate>
         <div class="field">
-            <label class="form-label" for="name">科目名（10文字以内）</label>
+            <label class="form-label" for="name">科目名 <span class="field-chip">10 文字以内</span></label>
             <input class="form-control" type="text" th:field="*{name}" autofocus>
             <div class="field-error" th:each="message : ${#fields.errors('name')}" th:text="${message}">エラー</div>
         </div>
-        <button type="submit" class="btn btn-primary">保存</button>
+        <!--/* 右下：キャンセル（一覧へのリンク）→ 保存。取引の登録・編集の画面と同じ並び（issue 025 の段階 5。区切り線の下） */-->
+        <div class="form-actions">
+            <a class="btn btn-outline-secondary" th:href="@{/categories}">キャンセル</a>
+            <button type="submit" class="btn btn-primary">保存</button>
+        </div>
     </form>
 
-    <p><a th:href="@{/categories}">戻る</a></p>
 </main>
 </body>
 </html>

@@ -11,9 +11,9 @@
 
     <!--/* 追加フォーム。入力エラー・重複のときは、この画面を表示し直し、入力値とエラーを入れる（設計書 6.9）。
          利用者が入力した値は th:field / th:text で出す。th:utext は使わない（7.5） */-->
-    <form th:action="@{/payment-methods}" th:object="${paymentMethodForm}" method="post" class="add-form" novalidate>
+    <form th:action="@{/payment-methods}" th:object="${paymentMethodForm}" method="post" class="add-form form-card" novalidate>
         <div class="field">
-            <label class="form-label" for="name">支払方法名（10文字以内）</label>
+            <label class="form-label" for="name">支払方法名 <span class="field-chip">10 文字以内</span></label>
             <!--/* 入力欄と「追加」ボタンは同じ行（issue 024。設計書 2.3）。エラーの文は行の下 */-->
             <div class="add-row">
                 <input class="form-control" type="text" th:field="*{name}">
@@ -30,23 +30,20 @@
         <thead>
         <tr>
             <th>支払方法名</th>
-            <th>操作</th>
+            <th class="row-actions-head">操作</th>
         </tr>
         </thead>
         <tbody>
         <tr th:each="paymentMethod : ${paymentMethods}">
             <td th:text="${paymentMethod.name}">現金</td>
-            <td class="actions">
-            <div class="d-flex align-items-center gap-2">
-                <a class="btn btn-outline-secondary btn-sm" th:href="@{/payment-methods/{id}/edit(id=${paymentMethod.id})}">変更</a>
+            <td><div class="row-actions">
+                <a class="row-btn" title="この支払方法を直す" th:href="@{/payment-methods/{id}/edit(id=${paymentMethod.id})}"><th:block th:replace="~{fragments/icons :: icon('pencil', 14, 2)}"></th:block>変更</a>
                 <!--/* 削除ボタン。使用中のものにも出す（押したあと、削除できない理由を表示する）。
                      確認ダイアログの文言は固定。利用者の入力は埋め込まない（設計書 7.5）。th:action でトークンが入る（7.6） */-->
-                <form th:action="@{/payment-methods/{id}/delete(id=${paymentMethod.id})}" method="post"
-                      class="inline-form" onsubmit="return confirm('削除しますか？')">
-                    <button type="submit" class="btn btn-outline-danger btn-sm">削除</button>
+                <form th:action="@{/payment-methods/{id}/delete(id=${paymentMethod.id})}" method="post" onsubmit="return confirm('削除しますか？')">
+                    <button type="submit" class="row-btn row-btn-danger" title="この支払方法を削除する"><th:block th:replace="~{fragments/icons :: icon('trash', 14, 2)}"></th:block>削除</button>
                 </form>
-            </div>
-            </td>
+            </div></td>
         </tr>
         </tbody>
     </table>

@@ -200,8 +200,8 @@ class BudgetControllerTest {
 
 		assertThat(body).contains("2026年 冬", "（2026年12月〜2027年2月）");
 		assertThat(body).contains("action=\"/budgets?year=2026&amp;season=winter\"");
-		assertThat(body).contains("href=\"/budgets?year=2026&amp;season=autumn\">前の季節");
-		assertThat(body).contains("href=\"/budgets?year=2027&amp;season=spring\">次の季節");
+		assertThat(body).contains("href=\"/budgets?year=2026&amp;season=autumn\">‹ 前の季節");
+		assertThat(body).contains("href=\"/budgets?year=2027&amp;season=spring\">次の季節 ›");
 	}
 
 	@ParameterizedTest(name = "year={0} season={1} → 「{2}」「{3}」、前は {4}、次は {5}")
@@ -217,8 +217,8 @@ class BudgetControllerTest {
 				.andExpect(status().isOk()).andReturn());
 
 		assertThat(body).contains(title, period);
-		assertThat(body).contains("href=\"/budgets?" + prev + "\">前の季節");
-		assertThat(body).contains("href=\"/budgets?" + next + "\">次の季節");
+		assertThat(body).contains("href=\"/budgets?" + prev + "\">‹ 前の季節");
+		assertThat(body).contains("href=\"/budgets?" + next + "\">次の季節 ›");
 		assertThat(body).contains("action=\"/budgets?year=" + year + "&amp;season=" + season + "\"");
 	}
 
@@ -228,19 +228,19 @@ class BudgetControllerTest {
 		String first = body(mockMvc.perform(get("/budgets").param("year", "2000").param("season", "spring").with(asA))
 				.andExpect(status().isOk()).andReturn());
 		assertThat(first).doesNotContain("前の季節");
-		assertThat(first).contains("href=\"/budgets?year=2000&amp;season=summer\">次の季節");
+		assertThat(first).contains("href=\"/budgets?year=2000&amp;season=summer\">次の季節 ›");
 
 		String last = body(mockMvc.perform(get("/budgets").param("year", "2100").param("season", "winter").with(asA))
 				.andExpect(status().isOk()).andReturn());
 		assertThat(last).doesNotContain("次の季節");
-		assertThat(last).contains("href=\"/budgets?year=2100&amp;season=autumn\">前の季節");
+		assertThat(last).contains("href=\"/budgets?year=2100&amp;season=autumn\">‹ 前の季節");
 		assertThat(last).contains("（2100年12月〜2101年2月）");
 
 		String beforeLast = body(mockMvc.perform(get("/budgets").param("year", "2100").param("season", "autumn").with(asA)).andReturn());
 		assertThat(beforeLast).contains("次の季節", "前の季節");
 		String afterFirst = body(mockMvc.perform(get("/budgets").param("year", "2000").param("season", "winter").with(asA)).andReturn());
-		assertThat(afterFirst).contains("href=\"/budgets?year=2001&amp;season=spring\">次の季節",
-				"href=\"/budgets?year=2000&amp;season=autumn\">前の季節");
+		assertThat(afterFirst).contains("href=\"/budgets?year=2001&amp;season=spring\">次の季節 ›",
+				"href=\"/budgets?year=2000&amp;season=autumn\">‹ 前の季節");
 	}
 
 	// ================================================================

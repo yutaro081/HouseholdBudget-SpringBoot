@@ -116,13 +116,12 @@ class ButtonWordsTest {
 		assertThat(submitWords("/transactions/" + transaction.getId() + "/edit")).isEqualTo("[保存]");
 	}
 
-	/** 画面を開くリンク（確定するボタンではない）は、そのまま：「変更」「詳細」「＋ 取引を登録」「この取引を写して登録」 */
+	/** 画面を開くリンク（確定するボタンではない）は、そのまま：「変更」「編集」「複写」「＋ 取引を登録」 */
 	@Test
 	void linksThatOpenAScreenKeepTheirWords() throws Exception {
-		assertThat(page("/categories")).contains("/categories/" + category.getId() + "/edit\">変更</a>");
-		assertThat(page("/transactions")).contains("取引を登録</a>", ">詳細</a>");
-		assertThat(page("/transactions/" + transaction.getId())).contains("この取引を写して登録");
-		assertThat(submitWords("/transactions/" + transaction.getId())).as("詳細の「削除」はそのまま").isEqualTo("[削除]");
+		assertThat(page("/categories")).contains("/categories/" + category.getId() + "/edit\">").contains("変更</a>");   // issue 025：えんぴつのアイコンが前に入る
+		assertThat(page("/transactions")).contains("取引を登録</a>", ">編集</a>", ">複写</a>").doesNotContain(">詳細</a>");   // issue 025：一覧の「詳細」は、「編集」「複写」に変えた
+		assertThat(submitWords("/transactions")).as("一覧の各行の「削除」（issue 025。詳細の画面はなくした）").isEqualTo("[削除]");
 	}
 
 	/** ログイン・アカウント登録は、そのまま */

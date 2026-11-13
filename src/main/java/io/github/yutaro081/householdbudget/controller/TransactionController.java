@@ -28,7 +28,7 @@ import io.github.yutaro081.householdbudget.service.VendorService;
 import jakarta.validation.Valid;
 
 /**
- * 取引の一覧・登録・詳細・編集・削除の画面と処理（設計書 4.4.1、2.2、2.3、2.6）。
+ * 取引の一覧・登録・編集・複写・削除の画面と処理（設計書 4.4.1、2.2、2.3、2.6）。
  * <p>
  * 【決まり】ログイン中のユーザーのIDは、LoginUser から取り出して、Service に必ず渡す。
  * 画面から送られたユーザーIDは使わない（Form にも持たせない、設計書 3.9、6.1）。
@@ -71,7 +71,10 @@ public class TransactionController {
 	/** 取引の一覧（日付の新しい順、同じ日は登録の新しい順）。 */
 	@GetMapping
 	public String list(@AuthenticationPrincipal LoginUser loginUser, Model model) {
-		model.addAttribute("transactions", transactionService.list(loginUser.getUserId()));
+		Long userId = loginUser.getUserId();
+		model.addAttribute("transactions", transactionService.list(userId));
+		// 月ごとのまとまり（月の見出しの件数と合計。Service が計算する。issue 025）
+		model.addAttribute("months", transactionService.listByMonth(userId));
 		return "transactions/list";
 	}
 
@@ -118,13 +121,6 @@ public class TransactionController {
 		transactionService.register(userId, transactionForm);
 		redirectAttributes.addFlashAttribute("successMessageKey", "success.transactionRegistered");
 		return "redirect:/transactions";
-	}
-
-	/** 取引の詳細。編集・削除のボタンは、ここにだけ置く（U3）。 */
-	@GetMapping("/{id}")
-	public String detail(@AuthenticationPrincipal LoginUser loginUser, @PathVariable Long id, Model model) {
-		model.addAttribute("transaction", transactionService.get(loginUser.getUserId(), id));
-		return "transactions/detail";
 	}
 
 	/** 編集画面。登録済みの値の入ったフォームを表示する。 */

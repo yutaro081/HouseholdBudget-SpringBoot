@@ -76,7 +76,7 @@ class MasterAddFormLayoutTest {
 		for (String path : PATHS) {
 			String form = addForm(page(path));
 
-			assertThat(form).as(path).contains("class=\"add-form\"");
+			assertThat(form).as(path).contains("class=\"add-form form-card\"");
 			assertThat(form).as(path + "：横に並べる行がある").contains("<div class=\"add-row\">");
 			String row = form.substring(form.indexOf("<div class=\"add-row\">"));
 			assertThat(row.indexOf("<input")).as(path + "：欄が左").isPositive().isLessThan(row.indexOf("type=\"submit\""));
@@ -106,7 +106,7 @@ class MasterAddFormLayoutTest {
 					.getResponse().getContentAsString();
 			String form = addForm(body);
 
-			assertThat(form).as(path).contains("class=\"field-error\"", "name=\"_csrf\"", "class=\"add-form\"");
+			assertThat(form).as(path).contains("class=\"field-error\"", "name=\"_csrf\"", "class=\"add-form form-card\"");
 			assertThat(form.indexOf("</button>")).as(path + "：エラーの文はボタンの後（行の下）")
 					.isLessThan(form.indexOf("class=\"field-error\""));
 			assertThat(form.indexOf("class=\"add-row\"")).isLessThan(form.indexOf("class=\"field-error\""));

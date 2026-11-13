@@ -18,6 +18,7 @@ class HitokotoStyleSheetTest {
 
 	private static String css() throws Exception {
 		String css = Files.readString(Path.of("src", "main", "resources", "static", "css", "style.css"));
+		css = css.replace("\r\n", "\n");
 		return css.replaceAll("(?s)/\\*.*?\\*/", "");
 	}
 

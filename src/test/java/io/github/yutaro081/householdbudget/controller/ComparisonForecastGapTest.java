@@ -185,7 +185,7 @@ class ComparisonForecastGapTest {
 	void theTableOfTheCurrentSeasonHasTheForecastClassAndThePastOneDoesNot() throws Exception {
 		fourCategories();
 
-		assertThat(page("/comparison")).contains("class=\"list comparison-table table align-middle has-forecast\"");
+		assertThat(page("/comparison")).contains("class=\"list comparison-table table table-hover align-middle has-forecast\"");
 		assertThat(page("/comparison?year=2026&season=summer")).doesNotContain("has-forecast");
 	}
 
