@@ -1,10 +1,15 @@
 package io.github.yutaro081.householdbudget.service;
 
+import java.time.YearMonth;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import io.github.yutaro081.householdbudget.dto.TransactionMonth;
 import io.github.yutaro081.householdbudget.entity.Category;
 import io.github.yutaro081.householdbudget.entity.PaymentMethod;
 import io.github.yutaro081.householdbudget.entity.Transaction;
@@ -53,7 +58,29 @@ public class TransactionService {
 	}
 
 	/**
-	 * 自分の取引を1件返す（詳細・編集画面用）。
+	 * 自分の取引を、月ごとにまとめて返す（取引一覧の月の見出し用。issue 025）。
+	 * 新しい月が先。月の中は、{@link #list(Long)} と同じ並び。
+	 */
+	@Transactional(readOnly = true)
+	public List<TransactionMonth> listByMonth(Long userId) {
+		// 検索は list と同じ 1 回（ユーザーの絞り込みも同じ）。並びを保ったまま、月ごとに分ける
+		Map<YearMonth, List<Transaction>> byMonth = new LinkedHashMap<>();
+		for (Transaction transaction : list(userId)) {
+			byMonth.computeIfAbsent(YearMonth.from(transaction.getTransactionDate()), key -> new ArrayList<>()).add(transaction);
+		}
+		List<TransactionMonth> months = new ArrayList<>();
+		byMonth.forEach((month, transactions) -> {
+			long total = 0;
+			for (Transaction transaction : transactions) {
+				total += transaction.getAmount();
+			}
+			months.add(new TransactionMonth(month, transactions.size(), total, List.copyOf(transactions)));
+		});
+		return List.copyOf(months);
+	}
+
+	/**
+	 * 自分の取引を1件返す（編集・複写・削除のとき。編集画面を開くときと、複写の元を取り出すときにも使う）。
 	 *
 	 * @throws NotFoundException 存在しない、または他人の取引
 	 */

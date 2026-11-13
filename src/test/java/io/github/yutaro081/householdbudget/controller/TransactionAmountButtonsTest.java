@@ -93,8 +93,8 @@ class TransactionAmountButtonsTest {
 		assertThat(body).contains("data-amount-tax=\"110\"", "data-amount-tax=\"108\"");
 		assertThat(body).as("足すボタンの文字は、3桁ごとにカンマ付き").contains(">+1<", ">+10<", ">+100<", ">+1,000<", ">+10,000<");
 		assertThat(body).as("ボタンの文字だけがカンマ付き。値はカンマなしの数字").doesNotContain(">+1000<", ">+10000<", "data-amount-add=\"1,000\"", "data-amount-add=\"10,000\"");
-		assertThat(body).contains("税込（10%）", "税込（8%）");
-		assertThat(body).as("クリアのボタンがある").contains("data-amount-clear", ">クリア</button>");
+		assertThat(body).as("税込にするのボタンは「10%」「8%」（issue 025 で、「税込（10%）」「税込（8%）」から変えた）").contains(">10%<", ">8%<").doesNotContain("税込（10%）", "税込（8%）");
+		assertThat(body).as("「金額をクリア」のボタンがある（issue 025 で、「クリア」から変えた）").contains("data-amount-clear", ">金額をクリア</button>");
 		assertThat(body.indexOf("data-amount-add=\"10000\"")).as("1 行目（足すボタン）→ 2 行目（税込 10% → 税込 8% → クリア）の順")
 				.isLessThan(body.indexOf("data-amount-tax=\"110\""));
 		assertThat(body.indexOf("data-amount-tax=\"110\"")).isLessThan(body.indexOf("data-amount-tax=\"108\""));
@@ -103,8 +103,7 @@ class TransactionAmountButtonsTest {
 		assertThat(body.indexOf("data-amount-add=\"1\"")).as("足すボタンは 1 → 10 → 100 → 1000 → 10000 の順")
 				.isLessThan(body.indexOf("data-amount-add=\"10\"")).isLessThan(body.indexOf("data-amount-add=\"100\""))
 				.isLessThan(body.indexOf("data-amount-add=\"1000\"")).isLessThan(body.indexOf("data-amount-add=\"10000\""));
-		assertThat(body).as("クリアは右の端に寄せず（ms-auto なし）、少しすき間を空ける（ms-3）").containsPattern("class=\"[^\"]*\\bms-3\\b[^\"]*\"\\s+data-amount-clear")
-				.doesNotContain("ms-auto");
+		assertThat(body).as("「金額をクリア」は、右の端に寄せない（ms-auto なし）。税込にするのまとまりのすぐ右").containsPattern("class=\"amount-clear\"\\s+data-amount-clear").doesNotContain("ms-auto");
 		assertThat(body).as("クリアのボタンも、送信しない").containsPattern("type=\"button\"[^>]*data-amount-clear");
 		assertThat(body).as("ボタンは送信しない").contains("type=\"button\"");
 		assertThat(body).as("固定の文が、HTML に書いてある").contains(NOTE);
@@ -166,4 +165,97 @@ class TransactionAmountButtonsTest {
 		}
 	}
 
+	// ---- issue 025 の段階 4：金額ボタンを 2 つのまとまりに（「足す」「税込にする」）。動きは変えない ----
+
+	/** ボタンの入れ物（data-amount-buttons）から、フォームの下の操作の行（form-actions）の前まで */
+	private static String boxOf(String body) {
+		int start = body.lastIndexOf("<div", body.indexOf("data-amount-buttons"));
+		int end = body.indexOf("form-actions", start);
+		assertThat(start).isPositive();
+		assertThat(end).isGreaterThan(start);
+		return body.substring(start, end);
+	}
+
+	/** 「足す」のまとまり（5 つ）と、「税込にする」のまとまり（2 つ）。それぞれ、左に 13px の灰色のラベル。まとまりは role="group" */
+	@Test
+	void thereAreTwoGroupsEachWithItsLabelOnTheLeft() throws Exception {
+		String box = boxOf(page("/transactions/new"));
+
+		java.util.regex.Matcher rows = java.util.regex.Pattern
+				.compile("(?s)<span class=\"amount-row-label\">([^<]*)</span>\\s*<div class=\"amount-group\" role=\"group\" aria-label=\"([^\"]*)\">(.*?)</div>")
+				.matcher(box);
+		java.util.List<String> labels = new java.util.ArrayList<>();
+		java.util.List<String> groups = new java.util.ArrayList<>();
+		while (rows.find()) {
+			assertThat(rows.group(1)).as("ラベルと aria-label は同じ言葉").isEqualTo(rows.group(2));
+			labels.add(rows.group(1));
+			groups.add(rows.group(3));
+		}
+		assertThat(labels).containsExactly("足す", "税込にする");
+		assertThat(count(groups.get(0), "data-amount-add=")).as("足すのまとまりは 5 つ").isEqualTo(5);
+		assertThat(groups.get(0)).doesNotContain("data-amount-tax", "data-amount-clear");
+		assertThat(count(groups.get(1), "data-amount-tax=")).as("税込にするのまとまりは 2 つ").isEqualTo(2);
+		assertThat(groups.get(1)).doesNotContain("data-amount-add", "data-amount-clear").contains(">10%<", ">8%<");
+		assertThat(groups.get(0)).contains(">+1<", ">+10<", ">+100<", ">+1,000<", ">+10,000<");
+		assertThat(box.indexOf("足す")).as("足す → 税込にする の順").isLessThan(box.indexOf("税込にする"));
+	}
+
+	/** 「金額をクリア」は、「税込にする」のまとまりの右端（すぐ右）。文字のリンクの見た目の button（type="button"）。Bootstrap の btn は使わない */
+	@Test
+	void theClearButtonIsATextLinkLookingButtonRightAfterTheTaxGroup() throws Exception {
+		String box = boxOf(page("/transactions/new"));
+
+		assertThat(box).containsPattern("(?s)data-amount-tax=\"108\"[^>]*>8%</button>\\s*</div>\\s*<button type=\"button\" class=\"amount-clear\" data-amount-clear>金額をクリア</button>");
+		assertThat(box).doesNotContain("class=\"btn", ">クリア<", "ms-3", "ms-auto");
+		assertThat(count(box, "data-amount-clear")).isEqualTo(1);
+	}
+
+	/** 説明の文は 1 つの段落（13px）。押せないときの文（hidden）と、税込の計算・税率が混ざるレシートの文。中身は変えない */
+	@Test
+	void theExplanationIsOneParagraphWithTheSameWords() throws Exception {
+		String box = boxOf(page("/transactions/new"));
+
+		assertThat(count(box, "<p")).as("説明の段落は 1 つ").isEqualTo(1);
+		assertThat(box).containsPattern("(?s)<p class=\"amount-note\">\\s*<span data-amount-tax-note hidden>" + NOTE + "</span>");
+		assertThat(box).contains("「税込にする」のボタンは、欄の金額を税抜として計算します（端数は切り捨て）。8%と10%が混ざるレシートは、税率ごとに取引を分けて登録してください。");
+		assertThat(box).doesNotContain("form-text");
+		assertThat(count(box, "data-amount-tax-note")).isEqualTo(1);
+	}
+
+	/** JavaScript が頼る印が、形を変えても全部ある（足す 5、税込 2、クリア 1、固定の文 1、欄の id）。JavaScript は、クラス名に頼らない */
+	@Test
+	void everyMarkTheScriptNeedsIsStillThereAndTheScriptDoesNotDependOnClassNames() throws Exception {
+		for (String path : new String[] { "/transactions/new", "/transactions/" + transaction.getId() + "/edit" }) {
+			String body = page(path);
+			String box = boxOf(body);
+			assertThat(count(box, "data-amount-add=")).as(path).isEqualTo(5);
+			assertThat(count(box, "data-amount-tax=\"")).as(path).isEqualTo(2);
+			assertThat(count(box, "data-amount-clear")).as(path).isEqualTo(1);
+			assertThat(count(box, "data-amount-tax-note")).as(path).isEqualTo(1);
+			assertThat(body).containsPattern("<div[^>]*data-amount-buttons[^>]*data-amount-target=\"amount\"[^>]*hidden>");
+			assertThat(body).as("入力欄の id（data-amount-target の指す先）").contains("id=\"amount\"");
+			assertThat(count(box, "type=\"button\"")).as("ボタンは 8 つ。送信しない").isEqualTo(8);
+		}
+		String script = java.nio.file.Files.readString(java.nio.file.Path.of("src", "main", "resources", "static", "js", "amount-buttons.js"));
+		assertThat(script).as("JavaScript は、クラス名・見た目に頼らない（data- の印だけ）")
+				.doesNotContain("classList", "className", "getElementsByClassName", "querySelector('.", "querySelectorAll('.");
+		assertThat(script).contains("[data-amount-buttons]", "[data-amount-add]", "[data-amount-tax]", "[data-amount-clear]", "[data-amount-tax-note]");
+	}
+
+	/** 「キャンセル」「保存」は、今までどおり右下に並ぶ（送り先・method・CSRF は変わらない） */
+	@Test
+	void cancelAndSaveStayAtTheBottomRight() throws Exception {
+		String body = page("/transactions/new");
+
+		assertThat(body).containsPattern("(?s)<div class=\"form-actions\">\\s*<a class=\"btn btn-outline-secondary\" href=\"/transactions\">キャンセル</a>\\s*<button type=\"submit\" class=\"btn btn-primary\">保存</button>");
+		assertThat(body).contains("method=\"post\"", "name=\"_csrf\"");
+	}
+
+	private static int count(String text, String part) {
+		int n = 0;
+		for (int i = text.indexOf(part); i >= 0; i = text.indexOf(part, i + part.length())) {
+			n++;
+		}
+		return n;
+	}
 }

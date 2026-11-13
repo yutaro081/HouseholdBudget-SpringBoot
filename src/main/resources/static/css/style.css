@@ -249,6 +249,8 @@ main.form-wide {
     justify-content: flex-end;
     gap: var(--hb-space-2);
     margin-top: var(--hb-space-5);
+    padding-top: var(--hb-space-4);
+    border-top: 1px solid var(--hb-line);   /* 上に区切り線（issue 025 の段階 4） */
 }
 
 /*
@@ -290,8 +292,84 @@ main.form-wide {
 /* 金額の欄：大きめの文字（見出しの 1.75rem）、ターコイズの枠（#0E9594。白との比 3.66 対 1）、数字は右寄せ。選んだとき（フォーカス）は .form-control:focus の枠が効く */
 .amount-input {
     border: 2px solid var(--hb-teal);
-    font-size: var(--hb-font-size-h1);
+    font-size: var(--hb-font-size-h2);
+    font-weight: 700;
     text-align: right;
+}
+
+/* 金額を入れやすくするボタン（issue 009、issue 025 の段階 4 で 2 つのまとまりに）：「足す」と「税込にする」。左に 13px の灰色のラベル、右に、つながった 1 つの形のボタン（外枠 1 つ、間は線）。
+   「金額をクリア」は、税込にするのまとまりのすぐ右の、文字のリンクの見た目の button。押せない（税込）ときは、灰色の地と文字。動きは amount-buttons.js（data- の印だけに頼る。クラス名には頼らない） */
+.amount-buttons {
+    margin-top: var(--hb-space-2);
+}
+
+.amount-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--hb-space-2) var(--hb-space-3);
+    margin-bottom: var(--hb-space-2);
+}
+
+.amount-row-label {
+    flex: 0 0 5.5em;
+    color: var(--hb-text-sub);
+    font-size: var(--hb-font-size-small);
+}
+
+.amount-group {
+    display: inline-flex;
+    border: 1px solid var(--hb-text-sub);
+    border-radius: var(--hb-radius-control);
+    overflow: hidden;
+    background-color: var(--hb-input-bg);
+}
+
+.amount-btn {
+    padding: 0.375rem 0.875rem;
+    border: 0;
+    background-color: transparent;
+    color: var(--hb-text);
+    font: inherit;
+    font-size: var(--hb-font-size-body);
+    line-height: 1.5;
+    cursor: pointer;
+}
+
+.amount-btn + .amount-btn {
+    border-left: 1px solid var(--hb-text-sub);
+}
+
+.amount-btn:hover:not(:disabled) {
+    background-color: var(--hb-row-hover);
+}
+
+.amount-btn:focus-visible {
+    outline: 2px solid var(--hb-teal-button);
+    outline-offset: -2px;
+}
+
+.amount-btn:disabled {
+    background-color: var(--hb-bg);
+    color: var(--hb-text-sub);
+    cursor: not-allowed;
+}
+
+.amount-clear {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--hb-teal-text);
+    font: inherit;
+    font-size: var(--hb-font-size-small);
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.amount-note {
+    margin: 0;
+    color: var(--hb-text-sub);
+    font-size: var(--hb-font-size-small);
 }
 
 /* 金額の範囲の補足（欄の下） */
@@ -455,44 +533,14 @@ table.list th.num {
     text-align: right;
 }
 
-/* 詳細画面の項目 */
-dl.detail {
-    display: grid;
-    grid-template-columns: 8em 1fr;
-    gap: 8px 12px;
-    margin: 16px 0;
-}
-
-dl.detail dt {
-    font-weight: bold;
-}
-
-dl.detail dd {
-    margin: 0;
-}
-
-.button-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin: 16px 0;
-}
-
-/* 季節の見出しと、前・次の季節のリンク（予算設定・予実比較で共有、設計書 2.4） */
+/* 季節の見出しと、前・次の季節のリンク（予算設定・予実比較で共有、設計書 2.4）。issue 025：前・名前・次を、中央に寄せてまとめる（間は 16px）。折り返しても、HTML の順（前・名前・次）のまま。順を入れかえる指定は使わない */
 .season-nav {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
+    justify-content: center;
+    gap: var(--hb-space-4);
     margin: 16px 0;
-}
-
-.season-nav .season-link {
-    min-width: 6em;
-}
-
-.season-nav .season-link.next {
-    text-align: right;
 }
 
 /* 見出しと「今の季節」ボタン（設計書 2.4、issue 007）：前後のリンクの間の真ん中に、縦に並べる */
@@ -767,6 +815,9 @@ dl.detail dd {
 
 .table-card table {
     --bs-table-bg: transparent;
+    /* 行にマウスを載せたときの色（issue 024、issue 025 の段階 1）：薄い灰緑。薄いターコイズは使わない。Bootstrap の table-hover の変数を、白いカードの中の表すべてで上書きする（表に table-hover を付ける）。指定はここの 1 か所 */
+    --bs-table-hover-bg: var(--hb-row-hover);
+    --bs-table-hover-color: var(--hb-text);
 }
 
 /* 見込みの要約カード（issue 020）：白いカード。大きな数字は見出しと同じ大きさ（h1）。棒はトップの季節のメーターと同じ作り（.top-meter）。棒の長さの決め方は、issue 020 の 3 で決める */
@@ -1442,23 +1493,11 @@ main.auth-main {
     }
 }
 
-/* 2 列のとき：ヘッダーの下の残りの高さの、縦の真ん中に、紹介とカードを置く（設計書 2.3。ブラウザで見て決めた）。
-   画面の高さいっぱいを、ヘッダーと本体で分け、本体を縦に中央にそろえる。HTML は変えない。
-   せまいとき（カードが上）は、この規則を使わず、今のまま上から並べる。中身が高いときは、上から並んでスクロールする */
+/* 2 列のとき（issue 025）：ヘッダーの下 5rem（80px）の所から、上に並べる。縦の中央寄せと、画面の高さに合わせた余白の計算（100vh と係数 0.7）は、やめた。HTML は変えない。
+   せまいとき（カードが上）は、今のまま（上の余白 3rem） */
 @media (min-width: 768px) {
-    body:has(> main.auth-main) {
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-    }
-
-    body:has(> main.auth-main) main.auth-main {
-        flex: 1 1 auto;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        /* 下にだけ余白を足して、少し上に置く（issue 020）。高さ 768px 以下では 0。背の高い画面ほど大きい（上下の空きがだいたい 2：3） */
-        padding-bottom: calc(var(--hb-space-7) + max(0px, (100vh - 768px) * 0.7));
+    main.auth-main {
+        padding-top: 5rem;
     }
 }
 
@@ -1582,9 +1621,6 @@ main.list-wide {
 /* 取引一覧の目印 .list-card：カードの見た目（白、枠、角丸）は .table-card が決める（issue 024 の段階 12）。ここは中のセルの規則だけ */
 .list-card table.list {
     margin-bottom: 0;
-    /* 行にマウスを載せたときの色（issue 024）：薄い灰緑。薄いターコイズは使わない。Bootstrap の table-hover の変数を、この表だけで上書きする */
-    --bs-table-hover-bg: var(--hb-row-hover);
-    --bs-table-hover-color: var(--hb-text);
 }
 
 /* マスの左右の余白は 20px（案に合わせた例外。余白の目盛りの外。設計書 2.3）。見出しの行のマスも同じ */
@@ -1608,6 +1644,91 @@ main.list-wide {
 
 .list-card td.list-muted {
     color: var(--hb-text-sub);
+}
+
+/* 取引一覧の月ごとの見出しの行（issue 025 の段階 2）：灰色の帯（--hb-bg ＝ #F6F8F8）。左に年月（16px の太字）、右に「○ 件・合計 ○円」（16px。「○ 件・合計」は補足の色、金額は本文の色で、太字にはしない）。
+   マウスを載せても色が変わらない（Bootstrap の table-hover の色の変数を、帯の色のままにする）。幅がせまいときは、右が下に回り込む */
+.table-card .month-row > td {
+    background-color: var(--hb-bg);
+    --bs-table-bg-state: var(--hb-bg);
+}
+
+.table-card table.table-hover > tbody > tr.month-row:hover > * {
+    --bs-table-bg-state: var(--hb-bg);
+}
+
+.month-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--hb-space-1) var(--hb-space-4);
+}
+
+.month-name {
+    font-size: var(--hb-font-size-body);
+    font-weight: 700;
+}
+
+.month-sum {
+    font-size: var(--hb-font-size-body);
+    color: var(--hb-text-sub);
+}
+
+/* 月の合計の金額だけ、本文の色（#24302F）。太字にはしない（400）。大きさは親（.month-sum）の 16px のまま */
+.month-amount {
+    font-weight: 400;
+    color: var(--hb-text);
+}
+
+/* 取引一覧の操作の列（issue 025 の段階 3。本人の指示で、文字リンクから小さい枠のボタンに変えた）：編集・複写・削除の 3 つとも、13px、角丸、上下に少し余白、背景は白。
+   編集・複写（a 要素のまま。見た目だけボタン）は、枠 #56625F（--hb-text-sub）・文字 #24302F（--hb-text）。削除（button のまま）は、枠と文字を #C62828（--hb-over）に。
+   3 つの間は 8px（--hb-space-2。余白の目盛りのとおり）で、右端に詰める。1 行に収める（折り返さない）。文字の左に、14px の線のアイコン（えんぴつ・2 枚重ねの紙・ごみ箱。fragments/icons）。科目・取引先・支払方法の一覧の「変更」「削除」も、同じ見た目（段階 5）。 */
+.row-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--hb-space-2);
+    white-space: nowrap;
+}
+
+/* 見出し「操作」も右寄せ（ボタンを右端に詰めるため）。白いカードの表すべて：取引一覧、科目・取引先・支払方法（issue 025） */
+.table-card th.row-actions-head {
+    text-align: right;
+}
+
+.row-actions form {
+    margin: 0;
+}
+
+.row-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--hb-space-1);
+    padding: 0.25rem 0.75rem;
+    border: 1px solid var(--hb-text-sub);
+    border-radius: var(--hb-radius-control);
+    background-color: var(--hb-input-bg);
+    color: var(--hb-text);
+    font: inherit;
+    font-size: var(--hb-font-size-small);
+    line-height: 1.5;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.row-btn:hover {
+    background-color: var(--hb-bg);
+    color: var(--hb-text);
+}
+
+.row-btn-danger {
+    border-color: var(--hb-over);
+    color: var(--hb-over);
+}
+
+.row-btn-danger:hover {
+    color: var(--hb-over);
 }
 
 /* 予算設定の「自動予算」（設計書 2.3、issue 019）：ボタンと一言、選ぶリンク、最初の文、表の数字 */

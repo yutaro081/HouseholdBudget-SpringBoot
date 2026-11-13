@@ -85,7 +85,7 @@ class HeaderCountTest {
 
 	@Test
 	void screensAfterLoginHaveExactlyOneHeaderWithTheMenuAndOneLogo() throws Exception {
-		List<String> paths = List.of("/", "/transactions", "/transactions/new", "/transactions/" + transactionId, "/categories", "/vendors",
+		List<String> paths = List.of("/", "/transactions", "/transactions/new", "/transactions/" + transactionId + "/edit", "/categories", "/vendors",
 				"/payment-methods", "/budgets", "/comparison");
 		for (String path : paths) {
 			String body = loggedIn(path);
@@ -101,7 +101,7 @@ class HeaderCountTest {
 	/** 404 の画面は、ログイン前でも出せる作り（設計書 2.5、7.7）なので、ヘッダーを出さない。2 つ出ないことだけ確かめる */
 	@Test
 	void theNotFoundScreenHasNoMoreThanOneHeader() throws Exception {
-		String body = loggedIn("/transactions/999999999");
+		String body = loggedIn("/transactions/999999999/edit");   // 存在しない取引の編集（詳細の画面は、issue 025 でなくした）
 
 		assertThat(body).contains("ページが見つかりません");
 		assertThat(count(body, "<header[ >]")).isLessThanOrEqualTo(1);

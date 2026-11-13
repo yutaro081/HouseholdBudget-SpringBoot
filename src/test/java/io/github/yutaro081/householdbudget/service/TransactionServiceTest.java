@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -12,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import io.github.yutaro081.householdbudget.dto.TransactionMonth;
 import io.github.yutaro081.householdbudget.entity.Category;
 import io.github.yutaro081.householdbudget.entity.PaymentMethod;
 import io.github.yutaro081.householdbudget.entity.Transaction;
@@ -357,4 +359,118 @@ class TransactionServiceTest {
 		}).doesNotThrowAnyException();
 	}
 
+	// ---- 月ごとのまとまり（issue 025 の段階 2。取引一覧の月の見出し）----
+
+	private void saveOn(Owner owner, LocalDate date, int amount) {
+		transactionRepository.save(new Transaction(owner.userId(), date, amount, owner.category(), null, owner.vendor(), owner.paymentMethod()));
+	}
+
+	private List<TransactionMonth> months(Owner owner) {
+		entityManager.flush();
+		entityManager.clear();
+		return service.listByMonth(owner.userId());
+	}
+
+	/** 月ごとに分かれ、新しい月が先。件数と合計が合う。月の中は日付の新しい順 */
+	@Test
+	void listByMonthGroupsByMonthNewestFirstWithCountAndTotal() {
+		Owner a = createOwner("bymonth1");
+		saveOn(a, LocalDate.of(2026, 10, 15), 400);
+		saveOn(a, LocalDate.of(2026, 11, 1), 200);
+		saveOn(a, LocalDate.of(2026, 10, 31), 300);
+		saveOn(a, LocalDate.of(2026, 11, 30), 100);
+
+		List<TransactionMonth> months = months(a);
+
+		assertThat(months).extracting(TransactionMonth::month).containsExactly(YearMonth.of(2026, 11), YearMonth.of(2026, 10));
+		assertThat(months).extracting(TransactionMonth::count).containsExactly(2, 2);
+		assertThat(months).extracting(TransactionMonth::total).containsExactly(300L, 700L);
+		assertThat(months.get(0).transactions()).extracting(Transaction::getTransactionDate)
+				.containsExactly(LocalDate.of(2026, 11, 30), LocalDate.of(2026, 11, 1));
+	}
+
+	/** 月の境目：月末（31 日）と翌月の初め（1 日）は、別の月。うるう年の 2 月 29 日と 3 月 1 日も */
+	@Test
+	void theLastDayAndTheFirstDayOfTheNextMonthAreInDifferentMonths() {
+		Owner a = createOwner("bymonth2");
+		saveOn(a, LocalDate.of(2024, 2, 29), 10);
+		saveOn(a, LocalDate.of(2024, 3, 1), 20);
+		saveOn(a, LocalDate.of(2024, 1, 31), 30);
+		saveOn(a, LocalDate.of(2024, 2, 1), 40);
+
+		List<TransactionMonth> months = months(a);
+
+		assertThat(months).extracting(TransactionMonth::month)
+				.containsExactly(YearMonth.of(2024, 3), YearMonth.of(2024, 2), YearMonth.of(2024, 1));
+		assertThat(months).extracting(TransactionMonth::total).containsExactly(20L, 50L, 30L);
+		assertThat(months).extracting(TransactionMonth::count).containsExactly(1, 2, 1);
+	}
+
+	/** 年またぎ：12 月 31 日と 1 月 1 日は、年の違う別の月。1 月が上（新しい） */
+	@Test
+	void decemberAndJanuaryAcrossTheNewYearAreSeparateMonths() {
+		Owner a = createOwner("bymonth3");
+		saveOn(a, LocalDate.of(2025, 12, 31), 600);
+		saveOn(a, LocalDate.of(2026, 1, 1), 500);
+		saveOn(a, LocalDate.of(2025, 12, 1), 7);
+
+		List<TransactionMonth> months = months(a);
+
+		assertThat(months).extracting(TransactionMonth::month).containsExactly(YearMonth.of(2026, 1), YearMonth.of(2025, 12));
+		assertThat(months).extracting(TransactionMonth::total).containsExactly(500L, 607L);
+		assertThat(months).extracting(TransactionMonth::count).containsExactly(1, 2);
+	}
+
+	/** 同じ月でも、年が違えば別（2025 年 11 月と 2026 年 11 月） */
+	@Test
+	void theSameMonthOfDifferentYearsIsNotMerged() {
+		Owner a = createOwner("bymonth4");
+		saveOn(a, LocalDate.of(2025, 11, 5), 1);
+		saveOn(a, LocalDate.of(2026, 11, 5), 2);
+
+		assertThat(months(a)).extracting(TransactionMonth::month).containsExactly(YearMonth.of(2026, 11), YearMonth.of(2025, 11));
+	}
+
+	/** 守り：件数にも合計にも、他人の取引が混ざらない（同じ月に他人の取引があっても） */
+	@Test
+	void otherUsersTransactionsAreNeverCountedOrSummed() {
+		Owner a = createOwner("bymonth5");
+		Owner b = createOwner("bymonth6");
+		saveOn(a, LocalDate.of(2026, 11, 9), 1_500);
+		saveOn(b, LocalDate.of(2026, 11, 9), 70_000);
+		saveOn(b, LocalDate.of(2026, 11, 10), 80_000);
+		saveOn(b, LocalDate.of(2026, 9, 1), 90_000);
+
+		List<TransactionMonth> months = months(a);
+
+		assertThat(months).hasSize(1);
+		assertThat(months.get(0).count()).isEqualTo(1);
+		assertThat(months.get(0).total()).isEqualTo(1_500L);
+		assertThat(months.get(0).transactions()).extracting(Transaction::getUserId).containsOnly(a.userId());
+		assertThat(months(b)).extracting(TransactionMonth::total).containsExactly(150_000L, 90_000L);
+	}
+
+	/** 取引が 1 件もないとき、空 */
+	@Test
+	void listByMonthIsEmptyWithoutTransactions() {
+		assertThat(months(createOwner("bymonth7"))).isEmpty();
+	}
+
+	/** 月ごとの件数の合計は、全件（list）の件数と同じ。並びも、全部つなぐと list と同じ */
+	@Test
+	void theMonthsTogetherAreExactlyTheFullList() {
+		Owner a = createOwner("bymonth8");
+		saveOn(a, LocalDate.of(2026, 11, 9), 1);
+		saveOn(a, LocalDate.of(2026, 11, 9), 2);
+		saveOn(a, LocalDate.of(2026, 10, 9), 3);
+		saveOn(a, LocalDate.of(2025, 12, 9), 4);
+
+		List<TransactionMonth> months = months(a);
+		List<Long> fromMonths = months.stream().flatMap(m -> m.transactions().stream()).map(Transaction::getId).toList();
+		List<Long> fromList = service.list(a.userId()).stream().map(Transaction::getId).toList();
+
+		assertThat(fromMonths).isEqualTo(fromList);
+		assertThat(months.stream().mapToInt(TransactionMonth::count).sum()).isEqualTo(4);
+		assertThat(months.stream().mapToLong(TransactionMonth::total).sum()).isEqualTo(10L);
+	}
 }

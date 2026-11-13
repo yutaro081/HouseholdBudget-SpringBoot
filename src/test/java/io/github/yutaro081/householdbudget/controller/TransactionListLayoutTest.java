@@ -159,11 +159,12 @@ class TransactionListLayoutTest {
 	void dateMethodAndDescriptionAreMutedAndTheAmountKeepsTheNumClass() throws Exception {
 		save(30000, "昼食");
 		String body = list();
-		String row = body.substring(body.indexOf("<tbody>"), body.indexOf("</tbody>"));
+		String row = body.substring(body.indexOf("<td class=\"list-muted\">"), body.indexOf("</tbody>"));   // 月の見出しの行（issue 025）のあとの、取引の行
 
 		assertThat(row).contains("<td class=\"list-muted\">2026/10/19</td>", "<td class=\"list-muted\">現金</td>", "<td class=\"list-muted\">昼食</td>");
-		assertThat(row).as("セルに「円」を付けない（issue 024）").contains("<td class=\"num\">30,000</td>").doesNotContain("円");
-		assertThat(row).containsPattern("<td><a href=\"/transactions/\\d+\">詳細</a></td>");
+		String cells = row.substring(0, row.indexOf("<div class=\"row-actions\">"));   // 操作のセル（削除の確認の文に「円」が入る。issue 025）の手前まで
+		assertThat(cells).as("セルに「円」を付けない（issue 024）").contains("<td class=\"num\">30,000</td>").doesNotContain("円");
+		assertThat(row).as("操作は、編集・複写・削除（issue 025）").containsPattern("(?s)<a class=\"row-btn\" title=\"[^\"]*\" href=\"/transactions/\\d+/edit\">(<svg.*?</svg>)?編集</a>").doesNotContain("詳細");
 	}
 
 	@Test
@@ -176,4 +177,134 @@ class TransactionListLayoutTest {
 		assertThat(main).contains("&lt;b&gt;x&lt;/b&gt;", "&lt;script&gt;y&lt;/script&gt;");
 	}
 
+	// ---- 月ごとの見出しの行（issue 025 の段階 2。設計書 2.3）----
+
+	private void saveOn(Long owner, LocalDate date, int amount) {
+		Category c = owner.equals(userId) ? category : categoryRepository.save(new Category(owner, "他人の科目" + amount));
+		Vendor v = owner.equals(userId) ? vendor : vendorRepository.save(new Vendor(owner, "他人の取引先" + amount));
+		PaymentMethod p = owner.equals(userId) ? payment : paymentMethodRepository.save(new PaymentMethod(owner, "他人の支払" + amount));
+		transactionRepository.save(new Transaction(owner, date, amount, c, null, v, p));
+	}
+
+	/** 列の見出し（thead）はいちばん上の 1 つだけ。tbody は月の数だけ。見出しの行は、各 tbody の最初の行 */
+	@Test
+	void thereIsOneTheadAndOneTbodyPerMonthAndEachTbodyStartsWithTheMonthRow() throws Exception {
+		saveOn(userId, LocalDate.of(2026, 11, 9), 100);
+		saveOn(userId, LocalDate.of(2026, 11, 2), 200);
+		saveOn(userId, LocalDate.of(2026, 10, 31), 300);
+		String main = list();
+
+		assertThat(count(main, "<thead>")).isEqualTo(1);
+		assertThat(count(main, "<tbody>")).isEqualTo(2);
+		assertThat(count(main, "class=\"month-row\"")).isEqualTo(2);
+		assertThat(main).containsPattern("(?s)<tbody>\\s*<tr class=\"month-row\">");
+		assertThat(count(main, "<td colspan=\"7\"")).as("見出しの行は 7 列ぶんの 1 つのマス").isEqualTo(2);
+	}
+
+	/** 見出しの行：左に年月（太字）、右に「○ 件・合計 ○円」（カンマ付き） */
+	@Test
+	void theMonthRowShowsTheMonthInBoldAndTheCountAndTheTotalOnTheRight() throws Exception {
+		saveOn(userId, LocalDate.of(2026, 11, 9), 10_000);
+		saveOn(userId, LocalDate.of(2026, 11, 2), 19_800);
+		saveOn(userId, LocalDate.of(2026, 10, 31), 300);
+		String main = list();
+
+		assertThat(main).containsPattern("(?s)<strong class=\"month-name\">2026年 11月</strong>\\s*<span class=\"month-sum\">2 件・合計 <span class=\"month-amount\">29,800円</span></span>");
+		assertThat(main).containsPattern("(?s)<strong class=\"month-name\">2026年 10月</strong>\\s*<span class=\"month-sum\">1 件・合計 <span class=\"month-amount\">300円</span></span>");
+		assertThat(main.indexOf("2026年 11月")).as("新しい月が上").isLessThan(main.indexOf("2026年 10月"));
+	}
+
+	/** 年またぎ：「2026年 1月」が上、「2025年 12月」が下。月の数字は 0 埋めしない */
+	@Test
+	void theYearTurnsBetweenDecemberAndJanuary() throws Exception {
+		saveOn(userId, LocalDate.of(2025, 12, 31), 600);
+		saveOn(userId, LocalDate.of(2026, 1, 1), 500);
+		String main = list();
+
+		assertThat(main.indexOf("2026年 1月")).isPositive().isLessThan(main.indexOf("2025年 12月"));
+		assertThat(main).contains("1 件・合計 <span class=\"month-amount\">500円</span>", "1 件・合計 <span class=\"month-amount\">600円</span>").doesNotContain("01月");
+	}
+
+	/** 月の件数と合計に、他人の取引が混ざらない（同じ月に他人の取引が多くあっても） */
+	@Test
+	void theMonthRowDoesNotIncludeOtherUsersTransactions() throws Exception {
+		saveOn(userId, LocalDate.of(2026, 11, 9), 1_500);
+		saveOn(otherId, LocalDate.of(2026, 11, 9), 70_000);
+		saveOn(otherId, LocalDate.of(2026, 11, 10), 80_000);
+		String main = list();
+
+		assertThat(main).contains("1 件・合計 <span class=\"month-amount\">1,500円</span>");
+		assertThat(main).doesNotContain("150,000", "151,500", "3 件・合計", "2 件・合計");
+		assertThat(main).doesNotContain("他人の科目");
+	}
+
+	/** 日付の新しい順、同じ日は登録の新しい順は、月の見出しを入れても変わらない（取引の行の並び） */
+	@Test
+	void theTransactionRowsKeepTheirOrderAcrossMonths() throws Exception {
+		saveOn(userId, LocalDate.of(2026, 10, 31), 1);
+		saveOn(userId, LocalDate.of(2026, 11, 1), 2);
+		saveOn(userId, LocalDate.of(2026, 11, 1), 3);
+		String main = list();
+		List<String> dates = new ArrayList<>();
+		Matcher m = Pattern.compile("<td class=\"list-muted\">(\\d{4}/\\d{2}/\\d{2})</td>").matcher(main);
+		while (m.find()) {
+			dates.add(m.group(1));
+		}
+
+		assertThat(dates).containsExactly("2026/11/01", "2026/11/01", "2026/10/31");
+		assertThat(main).contains("日付の新しい順に、3 件を表示しています。");
+		assertThat(main.indexOf(">3</td>")).as("同じ日は登録の新しい順（金額 3 が 2 より上）").isLessThan(main.indexOf(">2</td>"));
+	}
+
+	/** 取引が 1 件もないとき：今のまま（見出しの行も表もない） */
+	@Test
+	void withNoTransactionsThereIsNoMonthRow() throws Exception {
+		String main = list();
+
+		assertThat(main).contains("取引はまだありません").doesNotContain("month-row", "<table", "<thead>");
+	}
+
+	/** テンプレートでは足し算しない（件数と合計は Service が計算して渡す） */
+	@Test
+	void theTemplateDoesNotCalculateTheTotals() throws Exception {
+		String html = java.nio.file.Files.readString(java.nio.file.Path.of("src", "main", "resources", "templates", "transactions", "list.html"));
+
+		assertThat(html).contains("month.count", "month.total");
+		assertThat(html).doesNotContain("#aggregates", ".sum(", "#lists.size(month", "+ transaction.amount");
+	}
+
+	private static int count(String text, String part) {
+		int n = 0;
+		for (int i = text.indexOf(part); i >= 0; i = text.indexOf(part, i + part.length())) {
+			n++;
+		}
+		return n;
+	}
+
+	/**
+	 * 摘要がない取引は、一覧で、摘要のセルが空欄になり、「null」と出ない（詳細ページにあった確認を、一覧に移した。issue 025 の段階 7）。
+	 * 摘要のセルは、取引の行（&lt;td&gt; が 7 つ）の 5 番目。クラス名には頼らない。摘要がある行と並べて、空欄の行だけが空になることも確かめる。
+	 */
+	@Test
+	void aTransactionWithoutDescriptionShowsAnEmptyDescriptionCellAndNeverNull() throws Exception {
+		transactionRepository.save(new Transaction(userId, LocalDate.of(2026, 10, 20), 100, category, null, vendor, payment));
+		transactionRepository.save(new Transaction(userId, LocalDate.of(2026, 10, 19), 200, category, "昼食", vendor, payment));
+		String main = list();
+
+		Matcher rows = Pattern.compile("(?s)<tr[^>]*>(.*?)</tr>").matcher(main);
+		List<String> descriptions = new ArrayList<>();
+		while (rows.find()) {
+			Matcher cells = Pattern.compile("(?s)<td[^>]*>(.*?)</td>").matcher(rows.group(1));
+			List<String> texts = new ArrayList<>();
+			while (cells.find()) {
+				texts.add(cells.group(1).replaceAll("(?s)<[^>]*>", "").strip());
+			}
+			if (texts.size() == 7) {
+				descriptions.add(texts.get(4));
+			}
+		}
+
+		assertThat(descriptions).as("新しい日付（摘要なし）が先、その次が「昼食」").containsExactly("", "昼食");
+		assertThat(main).as("「null」という文字は、どこにも出ない").doesNotContain("null", "NULL");
+	}
 }

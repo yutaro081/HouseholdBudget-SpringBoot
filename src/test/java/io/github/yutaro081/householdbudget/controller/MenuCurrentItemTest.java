@@ -37,7 +37,7 @@ import jakarta.persistence.EntityManager;
 
 /**
  * ヘッダーのメニューで、今開いている画面の項目だけに aria-current="page" が付くことの確認（設計書 2.3、issue 015 の 1 回目）。
- * 取引の登録・編集・詳細の画面は、「取引一覧」の項目を示す。メニューの &lt;a&gt; にクラスは付けない。
+ * 取引の登録・編集の画面は、「取引一覧」の項目を示す。メニューの &lt;a&gt; にクラスは付けない。
  * ログイン前の画面（ログイン、登録）には、メニューが出ない。
  * 開発用の DB につなぐが、各テストはトランザクションで包まれ、終わると取り消される（行は残らない）。
  */
@@ -82,7 +82,6 @@ class MenuCurrentItemTest {
 		pageToMenuHref.put("/", "/");   // トップ（issue 010）。メニューの先頭の「トップ」が今の項目
 		pageToMenuHref.put("/transactions", "/transactions");
 		pageToMenuHref.put("/transactions/new", "/transactions");
-		pageToMenuHref.put("/transactions/" + transaction.getId(), "/transactions");
 		pageToMenuHref.put("/transactions/" + transaction.getId() + "/edit", "/transactions");
 		pageToMenuHref.put("/categories", "/categories");
 		pageToMenuHref.put("/categories/" + category.getId() + "/edit", "/categories");

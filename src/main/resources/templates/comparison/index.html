@@ -52,7 +52,7 @@
          文言はテンプレートに直接書く（Q7-5）。科目名は th:text で出す。th:utext は使わない（7.5） */-->
     <th:block th:unless="${#lists.isEmpty(comparison.rows)}">
         <div class="table-card table-responsive">
-            <table class="list comparison-table table align-middle" th:classappend="${showForecast} ? 'has-forecast'">
+            <table class="list comparison-table table table-hover align-middle" th:classappend="${showForecast} ? 'has-forecast'">
             <thead>
             <tr>
                 <th>科目</th>

@@ -2,6 +2,7 @@ package io.github.yutaro081.householdbudget.controller;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.util.List;
 
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import io.github.yutaro081.householdbudget.dto.TransactionMonth;
 import io.github.yutaro081.householdbudget.entity.Transaction;
 import io.github.yutaro081.householdbudget.form.StrictIntegerEditor;
 import io.github.yutaro081.householdbudget.form.TransactionForm;
@@ -28,7 +30,7 @@ import io.github.yutaro081.householdbudget.service.VendorService;
 import jakarta.validation.Valid;
 
 /**
- * 取引の一覧・登録・詳細・編集・削除の画面と処理（設計書 4.4.1、2.2、2.3、2.6）。
+ * 取引の一覧・登録・編集・複写・削除の画面と処理（設計書 4.4.1、2.2、2.3、2.6）。
  * <p>
  * 【決まり】ログイン中のユーザーのIDは、LoginUser から取り出して、Service に必ず渡す。
  * 画面から送られたユーザーIDは使わない（Form にも持たせない、設計書 3.9、6.1）。
@@ -71,7 +73,11 @@ public class TransactionController {
 	/** 取引の一覧（日付の新しい順、同じ日は登録の新しい順）。 */
 	@GetMapping
 	public String list(@AuthenticationPrincipal LoginUser loginUser, Model model) {
-		model.addAttribute("transactions", transactionService.list(loginUser.getUserId()));
+		// 取引の検索は 1 回だけ（月ごとのまとまり。月の見出しの件数と合計は、Service が計算する。issue 025）。
+		// 「○ 件を表示しています」の全件数は、月のまとまりの件数を足して、ここで出す（テンプレートでは足し算しない）。「取引がまだない」の判定は、まとまりが空かどうか
+		List<TransactionMonth> months = transactionService.listByMonth(loginUser.getUserId());
+		model.addAttribute("months", months);
+		model.addAttribute("transactionCount", months.stream().mapToInt(TransactionMonth::count).sum());
 		return "transactions/list";
 	}
 
@@ -118,13 +124,6 @@ public class TransactionController {
 		transactionService.register(userId, transactionForm);
 		redirectAttributes.addFlashAttribute("successMessageKey", "success.transactionRegistered");
 		return "redirect:/transactions";
-	}
-
-	/** 取引の詳細。編集・削除のボタンは、ここにだけ置く（U3）。 */
-	@GetMapping("/{id}")
-	public String detail(@AuthenticationPrincipal LoginUser loginUser, @PathVariable Long id, Model model) {
-		model.addAttribute("transaction", transactionService.get(loginUser.getUserId(), id));
-		return "transactions/detail";
 	}
 
 	/** 編集画面。登録済みの値の入ったフォームを表示する。 */

@@ -11,18 +11,18 @@
     <div class="page-head">
         <div>
             <h1>取引一覧</h1>
-            <p class="page-sub" th:unless="${#lists.isEmpty(transactions)}" th:text="|日付の新しい順に、${#numbers.formatInteger(#lists.size(transactions), 1, 'COMMA')} 件を表示しています。|">日付の新しい順に、23 件を表示しています。</p>
+            <p class="page-sub" th:unless="${#lists.isEmpty(months)}" th:text="|日付の新しい順に、${#numbers.formatInteger(transactionCount, 1, 'COMMA')} 件を表示しています。|">日付の新しい順に、23 件を表示しています。</p>
         </div>
         <div class="page-head-actions">
             <a class="btn btn-primary" th:href="@{/transactions/new}"><th:block th:replace="~{fragments/icons :: icon('plus', 18, 2.4)}"></th:block>取引を登録</a>
         </div>
     </div>
 
-    <p th:if="${#lists.isEmpty(transactions)}">取引はまだありません</p>
+    <p th:if="${#lists.isEmpty(months)}">取引はまだありません</p>
 
     <!--/* 日付の新しい順（同じ日は登録の新しい順）。編集・削除のボタンは置かない（U3）。
          日付は 2026/10/19、金額は 30,000 の形（「円」は見出し「金額（円）」にまとめる。issue 024）（2.3、Q5-9）。利用者が入力した値は th:text で出す。th:utext は使わない（7.5） */-->
-    <div class="table-card list-card table-responsive" th:unless="${#lists.isEmpty(transactions)}">
+    <div class="table-card list-card table-responsive" th:unless="${#lists.isEmpty(months)}">
         <table class="list table table-hover align-middle">
         <thead>
         <tr>
@@ -32,22 +32,41 @@
             <th>支払方法</th>
             <th>摘要</th>
             <th class="num">金額（円）</th>
-            <th>操作</th>
+            <th class="row-actions-head">操作</th>
         </tr>
         </thead>
-        <tbody>
-        <tr th:each="transaction : ${transactions}">
+        <!--/* 月ごとに tbody を分け、最初の行を月の見出しにする（issue 025）。件数と合計は Service（listByMonth）が計算した値で、ここでは足し算しない。
+             見出しの行は、マウスを載せても色が変わらない（CSS）。月の数字は 0 埋めしない（2026年 1月） */-->
+        <tbody th:each="month : ${months}">
+        <tr class="month-row">
+            <td colspan="7"><div class="month-head">
+                <strong class="month-name" th:text="|${month.month.year}年 ${month.month.monthValue}月|">2026年 11月</strong>
+                <span class="month-sum"><th:block th:text="|${month.count} 件・合計 |">8 件・合計 </th:block><span class="month-amount" th:text="|${#numbers.formatInteger(month.total, 1, 'COMMA')}円|">29,800円</span></span>
+            </div></td>
+        </tr>
+        <tr th:each="transaction : ${month.transactions}">
             <td class="list-muted" th:text="${#temporals.format(transaction.transactionDate, 'yyyy/MM/dd')}">2026/10/19</td>
             <td th:text="${transaction.category.name}">食費</td>
             <td th:text="${transaction.vendor.name}">コンビニ</td>
             <td class="list-muted" th:text="${transaction.paymentMethod.name}">現金</td>
             <td class="list-muted" th:text="${transaction.description}">昼食</td>
             <td class="num" th:text="${#numbers.formatInteger(transaction.amount, 1, 'COMMA')}">30,000</td>
-            <td><a th:href="@{/transactions/{id}(id=${transaction.id})}">詳細</a></td>
+            <!--/* 操作：編集・複写・削除（issue 025 の段階 3）。「詳細」のリンクはなくした。
+                 削除の確認の文は、日付・科目名・金額を入れて、HTML の属性 data-confirm に入れる（科目名は利用者の入力なので、onsubmit の文字列には入れない。th:attr が HTML として無害化する）。
+                 確認は confirm-submit.js が出す。JavaScript が無効のときは、確認なしで削除される（今までと同じ）。POST と CSRF のトークン（th:action）は変わらない */-->
+            <td><div class="row-actions">
+                <a class="row-btn" title="この取引を直す" th:href="@{/transactions/{id}/edit(id=${transaction.id})}"><th:block th:replace="~{fragments/icons :: icon('pencil', 14, 2)}"></th:block>編集</a>
+                <a class="row-btn" title="この取引を写して、新しく登録する" th:href="@{/transactions/new(copyFrom=${transaction.id})}"><th:block th:replace="~{fragments/icons :: icon('copy', 14, 2)}"></th:block>複写</a>
+                <form th:action="@{/transactions/{id}/delete(id=${transaction.id})}" method="post"
+                      th:attr="data-confirm=#{transaction.delete.confirm(${#temporals.format(transaction.transactionDate, 'yyyy/MM/dd')}, ${transaction.category.name}, ${#numbers.formatInteger(transaction.amount, 1, 'COMMA')})}">
+                    <button type="submit" class="row-btn row-btn-danger" title="この取引を削除する"><th:block th:replace="~{fragments/icons :: icon('trash', 14, 2)}"></th:block>削除</button>
+                </form>
+            </div></td>
         </tr>
         </tbody>
     </table>
     </div>
 </main>
+<script defer th:src="@{/js/confirm-submit.js}"></script>
 </body>
 </html>

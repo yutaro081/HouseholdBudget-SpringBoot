@@ -299,18 +299,21 @@ class TransactionCopyTest {
 		assertThat(body).doesNotContain(COPY_NOTICE, "value=\"3456\"");
 	}
 
-	// ---- 詳細画面のボタン ----
+	// ---- 一覧の「複写」のリンク（詳細画面のボタンは、issue 025 でなくした）----
 
+	/** 一覧の各行の「複写」のリンクが、その取引の ID の copyFrom で登録画面を開き、値の入った画面（固定の 1 行つき）になる */
 	@Test
-	void detailPageHasTheCopyLinkNextToEdit() throws Exception {
+	void theCopyLinkInTheListOpensTheFormFilledWithThatTransaction() throws Exception {
 		Transaction src = saveSource(a, "昼食");
 
-		String body = body(mockMvc.perform(get("/transactions/" + src.getId()).with(asA))
-				.andExpect(status().isOk()).andReturn());
-
+		String list = body(mockMvc.perform(get("/transactions").with(asA)).andExpect(status().isOk()).andReturn());
 		String link = "href=\"/transactions/new?copyFrom=" + src.getId() + "\"";
-		assertThat(body).contains(link, "この取引を写して登録");
-		assertThat(body.indexOf("/edit\"")).isLessThan(body.indexOf(link));        // 「編集」の隣（あと）
-		assertThat(body.indexOf(link)).isLessThan(body.indexOf("/delete\""));       // 「削除」の前
+		assertThat(list).contains(link);
+		assertThat(list.indexOf("/edit\"")).as("「編集」のあと").isLessThan(list.indexOf(link));
+		assertThat(list.indexOf(link)).as("「削除」の前").isLessThan(list.indexOf("/delete\""));
+
+		String form = body(mockMvc.perform(get("/transactions/new").param("copyFrom", String.valueOf(src.getId())).with(asA))
+				.andExpect(status().isOk()).andReturn());
+		assertThat(form).contains(COPY_NOTICE, "昼食");
 	}
 }

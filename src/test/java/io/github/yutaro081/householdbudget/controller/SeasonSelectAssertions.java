@@ -98,11 +98,11 @@ final class SeasonSelectAssertions {
 		assertThat(form.indexOf(">表示</button>")).as("「表示」のあとに「今の季節」").isLessThan(form.indexOf(">今の季節</a>"));
 		assertThat(body.substring(heading, formStart)).as("見出しと選ぶ欄の間に、ほかの行を挟まない").doesNotContain("<table").doesNotContain("<h1");
 
-		int previous = body.indexOf("前の季節</a>");
+		int previous = body.indexOf("‹ 前の季節</a>");
 		if (previous >= 0) {
 			assertThat(previous).as("「前の季節」は見出しより前").isLessThan(heading);
 		}
-		int next = body.indexOf("次の季節</a>");
+		int next = body.indexOf("次の季節 ›</a>");
 		if (next >= 0) {
 			assertThat(next).as("「次の季節」は見出しより後ろではなく、同じ行（選ぶ欄より前）").isLessThan(formStart);
 		}

@@ -230,17 +230,36 @@ class TransactionControllerTest {
 	}
 
 	@Test
-	void listShowsFormattedDateAndAmountAndLinksButNoEditOrDelete() throws Exception {
+	void listShowsFormattedDateAndAmountAndTheThreeRowActions() throws Exception {
 		Transaction t = saveFor(a, LocalDate.of(2026, 10, 19), 30000, null);
 
 		String body = body(mockMvc.perform(get("/transactions").with(asA)).andReturn());
 
+		// 取引の行（<td> が 7 つの <tr>）の金額のセル（6 番目）は「30,000」だけで、「円」で終わらない（見出しにまとめた。issue 024）。
+		// クラス名には頼らない（月の見出しの行は <td> が 1 つなので、数えない。月の見出しの「合計 30,000円」は別。issue 025）
+		java.util.regex.Matcher rows = java.util.regex.Pattern.compile("(?s)<tr[^>]*>(.*?)</tr>").matcher(body);
+		int dataRows = 0;
+		while (rows.find()) {
+			java.util.regex.Matcher cells = java.util.regex.Pattern.compile("(?s)<td[^>]*>(.*?)</td>").matcher(rows.group(1));
+			List<String> texts = new java.util.ArrayList<>();
+			while (cells.find()) {
+				texts.add(cells.group(1).replaceAll("(?s)<[^>]*>", "").strip());
+			}
+			if (texts.size() == 7) {
+				dataRows++;
+				assertThat(texts.get(5)).isEqualTo("30,000");
+				assertThat(texts).as("どのセルも、金額に「円」を付けない").noneMatch(text -> text.endsWith("円"));
+			}
+		}
+		assertThat(dataRows).isEqualTo(1);
+
 		assertThat(body).contains("2026/10/19", ">30,000<", "食費", "コンビニ", "現金");
-		assertThat(body).doesNotContain("30,000円");                                              // 「円」は見出しにまとめた（issue 024）
-		assertThat(body).contains("href=\"/transactions/" + t.getId() + "\"");                    // 詳細リンク
+		assertThat(body).contains("href=\"/transactions/" + t.getId() + "/edit\"");                       // 編集（issue 025 の段階 3）
+		assertThat(body).contains("href=\"/transactions/new?copyFrom=" + t.getId() + "\"");               // 複写
+		assertThat(body).contains("action=\"/transactions/" + t.getId() + "/delete\"");                   // 削除
+		assertThat(body).doesNotContain("href=\"/transactions/" + t.getId() + "\"");                      // 「詳細」のリンクはなくした
 		assertThat(body).contains("href=\"/transactions/new\"");                                  // 取引を登録
 		assertThat(body).contains(a.username());                                                  // ヘッダーのユーザー名
-		assertThat(body).doesNotContain("/delete").doesNotContain("/edit");                       // 一覧には置かない（U3）
 		assertThat(body).doesNotContain("【仮】");                                                 // 仮の画面ではない
 		assertThat(body).doesNotContain(">null<");                                                // 摘要がなくても null と出ない
 	}
@@ -252,7 +271,7 @@ class TransactionControllerTest {
 
 		String body = body(mockMvc.perform(get("/transactions").with(asA)).andReturn());
 
-		assertThat(body).contains(">1,000,000<", ">1<").doesNotContain("1,000,000円", ">1円<");
+		assertThat(body).contains(">1,000,000<", ">1<").doesNotContain(">1,000,000円<", ">1円<");   // 行のセルに「円」は付けない（削除の確認の文の「1,000,000円」は別。issue 025）
 	}
 
 	@Test
@@ -266,11 +285,11 @@ class TransactionControllerTest {
 
 	/** 利用者が入力した値は、無害化されて表示される（th:text、設計書 7.5） */
 	@Test
-	void valuesAreEscapedOnListDetailAndEdit() throws Exception {
+	void valuesAreEscapedOnListAndEdit() throws Exception {
 		String script = "<script>alert(1)</script>";
 		Transaction t = saveFor(a, LocalDate.of(2026, 10, 27), 100, script);
 
-		for (String path : List.of("/transactions", "/transactions/" + t.getId(), "/transactions/" + t.getId() + "/edit")) {
+		for (String path : List.of("/transactions", "/transactions/" + t.getId() + "/edit")) {   // 詳細の画面は、issue 025 でなくした
 			String body = body(mockMvc.perform(get(path).with(asA)).andReturn());
 			assertThat(body).as(path).contains("&lt;script&gt;alert(1)&lt;/script&gt;").doesNotContain(script);
 		}
@@ -577,48 +596,6 @@ class TransactionControllerTest {
 				.andExpect(view().name("error/404"));
 
 		assertThat(transactionsOf(a)).isEmpty();
-	}
-
-	// ---- 詳細 ----
-
-	@Test
-	void detailShowsTheTransactionWithEditAndDeleteButtons() throws Exception {
-		Transaction t = saveFor(a, LocalDate.of(2026, 10, 19), 1200, "昼食");
-
-		MvcResult result = mockMvc.perform(get("/transactions/" + t.getId()).with(asA))
-				.andExpect(status().isOk())
-				.andExpect(view().name("transactions/detail"))
-				.andReturn();
-
-		String body = body(result);
-		assertThat(body).contains("2026/10/19", "1,200円", "食費", "コンビニ", "現金", "昼食");
-		assertThat(body).contains("href=\"/transactions/" + t.getId() + "/edit\"");                       // 編集
-		assertThat(body).contains("action=\"/transactions/" + t.getId() + "/delete\"");                   // 削除
-		assertThat(body).contains("onsubmit=\"return confirm('削除しますか？')\"");                        // 確認ダイアログ（固定の文言）
-		assertThat(body).contains("name=\"_csrf\"");
-		assertThat(body).contains("href=\"/transactions\"");                                              // 一覧に戻る
-	}
-
-	@Test
-	void detailWithoutDescriptionShowsBlankNotNull() throws Exception {
-		Transaction t = saveFor(a, LocalDate.of(2026, 10, 19), 1200, null);
-
-		String body = body(mockMvc.perform(get("/transactions/" + t.getId()).with(asA)).andReturn());
-
-		assertThat(body).doesNotContain(">null<");
-		assertThat(body).contains("<dd></dd>");
-	}
-
-	/** 他人のID・存在しないID・数字でないIDは、すべて同じ 404（画面も状態コードも、設計書 7.8） */
-	@Test
-	void detailOfOtherUsersMissingAndNonNumericIdsAreTheSame404() throws Exception {
-		Transaction mine = saveFor(a, LocalDate.of(2026, 10, 19), 1200, "昼食");
-
-		for (String id : List.of(String.valueOf(mine.getId()), "999999999", "abc", "99999999999999999999")) {
-			mockMvc.perform(get("/transactions/" + id).with(asB))
-					.andExpect(status().isNotFound())
-					.andExpect(view().name("error/404"));
-		}
 	}
 
 	// ---- 編集の画面 ----

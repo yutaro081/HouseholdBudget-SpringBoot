@@ -76,7 +76,7 @@ class ColorSchemeStyleSheetTest {
 	@Test
 	void theTransactionListRowHoverUsesThePaleGrayGreenNotThePaleTeal() throws Exception {
 		String css = css("/css/style.css");
-		String rule = rule(css, ".list-card table.list");
+		String rule = rule(css, ".table-card table");   // 段階 1（issue 025）：行の色は、白いカードの中の表すべてで決める
 
 		assertThat(rule).contains("--bs-table-hover-bg: var(--hb-row-hover)");
 		assertThat(rule).doesNotContain("--hb-teal-pale");

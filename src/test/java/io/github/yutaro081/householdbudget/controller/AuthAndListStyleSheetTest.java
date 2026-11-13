@@ -63,31 +63,29 @@ class AuthAndListStyleSheetTest {
 	}
 
 	/**
-	 * 768px 以上（2 列）：ヘッダーの下の残りの高さの縦の真ん中に、紹介とカードを置く（設計書 2.3）。
-	 * body を画面の高さいっぱいの縦の flex にし、main.auth-main を残りの高さに伸ばして、中身を縦の真ん中にそろえる。
+	 * issue 025：768px 以上（2 列）は、縦の中央寄せと、画面の高さに合わせた余白の計算（100vh、係数 0.7）をやめて、
+	 * ヘッダーの下 5rem（80px）の所から、上に並べる。body を縦の flex にする規則も、なくした。
 	 */
 	@Test
-	void from768pxTheAuthMainIsCenteredVerticallyInTheHeightBelowTheHeader() throws Exception {
+	void from768pxTheAuthMainStartsAt5remBelowTheHeaderAndTheOldCenteringIsGone() throws Exception {
 		String css = css();
 
-		String block = mediaBlocks(css, "(min-width: 768px)").stream().filter(b -> b.contains("body:has(> main.auth-main)")).findFirst().orElse("");
+		String block = mediaBlocks(css, "(min-width: 768px)").stream().filter(b -> b.contains("main.auth-main")).findFirst().orElse("");
 		assertThat(block).as("768px 以上の規則がある").isNotEmpty();
-		block = block.replaceAll("(?m)^\\s+", ""); // rule() は行頭の選択子を探すので、字下げを外す
-		String body = rule(block, "body:has(> main.auth-main)");
-		assertThat(body).contains("min-height: 100vh", "display: flex", "flex-direction: column");
-		String main = rule(block, "body:has(> main.auth-main) main.auth-main");
-		assertThat(main).contains("flex: 1 1 auto", "display: flex", "flex-direction: column", "justify-content: center");
+		block = block.replaceAll("(?m)^\\s+", "");
+		String main = rule(block, "main.auth-main");
+		assertThat(main).contains("padding-top: 5rem");
+		assertThat(main).doesNotContain("justify-content", "padding-bottom", "vh", "flex");
+		assertThat(css).as("縦の中央寄せの規則は、なくした").doesNotContain("body:has(> main.auth-main)", "100vh", "* 0.7", "min-height: 100vh");
 	}
 
-	/** issue 020：縦の真ん中のしくみはそのままで、下にだけ余白を足して上へ押し上げる（高さ 768px 以下では足さない。768px 未満の幅では足さない） */
+	/** せまいとき（768px 未満。カードが上に来る）は、今のまま：上の余白 3rem、下の余白 3rem（変えない）。縦の中央にする規則を置かない */
 	@Test
-	void from768pxTheAuthMainGetsExtraBottomPaddingThatGrowsWithTheScreenHeight() throws Exception {
+	void belowTheTwoColumnWidthTheTopSpaceStaysAt3rem() throws Exception {
 		String css = css();
 
-		String block = mediaBlocks(css, "(min-width: 768px)").stream().filter(b -> b.contains("body:has(> main.auth-main)")).findFirst().orElse("");
-		block = block.replaceAll("(?m)^\s+", "");
-		assertThat(rule(block, "body:has(> main.auth-main) main.auth-main")).contains("padding-bottom: calc(var(--hb-space-7) + max(0px, (100vh - 768px) * 0.7))", "justify-content: center");
-		assertThat(rule(css, "main.auth-main")).as("768px 未満は今のまま").doesNotContain("vh").contains("padding-bottom: var(--hb-space-7)");
+		String main = rule(css, "main.auth-main");
+		assertThat(main).contains("padding-top: var(--hb-space-7)", "padding-bottom: var(--hb-space-7)").doesNotContain("vh", "justify-content", "min-height", "flex");
 	}
 
 	/** せまいとき（768px 未満。カードが上に来る）は今のまま上から並べる：縦の中央にする規則を、768px 以上の外には書かない */

@@ -3,16 +3,17 @@
 <!--/*
   ログイン・アカウント登録の左の紹介（設計書 2.3、4.4.2、issue 017 の 2 回目。Q017-9）。2 画面で同じものを使う。
   ・紹介は日本語だけにする（登録エラーのテストが、英字で「パスワードが残っていない」ことを調べるため）。入力欄・フォームは置かない。
-  ・「予算内」の印の文は、予実比較の決まり（予算の 1/3 を超え、予算以下。要件定義書 4.4。issue 024 で、💮 から変えた）と同じ言い方（Q017-11）。
+  ・説明の文の「予算超え」「使い残し」「予算内」は、予実比較の決まり（要件定義書 4.4）のチップを、fragments/chip のまま使う（issue 025。予算超えは金額なし）。
   ・チェックは 3 つ（issue 024：見込み、自動予算、自分のデータ。「着地見込み」は画面にない言葉なので「見込み」と書く）。
+  ・1 つ目は「季節の終わりの見込みが分かります」（issue 025。3 つとも 1 行に収める）。
   ・チェックの印は固定のアイコン（fragments/icons.html の check）。利用者の入力は混ざらない。
 */-->
 <section th:fragment="intro" class="auth-intro">
     <span class="auth-chip">季節ごとの家計簿</span>
     <h1 class="auth-title">予算と実績を、<br>3 か月ごとにふり返る。</h1>
-    <p class="auth-lead">取引を記録すると、季節（春・夏・秋・冬）ごとに、科目別の予算と実績が並びます。予算の 1/3 を超えて、予算以内に収まった科目には「予算内」の印が付きます。</p>
+    <p class="auth-lead">取引を記録すると、季節（春・夏・秋・冬）ごとに、科目別の予算と実績が並びます。科目ごとの状況は、<th:block th:replace="~{fragments/chip :: status('RED', false)}"></th:block> <th:block th:replace="~{fragments/chip :: status('BLUE', false)}"></th:block> <th:block th:replace="~{fragments/chip :: status('NONE', true)}"></th:block>の印で分かります。</p>
     <ul class="auth-points">
-        <li><span class="auth-check"><th:block th:replace="~{fragments/icons :: icon('check', 12, 2.6)}"></th:block></span>このペースだと季節の終わりにいくらになるか、見込みが分かります</li>
+        <li><span class="auth-check"><th:block th:replace="~{fragments/icons :: icon('check', 12, 2.6)}"></th:block></span>季節の終わりの見込みが分かります</li>
         <li><span class="auth-check"><th:block th:replace="~{fragments/icons :: icon('check', 12, 2.6)}"></th:block></span>過去の実績から、予算の案を自動で作れます</li>
         <li><span class="auth-check"><th:block th:replace="~{fragments/icons :: icon('check', 12, 2.6)}"></th:block></span>自分のデータは、自分だけが見られます</li>
     </ul>

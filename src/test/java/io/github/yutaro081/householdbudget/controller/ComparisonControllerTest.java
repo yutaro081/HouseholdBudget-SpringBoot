@@ -159,8 +159,8 @@ class ComparisonControllerTest {
 		String body = open(a, null, null);
 
 		assertThat(body).contains("2026年 冬", "（2026年12月〜2027年2月）");
-		assertThat(body).contains("href=\"/comparison?year=2026&amp;season=autumn\">前の季節");
-		assertThat(body).contains("href=\"/comparison?year=2027&amp;season=spring\">次の季節");
+		assertThat(body).contains("href=\"/comparison?year=2026&amp;season=autumn\">‹ 前の季節");
+		assertThat(body).contains("href=\"/comparison?year=2027&amp;season=spring\">次の季節 ›");
 	}
 
 	/** issue 020：本体の幅は 1280px（table-wide） */
@@ -209,8 +209,8 @@ class ComparisonControllerTest {
 		String body = open(a, year, season);
 
 		assertThat(body).contains(title, period);
-		assertThat(body).contains("href=\"/comparison?" + prev + "\">前の季節");
-		assertThat(body).contains("href=\"/comparison?" + next + "\">次の季節");
+		assertThat(body).contains("href=\"/comparison?" + prev + "\">‹ 前の季節");
+		assertThat(body).contains("href=\"/comparison?" + next + "\">次の季節 ›");
 	}
 
 	/** 範囲の端：2000年春は「前の季節」を、2100年冬は「次の季節」を出さない。端のすぐ内側は両方出る */
@@ -220,17 +220,17 @@ class ComparisonControllerTest {
 
 		String first = open(a, "2000", "spring");
 		assertThat(first).doesNotContain("前の季節");
-		assertThat(first).contains("href=\"/comparison?year=2000&amp;season=summer\">次の季節");
+		assertThat(first).contains("href=\"/comparison?year=2000&amp;season=summer\">次の季節 ›");
 
 		String last = open(a, "2100", "winter");
 		assertThat(last).doesNotContain("次の季節");
-		assertThat(last).contains("href=\"/comparison?year=2100&amp;season=autumn\">前の季節");
+		assertThat(last).contains("href=\"/comparison?year=2100&amp;season=autumn\">‹ 前の季節");
 		assertThat(last).contains("（2100年12月〜2101年2月）");
 
 		assertThat(open(a, "2100", "autumn")).contains("次の季節", "前の季節");
 		String afterFirst = open(a, "2000", "winter");
-		assertThat(afterFirst).contains("href=\"/comparison?year=2001&amp;season=spring\">次の季節",
-				"href=\"/comparison?year=2000&amp;season=autumn\">前の季節");
+		assertThat(afterFirst).contains("href=\"/comparison?year=2001&amp;season=spring\">次の季節 ›",
+				"href=\"/comparison?year=2000&amp;season=autumn\">‹ 前の季節");
 	}
 
 	// ================================================================

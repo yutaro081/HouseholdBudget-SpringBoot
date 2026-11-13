@@ -22,9 +22,9 @@ import org.thymeleaf.spring6.SpringTemplateEngine;
 @SpringBootTest
 class IconsFragmentTest {
 
-	/** 設計書 2.3「アイコン」の 14 個（issue 017 の 2 回目で check、issue 019 で sparkle、issue 024 で flower を足した） */
+	/** 設計書 2.3「アイコン」の 17 個（issue 017 の 2 回目で check、issue 019 で sparkle、issue 024 で flower、issue 025 で pencil・copy・trash を足した） */
 	private static final List<String> NAMES = List.of("logo", "top", "transactions", "categories", "vendors",
-			"payment-methods", "budgets", "comparison", "plus", "sun", "pie", "check", "sparkle", "flower");
+			"payment-methods", "budgets", "comparison", "plus", "sun", "pie", "check", "sparkle", "flower", "pencil", "copy", "trash");
 
 	private static final Pattern SVG = Pattern.compile("<svg.*?</svg>", Pattern.DOTALL);
 
@@ -49,7 +49,7 @@ class IconsFragmentTest {
 	}
 
 	@Test
-	void eachOfTheFourteenNamesGivesOneSvg() {
+	void eachOfTheSeventeenNamesGivesOneSvg() {
 		for (String name : NAMES) {
 			List<String> svgs = svgs(render(List.of(name), 18, 2));
 			assertThat(svgs).as(name).hasSize(1);
@@ -57,14 +57,14 @@ class IconsFragmentTest {
 	}
 
 	@Test
-	void theFourteenIconsAreAllDifferent() {
+	void theSeventeenIconsAreAllDifferent() {
 		Set<String> shapes = new HashSet<>();
 		for (String name : NAMES) {
 			String svg = svgs(render(List.of(name), 18, 2)).get(0);
 			// 形（中身）だけを比べる
 			shapes.add(svg.substring(svg.indexOf('>') + 1));
 		}
-		assertThat(shapes).hasSize(14);
+		assertThat(shapes).hasSize(17);
 	}
 
 	@Test
@@ -88,7 +88,7 @@ class IconsFragmentTest {
 	@Test
 	void noIconContainsAnythingUnsafeOrExternal() {
 		String all = String.join(" ", svgs(render(NAMES, 18, 2)));
-		assertThat(svgs(all)).hasSize(14);
+		assertThat(svgs(all)).hasSize(17);
 
 		assertThat(all).doesNotContain("<script", "<use", "<image", "xmlns", "style=", "http", "onclick", "onload", "href", "url(");
 	}
@@ -141,4 +141,23 @@ class IconsFragmentTest {
 		assertThat(svg).as("線の花はやめた").doesNotContain("<path");
 	}
 
+	/**
+	 * issue 025：取引一覧・科目などの一覧の操作ボタンのアイコン。えんぴつ（編集・変更）、2 枚重ねの紙（複写）、ごみ箱（削除）。
+	 * 自作の線だけ（ほかのアイコンと同じ作り方）。14px で使う。飾り（aria-hidden）で、意味は隣の文字（編集・複写・削除）と title で伝わる。
+	 */
+	@Test
+	void thePencilTheTwoSheetsAndTheTrashAreLineIconsForTheRowButtons() {
+		String pencil = svgs(render(List.of("pencil"), 14, 2)).get(0);
+		String copy = svgs(render(List.of("copy"), 14, 2)).get(0);
+		String trash = svgs(render(List.of("trash"), 14, 2)).get(0);
+
+		for (String svg : List.of(pencil, copy, trash)) {
+			assertThat(svg).contains("width=\"14\"", "height=\"14\"", "stroke=\"currentColor\"", "fill=\"none\"", "aria-hidden=\"true\"", "focusable=\"false\"");
+		}
+		assertThat(pencil).as("えんぴつ：ペン先から軸までの輪郭と、芯の線").contains("<path d=\"M4 20l1.2-4.2L16.6 4.4a2 2 0 0 1 2.9 0l.1.1a2 2 0 0 1 0 2.9L8.2 18.8z\"></path>", "<path d=\"M14.5 6.5l3 3\"></path>");
+		assertThat(copy).as("2 枚重ねの紙：前の紙（四角）と、後ろの紙（かぎ形）").contains("<rect x=\"8\" y=\"8\" width=\"12\" height=\"12\" rx=\"2\"></rect>");
+		assertThat(copy).contains("<path d=\"M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2\"></path>");
+		assertThat(trash).as("ごみ箱：ふた、取っ手、箱、中の 2 本の線").contains("<path d=\"M4 7h16\"></path>", "<path d=\"M9 7V4h6v3\"></path>", "<path d=\"M6 7l1 13h10l1-13\"></path>",
+				"<path d=\"M10 11v5\"></path>", "<path d=\"M14 11v5\"></path>");
+	}
 }
