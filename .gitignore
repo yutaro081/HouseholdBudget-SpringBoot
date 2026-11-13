@@ -39,3 +39,6 @@ backup/
 *.bak
 .env
 application-local.properties
+
+# AI レビュー用の差分（毎回作るファイル）
+review-code.diff

@@ -338,4 +338,17 @@ class ComparisonLandingTest {
 		assertThat(cardOf(body)).contains("予算より 約 17,700円 多い見込みです。");
 		assertThat(body.substring(body.indexOf("class=\"total-row\""))).contains("-17,700");
 	}
+
+	/** 差の文の金額は、百万円を超える額でも、3 桁ごとにカンマが付く（メッセージの引数 {0} が、MessageFormat で書式付きになるため。2 本目の確かめ：「約 1234000円」にならない） */
+	@Test
+	void theVerdictAmountOfMillionsHasCommas() throws Exception {
+		Category food = category("食費", 100_000, Season.AUTUMN, 2026);
+		recordingStartedLongAgo(food);
+		spend(food, 1_000_000);             // 見込みは 100 万円台 → 予算との差も 100 万円台の「多い」
+
+		String card = cardOf(page("/comparison"));
+
+		assertThat(card).containsPattern("予算より 約 [0-9]{1,3}(,[0-9]{3}){2}円 多い見込みです。");
+		assertThat(card).doesNotContainPattern("約 [0-9]{4,}円");
+	}
 }
