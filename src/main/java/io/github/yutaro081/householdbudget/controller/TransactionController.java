@@ -2,6 +2,7 @@ package io.github.yutaro081.householdbudget.controller;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.util.List;
 
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import io.github.yutaro081.householdbudget.dto.TransactionMonth;
 import io.github.yutaro081.householdbudget.entity.Transaction;
 import io.github.yutaro081.householdbudget.form.StrictIntegerEditor;
 import io.github.yutaro081.householdbudget.form.TransactionForm;
@@ -71,10 +73,11 @@ public class TransactionController {
 	/** 取引の一覧（日付の新しい順、同じ日は登録の新しい順）。 */
 	@GetMapping
 	public String list(@AuthenticationPrincipal LoginUser loginUser, Model model) {
-		Long userId = loginUser.getUserId();
-		model.addAttribute("transactions", transactionService.list(userId));
-		// 月ごとのまとまり（月の見出しの件数と合計。Service が計算する。issue 025）
-		model.addAttribute("months", transactionService.listByMonth(userId));
+		// 取引の検索は 1 回だけ（月ごとのまとまり。月の見出しの件数と合計は、Service が計算する。issue 025）。
+		// 「○ 件を表示しています」の全件数は、月のまとまりの件数を足して、ここで出す（テンプレートでは足し算しない）。「取引がまだない」の判定は、まとまりが空かどうか
+		List<TransactionMonth> months = transactionService.listByMonth(loginUser.getUserId());
+		model.addAttribute("months", months);
+		model.addAttribute("transactionCount", months.stream().mapToInt(TransactionMonth::count).sum());
 		return "transactions/list";
 	}
 

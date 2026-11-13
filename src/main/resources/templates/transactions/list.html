@@ -11,18 +11,18 @@
     <div class="page-head">
         <div>
             <h1>取引一覧</h1>
-            <p class="page-sub" th:unless="${#lists.isEmpty(transactions)}" th:text="|日付の新しい順に、${#numbers.formatInteger(#lists.size(transactions), 1, 'COMMA')} 件を表示しています。|">日付の新しい順に、23 件を表示しています。</p>
+            <p class="page-sub" th:unless="${#lists.isEmpty(months)}" th:text="|日付の新しい順に、${#numbers.formatInteger(transactionCount, 1, 'COMMA')} 件を表示しています。|">日付の新しい順に、23 件を表示しています。</p>
         </div>
         <div class="page-head-actions">
             <a class="btn btn-primary" th:href="@{/transactions/new}"><th:block th:replace="~{fragments/icons :: icon('plus', 18, 2.4)}"></th:block>取引を登録</a>
         </div>
     </div>
 
-    <p th:if="${#lists.isEmpty(transactions)}">取引はまだありません</p>
+    <p th:if="${#lists.isEmpty(months)}">取引はまだありません</p>
 
     <!--/* 日付の新しい順（同じ日は登録の新しい順）。編集・削除のボタンは置かない（U3）。
          日付は 2026/10/19、金額は 30,000 の形（「円」は見出し「金額（円）」にまとめる。issue 024）（2.3、Q5-9）。利用者が入力した値は th:text で出す。th:utext は使わない（7.5） */-->
-    <div class="table-card list-card table-responsive" th:unless="${#lists.isEmpty(transactions)}">
+    <div class="table-card list-card table-responsive" th:unless="${#lists.isEmpty(months)}">
         <table class="list table table-hover align-middle">
         <thead>
         <tr>

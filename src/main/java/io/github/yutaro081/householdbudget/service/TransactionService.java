@@ -80,7 +80,7 @@ public class TransactionService {
 	}
 
 	/**
-	 * 自分の取引を1件返す（詳細・編集画面用）。
+	 * 自分の取引を1件返す（編集・複写・削除のとき。編集画面を開くときと、複写の元を取り出すときにも使う）。
 	 *
 	 * @throws NotFoundException 存在しない、または他人の取引
 	 */
