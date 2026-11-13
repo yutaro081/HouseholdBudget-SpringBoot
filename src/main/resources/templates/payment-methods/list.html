@@ -25,7 +25,7 @@
 
     <p th:if="${#lists.isEmpty(paymentMethods)}">まだありません</p>
 
-    <div class="table-responsive" th:unless="${#lists.isEmpty(paymentMethods)}">
+    <div class="table-card table-responsive" th:unless="${#lists.isEmpty(paymentMethods)}">
         <table class="list table table-hover align-middle">
         <thead>
         <tr>

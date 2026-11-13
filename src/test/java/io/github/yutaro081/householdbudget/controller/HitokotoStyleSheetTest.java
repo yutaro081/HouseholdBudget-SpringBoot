@@ -42,11 +42,10 @@ class HitokotoStyleSheetTest {
 	@Test
 	void theHeadingIsTheSameAsTheOtherCardHeadingsTwentyPxBoldInTheBodyColor() throws Exception {
 		String css = css();
-		String h2 = rule(css, ".hitokoto-frame h2");
+		String h2 = rule(css, ".top-section h2,\n.hitokoto-frame h2");   // 段階 12：ほかのカードの見出しと同じ規則
 
 		assertThat(h2).contains("font-size: var(--hb-font-size-h2)");
 		assertThat(h2).doesNotContain("color:", "font-size: var(--hb-font-size-body)");
-		assertThat(rule(css, ".top-section h2")).contains("font-size: var(--hb-font-size-h2)");
 	}
 
 	/**

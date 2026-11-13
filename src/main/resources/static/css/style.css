@@ -891,8 +891,11 @@ dl.detail dd {
     margin-bottom: var(--hb-space-4);
 }
 
-.top-section h2 {
+/* カードの見出し。「きょうのひとこと」の見出しも、同じ規則を使う（字間も同じ。issue 024 の段階 12） */
+.top-section h2,
+.hitokoto-frame h2 {
     font-size: var(--hb-font-size-h2);
+    letter-spacing: normal;
     margin-bottom: var(--hb-space-3);
 }
 
@@ -1344,11 +1347,6 @@ dl.detail dd {
     margin-bottom: var(--hb-space-4);
 }
 
-.hitokoto-frame h2 {
-    margin-bottom: var(--hb-space-3);
-    font-size: var(--hb-font-size-h2);
-}
-
 /* 行：左にアイコンの四角、右に文（issue 017）。行の間は区切り線 */
 .hitokoto-row {
     display: flex;
@@ -1581,12 +1579,7 @@ main.list-wide {
     gap: var(--hb-space-2);
 }
 
-.list-card {
-    background: #fff;
-    border: 1px solid var(--hb-line);
-    border-radius: var(--hb-radius-card);
-}
-
+/* 取引一覧の目印 .list-card：カードの見た目（白、枠、角丸）は .table-card が決める（issue 024 の段階 12）。ここは中のセルの規則だけ */
 .list-card table.list {
     margin-bottom: 0;
     /* 行にマウスを載せたときの色（issue 024）：薄い灰緑。薄いターコイズは使わない。Bootstrap の table-hover の変数を、この表だけで上書きする */

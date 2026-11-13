@@ -414,3 +414,9 @@
 - 作った：①自動予算のカード〔`auto-budget-card`：白、左に 4px のターコイズの線。ボタン・一言・案の文・1〜3・保存が入る〕。②表を `.table-card` に。③案のもとにした数字の目印を、下線から「背景 `#E1F3F2`＋太字」に。注記は「薄いターコイズの背景：案のもとにした数字」。④一の位をそろえる〔変数 `--hb-budget-digit-inset` 1 つ。合計のセルに `budget-total-cell`〕。⑤文字の大きさ：セル・入力欄・「自動予算」ボタンは 1rem、合計の行は 1.25rem の太字のまま。⑥保存の確認：`budget-total.js` に `submit` の処理を足した。文は `messages.properties`〔`budget.save.confirm`・`budget.save.confirm.total`〕から、フォームの属性で渡す。`textContent` のほかは画面に書かず、通信・`eval`・`innerHTML` なし。
 - テスト：全体 2453 → 2473〔+20：`BudgetAutoControllerTest` +17、`BudgetTableStyleSheetTest` +3〕。作り直した既存のテスト：`BudgetTableStyleSheetTest`〔セルは「予実比較と同じ大きさ」の確認に戻した、ほか 3 件〕、`BudgetAutoControllerTest`〔下線の言葉の 4 件〕。先に失敗：22 件。`.\mvnw clean test` は 2473 件すべて成功。
 - 「下線」の言葉：画面・コメント・`features.md`・`testing.md` は直した。**README の画像の説明文は、画像の撮り直し〔この issue のあと〕のときに直す**。
+
+**段階 12（ほかの画面の表）**〔2026年11月13日。コード・テストを実装。あなたの確認待ち〕
+- 作った：取引一覧・科目・取引先・支払方法の一覧の表を、`.table-card` に入れた〔取引一覧は `table-card list-card`。`.list-card` からは、カードの見た目〔白、枠、角丸〕をなくし、セルの規則だけにした〕。文字の大きさ・列・見出しの形は変えていない。あわせて、「きょうのひとこと」の見出しを、ほかのカードの見出しと**同じ 1 つの規則**〔`.top-section h2, .hitokoto-frame h2`。`letter-spacing: normal`〕にした。
+- テスト：全体 2473 → 2480〔+7：新しいクラス `TableCardScreensTest` 7 件〕。期待を直した既存のテスト：`TransactionListLayoutTest` 1、`AuthAndListStyleSheetTest` 1、`HitokotoStyleSheetTest` 1。先に失敗：6 件。`.\mvnw clean test` は 2480 件すべて成功。
+- **字間について**：CSS には、きょうのひとこと専用の字間の指定が、もともと無かった。原因を特定できていないので、規則を共通にして `letter-spacing: normal` を明記した。画面で同じに見えなければ、教えてほしい。
+- 取引一覧のカードの下に、`.table-card` の下の余白〔0.75rem〕が付く。
