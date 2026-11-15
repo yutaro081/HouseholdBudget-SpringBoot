@@ -919,8 +919,8 @@ flowchart LR
 | `AutoBudgetService`（issue 019） | 自動予算の案と、表の元の数字を作る（`AutoBudgetView` を返す、5.14）。`BudgetService.edit` の行（保存済み、または0円。ルール④の「今の値」）、`BudgetRepository.findByUserIdAndSeasonYearAndSeason`（直前の季節の予算）、`TransactionRepository.sumByCategoryAndMonth`（過去の実績）を使い、計算は `domain` に渡す。**読むだけ**（データベースに書かない） | `categories`、`budgets`、`transactions`。`propose(userId, period, choice, today)`（最初の引数が `userId`。「今日」は呼ぶ側が日本時間の `Clock` から取って渡す）。範囲外の季節は `NotFoundException`。科目・予算・取引は、すべて自分の分だけ |
 | `TransactionService` | 取引の一覧（月ごとの集計つき：`listByMonth`。入れ物は `dto/TransactionMonth`）・1 件の取得（編集・複写・削除のとき）・登録・更新・削除。登録・更新のとき、選んだ科目・取引先・支払方法が**自分のものか**を確認する（3.9） | `transactions` |
 | `ComparisonService` | 季節の期間の取引を科目ごとに集計し、予算（未設定なら「未設定」）・実績・差額（未設定なら空欄）・色・予算内の印（予算内のチップ。旧 💮）・合計行を作る（`ComparisonResult` を返す、5.9）。**画面用のまとまり `ComparisonView` も作る（issue 027）**：`compare` の結果に、今の季節のときだけ、科目ごと・合計の見込み（`LandingForecast`）、見込みとの差（予算 − 見込み）、要約カードの値（差の文 `LandingVerdict`、使った割合、日の進み方、メーター、数え始めの日）を足す。計算は Controller でもテンプレートでもなく、ここで行う | `categories`、`budgets`、`transactions`。**Phase 7 で作ったメソッド**：`compare(userId, period)`（読むだけ。最初の引数が `userId`）。範囲外の季節（null を含む）は `NotFoundException`。科目は `CategoryService.list(userId)`、その季節の予算は `BudgetRepository.findByUserIdAndSeasonYearAndSeason`（その季節の行だけ。前の季節の額は使わない）、実績は `TransactionRepository.sumByCategory`。**issue 027 で足したメソッド**：`view(userId, period, today)`（読むだけ。`compare` と `countingStart` を呼び、`today` は引数で 1 回だけ受け取る） |
-| `TopService` | トップの画面用のデータを作る（issue 010、5.11）。今の季節の合計は `ComparisonService.compare` の合計行を使い、今週の科目ごとの実績（`sumByCategory`）と、今日が入っている季節の科目ごとの予算から、週の予算・切り上げた実績・色・円グラフの並びを作る（`TopView` を返す） | `categories`、`budgets`、`transactions`。`top(userId, today)`（読むだけ。最初の引数が `userId`。「今日」は呼ぶ側が日本時間の `Clock` から取って渡す）。科目・予算・取引は、すべて自分の分だけ |
-| `HitokotoService`（issue 016） | きょうのひとこと用のデータ（`HitokotoView`）を作る（5.12）。その日の暦の項目（候・節気・行事）と、次の節気の補足、グラフへのひとことを、`domain` の計算に渡してまとめる。`TopService` から呼ばれる | なし（ファイルの文面と、`TopService` が集めた今週の数字だけを使う。DB を新しく検索しない）。`hitokoto(today, 今週の数字)`（読むだけ） |
+| `TopService` | トップの画面用のデータを作る（issue 010、5.11）。今の季節の合計は `ComparisonService.compare` の合計行を使い、今週の科目ごとの実績（**issue 028**：`sumByCategoryAndDate` で、先週と今週の 2 週間分を 1 回で取り、今週の分を科目ごとに足す。先週の同じ曜日までの合計と、今週の件数も、同じ結果から作る）と、今日が入っている季節の科目ごとの予算から、週の予算・切り上げた実績・色・円グラフの並びを作る（`TopView` を返す） | `categories`、`budgets`、`transactions`。`top(userId, today)`（読むだけ。最初の引数が `userId`。「今日」は呼ぶ側が日本時間の `Clock` から取って渡す）。科目・予算・取引は、すべて自分の分だけ |
+| `HitokotoService`（issue 016） | きょうのひとこと用のデータ（`HitokotoView`）を作る（5.12）。その日の暦の項目（候・節気・行事）と、次の節気の補足、グラフへのひとことを、`domain` の計算に渡してまとめる。`TopService` から呼ばれる | なし（ファイルの文面と、`TopService` が集めた数字だけを使う。DB を検索しない）。`hitokoto(today, 今週の数字)`（読むだけ。**issue 028**：今週の数字に、今週の取引の件数と、先週の同じ曜日までの実績の合計を足す） |
 | `HitokotoTexts`（issue 016） | 文面と日付の表のファイル（4.3 の `hitokoto/`）を、起動のとき1回だけ読んで持つ。件数（72・24・11）、番号、空の文がないことを確かめ、合わなければ起動を失敗させる（欠けたまま動かさない） | なし |
 
 - 各 Service には、更新を行うメソッドに **トランザクション**（途中で失敗したら全部取り消す）を付ける。
@@ -968,7 +968,7 @@ flowchart LR
 | `PieSlices`（issue 010） | 円グラフの並び。0円の科目を除き、金額の多い順（同額は科目の登録順）に並べ、6科目以下は全部、7科目以上は上位5科目＋「その他」にまとめる。割合（整数％に四捨五入）と、円の区切り（1000分率）を求める。割合は切り上げた額から。**各切れに、その科目の今週の判定（色と予算内の印）を持たせる。「その他」は判定なし** |
 | `SolarTermCalendar`（issue 016） | 二十四節気の日付の表から、今日が「節気の日」か、何の候（初候・次候・末候。通し番号1〜72）か、次の節気とあと何日かを求める。節気の日 +0日＝節気、+1〜4日＝初候、+5〜9日＝次候、+10日〜次の節気の前の日＝末候。前の年と次の年の表も使う。表のない年は、文面の「ごろ」の月日で代わりに求め、「代わりの計算を使った」印を返す。画面にも DB にも依存しない |
 | `EventDays`（issue 016） | 年中行事の日を求める。月日が決まっているもの（元日・七草・ひな祭り・端午の節句・七夕・お盆・七五三・大晦日）と、節気から引くもの（節分＝立春の前の日、お彼岸入り＝春分・秋分の3日前）。日付の型で引く（月日で引かない） |
-| `GraphComment`（issue 016） | グラフへのひとこと。今週の数字（科目名・週の予算・切り上げた実績・合計・今日の曜日）から、出せる型（最多・残り・未使用）を決め、日付で1つ選び、文の部品（型・科目名・金額・残り日数）を返す。文そのものは作らない（文は `messages.properties`） |
+| `GraphComment`（issue 016。型は issue 028 で作り直した） | グラフへのひとこと。今週の数字（科目名・週の予算・切り上げた実績・合計・取引の件数・今日の曜日）と、先週の同じ曜日までの実績の合計から、出せる型（1日あたり・週の予算以下の数・残りの割合・先週と比べる・記録の件数・未使用・週の始め。5.12）を決め、日付で1つ選び、文の部品（型・科目名・金額・日数・科目の数・割・件数）を返す。文そのものは作らない（文は `messages.properties`） |
 
 #### config
 
@@ -1001,6 +1001,7 @@ flowchart LR
 - **Phase 7 で `TransactionRepository` に足したもの**：`sumByCategory(userId, start, endExclusive)`。**このアプリで初めての `@Query`**（パラメータ付きの JPQL。`where t.userId = :userId and t.transactionDate >= :start and t.transactionDate < :endExclusive group by t.category.id`、結果は `CategoryActual`）。理由：メソッド名の検索では `GROUP BY` と `SUM` が書けないため。値はすべてパラメータで渡し、文字列を連結しない（7.4 が許す形）。期間は「開始日以上、終了日の翌日未満」（5.8）。取引がない科目は結果に出ない（Service が0円にする）。合計は `Long`（INT を超えうる、3.1）。集計には `@EntityGraph` は要らない（科目のIDと合計だけを返す）（Q7-3 の A）。
 - **issue 019 で `TransactionRepository` に足したもの**：`sumByCategoryAndMonth(userId, start, endExclusive)`。`sumByCategory` と同じ形の `@Query`（パラメータ付きの JPQL。`where t.userId = :userId and t.transactionDate >= :start and t.transactionDate < :endExclusive group by t.category.id, 年, 月`。年と月は JPQL の関数で取り出す。結果は `MonthlyActual`）。自動予算の過去の実績（同じ季節の 3 年と、傾向の 12 季節と、直前の季節）を、**1 回の検索で集める**。Service が月を季節にまとめる。取引のない科目・月は結果に出ない。値はすべてパラメータで渡し、文字列を連結しない（7.4）。
 - **issue 020 で `TransactionRepository` に足したもの**：`findFirstTransactionDate(userId)`。自分の取引の日付の最小値（`@Query`。パラメータ付きの JPQL。`where t.userId = :userId`。取引がなければ空の `Optional`）。着地見込み・自動予算のペースの「数え始めの日」（5.13）に使う。他人の取引は入らない
+- **issue 028 で `TransactionRepository` に足すもの**：`sumByCategoryAndDate(userId, start, endExclusive)`。`sumByCategory` と同じ形の `@Query`（パラメータ付きの JPQL。`where t.userId = :userId and t.transactionDate >= :start and t.transactionDate < :endExclusive group by t.category.id, t.transactionDate`。結果は `DailyActual`〔科目ID、日付、合計、件数〕）。トップが、先週の日曜から今週の土曜までの 14 日分を **1 回の検索で集める**（今週の科目ごとの実績、今週の件数、先週の同じ曜日までの実績に、`TopService` が分ける）。結果の行は、多くても「科目の数 × 14」。取引のない科目・日は結果に出ない。値はすべてパラメータで渡し、文字列を連結しない（7.4）。`user_id` で必ず絞る（3.9）。`sumByCategory` は、予実比較が使うので、変えない
 - 期間内の科目ごとの合計は、Repository が「科目ID と合計」の組（`CategoryActual`、P4）で返す。`dto` に置く。
 
 ### 4.7 form と dto
@@ -1030,6 +1031,7 @@ flowchart LR
 | `BudgetEditView` | 予算設定画面の表示データ：見出し（年・季節・期間）、前・次の季節のリンク先、各行（科目、初期値の額、「未設定」の印の有無）（Q26）。**形**：期間（`SeasonPeriod`）、前・次の季節（範囲の端では null）、行（`BudgetEditView.Row`：科目ID、科目名、最初の値、「未設定」の印）。入力エラーで表示し直すときの行は、最初の値が null（値は送られた値を使う）。**issue 019**：「自動予算」ボタンを出すか（`autoAvailable`）、開いたときの合計（`total`。入力エラーの表示し直しでは `null`）、自動予算の中身（`auto`。押していないときは `null`）を足す |
 | `AutoBudgetView`、`AutoBudgetView.Row`（issue 019） | 自動予算の表示データ。**全体**：選んだ割合（1〜3）、直前の季節（`SeasonPeriod`）、直前の季節の予算の合計（設定済みの科目だけ。なければ `null`）と実績の合計、直前の季節が今日を含むか、今日の日付、実績の合計の「ペース」（なければ `null`）、記録のある年が 1 つ以上あるか、傾向（%、増減の種類〔増える・減る・ほぼ同じ・計算しなかった〕、上限で止めたか）、材料なし（全科目が④）か。**行**：科目ID、科目名、直前の予算（`null`＝未設定）、直前の実績、「ペース」（なければ `null`）、当てはまったルール（`BudgetProposal.Rule`。①〜④）、根拠の部品（年の並び・平均か中央値か・もとの額・直前の季節の名前など）、案の額。画面が読む値は、すべてこの中に入れて渡す（`open-in-view=false`）。**形**（テストのために決めた）：全体＝`choice`、`previousSeason`（範囲の外は `null`）、`previousBudgetTotal`、`previousActualTotal`、`previousContainsToday`、`today`、`previousPaceTotal`、`screenSeason`、`hasRecordYears`、`trendPercent`、`trendKind`（`UP`・`DOWN`・`SAME`・`NOT_CALCULATED`）、`trendCapped`、`noMaterial`、`rows`。**案の合計・「一部の科目が②〜④か」・「全科目が②〜④か」は持たない**（3 行目の文をなくしたため。合計は、画面が入力欄の値の足し算で出す）。行＝`categoryId`、`categoryName`、`previousBudget`、`previousActual`、`paceAmount`（今日を含む季節で 14 日以上、かつ実績が 0 円より大きいときだけ）、`rule`、`basisKind`（`MEDIAN`・`AVERAGE`・`SINGLE_YEAR`・`PACE`・`ACTUAL`・`BUDGET`・`NONE`）、`years`（季節の年。古い順）、`yearsConsecutive`、`baseAmount`、`amount` |
 | `MonthlyActual`（issue 019） | 科目・月ごとの実績。`sumByCategoryAndMonth` の結果。**形**：`record MonthlyActual(Long categoryId, int year, int month, Long total)` |
+| `DailyActual`（issue 028） | 科目・日付ごとの実績と件数。`sumByCategoryAndDate` の結果。**形**：`record DailyActual(Long categoryId, LocalDate date, Long total, Long count)` |
 | `TopView`、`WeekRow`（issue 010） | トップの画面全体（今の季節のメーターの値、今週の期間、円グラフの並びと区切りの文字、科目ごとの行と合計行）。`WeekRow` は科目のID（**issue 027 で足した**。合計行は `null`。選んだ行と同じ科目を、予実比較の行から ID で探すため。画面には出さない）、科目名（合計行は `null`）、週の予算（未設定は `null`）、切り上げた実績、差額、色、予算内の印、棒の長さ。円の1切れ（科目名または「その他」、金額、割合、円の区切り、色の番号、まとめた科目の数）は、domain の `PieSlices.Slice`（**issue 024：今週の判定の色と予算内の印は、なくした**。判定は、円グラフの一覧に出さない）。画面が読む値は、すべてこの中に入れて渡す（`open-in-view=false`）。**issue 017**：`TopView` に、今日の日付、季節の終わりまであと何日、使った割合（%。なければ `null`）、今日の位置（%）、季節の最初と最後の月を足した。`WeekRow` に、状態の文の元（メッセージのキーと、オーバーした額）を足した。**issue 018**：ペースの一言のキー（`paceKey`）をやめて、**見込みの額（100 円単位。なければ `null`）と、予算に対する％（なければ `null`）**を足した |
 | `HitokotoView`、`CalendarItem`（issue 016） | きょうのひとこと。`CalendarItem` は暦の1項目（種類〔七十二候・二十四節気・年中行事〕、名前、読み、文）。`HitokotoView` は、`CalendarItem` の並び（0〜2個。行事が先）、次の節気の補足（名前とあと何日。ないときは `null`）、グラフへのひとことの部品（ないときは `null`）。`TopView` が持つ。**issue 017**：`CalendarItem` に「題の補足」（七十二候は「立冬の初候」、二十四節気は「立冬」、年中行事はなし）を足した |
 
@@ -1428,7 +1430,7 @@ flowchart TD
 flowchart TD
     A["今日の季節（SeasonPeriod.from）と、今週（WeekPeriod：日曜〜土曜）を決める"] --> B["季節のメーター：ComparisonService.compare の合計行をそのまま使う（使った額・予算・残り）"]
     A --> C["自分の科目を登録順に取得。今日の季節の予算を科目ごとに探す（行がなければ未設定）"]
-    A --> D["今週（開始日以上、次の日曜の前日まで）の自分の取引を、科目ごとに合計（sumByCategory）。季節をまたいでもそのまま"]
+    A --> D["先週の日曜から、今週の土曜までの自分の取引を、科目と日付ごとに合計と件数（sumByCategoryAndDate。issue 028）。そのうち今週（開始日以上、次の日曜の前日まで）の分を、科目ごとに足す。季節をまたいでもそのまま"]
     C --> E["科目ごとに：週の予算＝WeeklyAmount（予算 ÷ 1,300 を切り上げて × 100）。未設定は未設定のまま"]
     D --> F["科目ごとに：実績＝100円単位に切り上げ（0円は0円）"]
     E --> G["科目ごとに：色・予算内の印＝BudgetColorJudge（週の予算, 切り上げた実績）"]
@@ -1457,9 +1459,9 @@ flowchart TD
 - 季節をまたぐ週では、週の予算は今日の季節のもの。日付が変わって季節が変わると、週の予算も変わる。
 - 合計は、100円単位の切り上げを積み重ねるので、元の額の合計より最大で「99円 × 科目の数」多くなる。
 
-### 5.12 きょうのひとこと（issue 016）
+### 5.12 きょうのひとこと（issue 016。グラフへのひとことの型は、issue 028 で作り直した）
 
-トップの円グラフの下の枠。①暦のひとこと、②グラフへのひとこと。どちらもサーバー側で作って `th:text` で出す。JavaScript・外部の API・CDN は使わない。`TopService.top` が、すでに集めた今週の数字と「今日」を `HitokotoService` に渡し、結果を `TopView` に入れる。新しい DB 検索はしない（3.9 の `user_id` の絞りは、`TopService` の中で済んでいる）。
+トップの円グラフの下の枠。①暦のひとこと、②グラフへのひとこと。どちらもサーバー側で作って `th:text` で出す。JavaScript・外部の API・CDN は使わない。`TopService.top` が、すでに集めた今週の数字と「今日」を `HitokotoService` に渡し、結果を `TopView` に入れる。`HitokotoService` は DB を検索しない（3.9 の `user_id` の絞りは、`TopService` の中で済んでいる）。**issue 028**：グラフへのひとことに、先週の実績と今週の取引の件数が要るので、`TopService` の今週の検索（`sumByCategory`）を、2 週間分を 1 回で取る検索（`sumByCategoryAndDate`。4.6）に置きかえた。**検索の本数は増やさない**（トップは 7 本のまま。`ScreenStatementCountTest`）。
 
 ```mermaid
 flowchart TD
@@ -1472,7 +1474,7 @@ flowchart TD
     D --> H["並べる：行事（あれば）→ 節気または候"]
     E --> H
     G --> H
-    A --> I["GraphComment：今週の数字から出せる型を決め、日付で1つ選ぶ"]
+    A --> I["GraphComment：今週の数字と先週の実績から出せる型を決め、日付で1つ選ぶ"]
     H --> J["HitokotoView"]
     I --> J
 ```
@@ -1489,10 +1491,10 @@ flowchart TD
 | 枠の見せ方 | 各項目は、小さい見出し（種類・名前・読み。例：「七十二候　草露白（くさのつゆしろし）」「二十四節気　立冬」「年中行事　七夕」）と文。行事と節気の間に線を1本 |
 | 文面のファイル | `hitokoto/` の下の4つの JSON（4.3）。七十二候：`number`・`sekki`・`position`（`first`／`second`／`third`）・`name`・`reading`・`text`。二十四節気：`number`・`name`・`reading`・`text`・`approx`（ごろの月日）。年中行事：`name`・`rule`（`FIXED`〔月日〕／`BEFORE_SEKKI`〔節気の名前と日数〕）・`text`。節気の日付：年ごとに、節気の名前と日付の対。UTF-8。起動のとき1回だけ読み、件数（72・24・11）・番号・空の文を確かめる（`HitokotoTexts`） |
 | 文面の直し方 | 文面の原本は、アプリの中のファイル（JSON）。`docs/hitokoto-source.md` は、文面を確認した記録として残し、書き換えない。文面を直すときは JSON を直す。文面の言い回しは、本人の決めたもの。コードの側で変えない |
-| グラフへのひとこと：材料 | `TopService` が集めた今週の数字だけ。科目ごとの週の予算（未設定は `null`）と、100円単位に切り上げた実績、合計の行、今日の曜日。**画面に出ている額と同じ**（切り上げ後の額） |
-| グラフへのひとこと：型 | **最多**（今週の取引が1件以上。切り上げた実績が最大の科目。同額は科目の登録順。「その他」ではなく本当の科目）。**残り**（週の予算が1科目以上に設定済み。合計の行の「週の予算 − 実績」と、土曜までの日数〔日曜6〜土曜0〕。マイナスのときは、こえた額を述べる）。**未使用**（週の予算が設定済みで、今週の実績が0円の科目がある。週の予算が最大のもの1科目。同額は登録順） |
-| グラフへのひとこと：選び方 | 出せる型を「最多 → 残り → 未使用」の順に並べ、`今日の通算日（epochDay） ÷ 出せる型の数` の余りで1つ選ぶ。同じ日は何度開いても同じ。出せる型がなければ出さない。取引0件で週の予算がある：残りだけ。取引0件で週の予算がない：出さない。取引があり予算が全部未設定：最多だけ。科目が0件：出さない |
-| グラフへのひとこと：言い方 | 文は `messages.properties`（`hitokoto.graph.…`）に置き、科目名・金額・日数は引数で入れる。事実だけを「です・ます」で述べ、評価・命令・感嘆符を使わない。禁止の言葉（使いすぎ、無駄、節約、控え、気をつけ、がんばって、！）は、テストで確かめる。超過のときも、こえた額を述べるだけ |
+| グラフへのひとこと：材料（issue 028） | `TopService` が集めた数字だけ。①科目ごとの週の予算（未設定は `null`）と、100円単位に切り上げた今週の実績、その合計（**画面に出ている額と同じ**）。②今週（日曜〜土曜）の取引の件数。③先週の同じ曜日までの実績の合計：先週の日曜から、今日と同じ曜日までの取引を、科目ごとに合計して100円単位に切り上げ、足したもの（今週の合計と同じ作り方）。④今日 |
+| グラフへのひとこと：型（issue 028） | **1日あたり**：週の予算の合計が設定済みのとき。（週の予算の合計 − 今週の実績の合計）÷ 土曜までの日数〔今日を含む。`8 − 週の何日目`。日曜7〜土曜1〕を、100円単位で切り捨て。切り捨てた額が0円以下なら出さない。**週の予算以下の数**：今週の取引が1件以上で、分子が1以上のとき。分母＝週の予算が0円より大きい科目の数、分子＝そのうち `BudgetColorJudge.judge` が赤でない科目の数（実績 ≦ 週の予算）。分子が0（全部の科目が週の予算を超えた）なら出さない（Q028-4）。**残りの割合**：週の予算が0円より大きく、今週の実績が0円より大きい科目のうち、`（週の予算 − 実績）× 10 ÷ 週の予算`（切り捨て）が最大のもの。1割以上のときだけ。同じ割合は科目の登録順で先。**先週と比べる**：先週の同じ曜日までの合計が0円より大きいとき。差＝今週の実績の合計 − 先週の同じ曜日までの合計（どちらも100円の倍数なので、差も100円の倍数。丸めない）。少ない・多い・同じ額の3つの文。**記録の件数**：今週の取引が1件以上。**未使用**：今週の取引が1件以上で、週の予算が0円より大きく今週の実績が0円の科目がある。週の予算が最大のもの1科目。同額は登録順（issue 016 のまま）。**週の始め**：日曜で、今週の取引が0件で、週の予算の合計が0円より大きいとき。**なくした型**：最多、残り（超過の文、土曜の文を含む） |
+| グラフへのひとこと：選び方（issue 028） | **週の始めが出せる日は、それだけを出す。** ほかの日は、出せる型を「1日あたり → 週の予算以下の数 → 残りの割合 → 先週と比べる → 記録の件数 → 未使用」の順に並べ、`今日の通算日（epochDay） ÷ 出せる型の数` の余りで1つ選ぶ（式は issue 016 のまま）。同じ日は何度開いても同じ。出せる型がなければ出さない。同時に出せるのは最大6つ（7つだと、同じ曜日がいつも同じ型になるが、週の始めはほかと一緒に並べないので、起きない）。取引0件の月〜土：1日あたり（週の予算があれば）と、先週と比べる（先週の分があれば）だけ。取引があり予算が全部未設定：先週と比べる、記録の件数だけ。科目が0件：出さない |
+| グラフへのひとこと：言い方（issue 028） | 文は `messages.properties`（`hitokoto.graph.…`）に置き、科目名・金額・日数・件数は引数で入れる（引数は2つまで）。事実だけを「です・ます」で述べ、評価・命令・感嘆符を使わない。禁止の言葉（使いすぎ、無駄、節約、控え、気をつけ、がんばって、！）と、文の終わり（「です。」「ます。」「せん。」。issue 016 のまま。Q028-2）は、テストで確かめる。この画面の言葉（要件定義書 4.5）に合わせ、「週の予算」と書く。「予算内」は状態のチップの言葉なので、文では使わない。文：`perday`「今日を入れて あと {1} 日。残りを日数で割ると、1 日あたり 約 {0}円 です。」、`notover`「今週は、週の予算がある {0} 科目のうち {1} 科目が、週の予算以下です。」、`room`「{0}は、週の予算の {1} 割がまだ残っています。」、`lastweek.less`「今週の合計は、先週の同じ曜日までより 約 {0}円 少ないです。」、`lastweek.more`「…… 約 {0}円 多いです。」、`lastweek.same`「今週の合計は、先週の同じ曜日までと同じ額です。」、`count`「今週の記録は {0} 件です。」、`unused`「今週はまだ{0}を使っていません。」（今のまま）、`weekstart`「新しい週です。週の予算の合計は {0}円 です。」 |
 
 - 要件定義書 9 章のアラート機能（前もっての知らせ）や、着地見込み（5.13）とは別。グラフへのひとことは、今の数字を述べるだけ。
 - 季節のメーターの下の一言（Q010-3）は、issue 016 の時点では出さなかったが、issue 017 で出すことにした（ペースの一言。5.11）。**issue 018 で、見込みの一文に置きかえた（5.13）**。グラフへのひとこと（上の表）とは別。

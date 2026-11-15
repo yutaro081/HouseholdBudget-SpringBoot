@@ -179,6 +179,29 @@ class TopServiceTest {
 		assertThat(view.rows().get(0).actual()).isEqualTo(300L);
 	}
 
+	/**
+	 * issue 028：トップは、先週の日曜から今週の土曜までを 1 回で取る。先週の取引〔今日と同じ曜日・より前の曜日・先週の日曜〕は、
+	 * 今週の実績・円グラフ・合計に入らない。
+	 */
+	@Test
+	void lastWeeksTransactionsAreNotMixedIntoThisWeek() {
+		Owner a = createOwner("toptest28");
+		Category food = category(a, "食費");
+		Category daily = category(a, "日用品");
+		budget(a, food, AUTUMN_2026, 30_000);
+		spend(a, food, LocalDate.of(2026, 11, 1), 5_000);     // 先週の日曜
+		spend(a, food, LocalDate.of(2026, 11, 4), 3_000);     // 先週の水曜（今日と同じ曜日）
+		spend(a, daily, LocalDate.of(2026, 11, 6), 2_000);    // 先週の金曜（今週は使っていない科目）
+		spend(a, food, LocalDate.of(2026, 11, 11), 150);      // 今週の水曜
+
+		TopView view = top(a, LocalDate.of(2026, 11, 11));   // 水曜
+
+		assertThat(view.rows()).extracting(WeekRow::actual).containsExactly(200L, 0L);
+		assertThat(view.total().actual()).isEqualTo(200L);
+		assertThat(view.pieTotal()).isEqualTo(200L);
+		assertThat(view.slices()).extracting(PieSlices.Slice::name).containsExactly("食費");
+	}
+
 	@Test
 	void aWeekAcrossSeasonsCountsBothSeasonsButUsesTheBudgetOfTodaysSeason() {
 		Owner a = createOwner("toptest04");

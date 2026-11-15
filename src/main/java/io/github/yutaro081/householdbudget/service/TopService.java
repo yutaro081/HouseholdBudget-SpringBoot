@@ -22,9 +22,9 @@ import io.github.yutaro081.householdbudget.domain.SeasonPeriod;
 import io.github.yutaro081.householdbudget.domain.WeekPeriod;
 import io.github.yutaro081.householdbudget.domain.WeekPick;
 import io.github.yutaro081.householdbudget.domain.WeeklyAmount;
-import io.github.yutaro081.householdbudget.dto.CategoryActual;
 import io.github.yutaro081.householdbudget.dto.ComparisonResult;
 import io.github.yutaro081.householdbudget.dto.ComparisonRow;
+import io.github.yutaro081.householdbudget.dto.DailyActual;
 import io.github.yutaro081.householdbudget.dto.HitokotoView;
 import io.github.yutaro081.householdbudget.dto.TopView;
 import io.github.yutaro081.householdbudget.dto.WeekPickView;
@@ -82,11 +82,14 @@ public class TopService {
 			seasonBudgetOf.put(budget.getCategory().getId(), budget.getAmount());
 		}
 
-		// 今週の実績：日曜から次の日曜の前日まで。季節をまたいでも、そのまま入れる
+		// 今週の実績：日曜から次の日曜の前日まで。季節をまたいでも、そのまま入れる。
+		// issue 028：先週の日曜から今週の土曜までを、科目・日付ごとに 1 回で取り（検索の本数は増やさない）、今週の日付の分だけを科目ごとに足す
 		Map<Long, Long> weekActualOf = new HashMap<>();
-		for (CategoryActual actual : transactionRepository.sumByCategory(userId,
-				week.start(), week.endDateExclusive())) {
-			weekActualOf.put(actual.categoryId(), actual.total());
+		for (DailyActual daily : transactionRepository.sumByCategoryAndDate(userId,
+				week.start().minusDays(WeekPeriod.DAYS), week.endDateExclusive())) {
+			if (!daily.date().isBefore(week.start())) {
+				weekActualOf.merge(daily.categoryId(), daily.total(), Long::sum);
+			}
 		}
 
 		List<WeekRow> rows = new ArrayList<>();
