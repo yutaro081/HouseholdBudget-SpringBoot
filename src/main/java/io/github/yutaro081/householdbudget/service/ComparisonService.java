@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,10 +13,15 @@ import org.springframework.transaction.annotation.Transactional;
 import io.github.yutaro081.householdbudget.domain.BudgetColor;
 import io.github.yutaro081.householdbudget.domain.BudgetColorJudge;
 import io.github.yutaro081.householdbudget.domain.CountingStart;
+import io.github.yutaro081.householdbudget.domain.LandingForecast;
+import io.github.yutaro081.householdbudget.domain.LandingVerdict;
+import io.github.yutaro081.householdbudget.domain.MeterScale;
+import io.github.yutaro081.householdbudget.domain.PeriodProgress;
 import io.github.yutaro081.householdbudget.domain.SeasonPeriod;
 import io.github.yutaro081.householdbudget.dto.CategoryActual;
 import io.github.yutaro081.householdbudget.dto.ComparisonResult;
 import io.github.yutaro081.householdbudget.dto.ComparisonRow;
+import io.github.yutaro081.householdbudget.dto.ComparisonView;
 import io.github.yutaro081.householdbudget.entity.Budget;
 import io.github.yutaro081.householdbudget.entity.Category;
 import io.github.yutaro081.householdbudget.exception.NotFoundException;
@@ -94,7 +100,7 @@ public class ComparisonService {
 		for (Category category : categories) {
 			Long budget = budgetOf.containsKey(category.getId()) ? Long.valueOf(budgetOf.get(category.getId())) : null;
 			long actual = actualOf.getOrDefault(category.getId(), 0L);
-			rows.add(row(category.getName(), budget, actual));
+			rows.add(row(category.getId(), category.getName(), budget, actual));
 
 			totalActual += actual;
 			if (budget != null) {
@@ -102,17 +108,67 @@ public class ComparisonService {
 				anyBudget = true;
 			}
 		}
-		ComparisonRow total = row(null, anyBudget ? Long.valueOf(totalBudget) : null, totalActual);
+		ComparisonRow total = row(null, null, anyBudget ? Long.valueOf(totalBudget) : null, totalActual);
 
 		return new ComparisonResult(period, period.previous().orElse(null), period.next().orElse(null), rows, total);
 	}
 
-	/** 予算（未設定なら null）と実績から、1行（科目の行も合計行も同じ）を作る。 */
-	private static ComparisonRow row(String name, Long budget, long actual) {
+	/**
+	 * 予実比較の画面用のまとまり（設計書 4.5・4.7、5.13。issue 027。それまでは Controller が計算していた）。
+	 * {@link #compare} の結果に、今の季節のときだけ、科目ごと・合計の見込みと、見込みとの差、要約カードの値を足す。
+	 * 「今日」は、呼ぶ側が 1 回だけ取って渡す（季節を決めた日と、同じ日を使う。設計書 B6）。
+	 * 範囲の外の季節は NotFoundException（compare と同じ）。
+	 *
+	 * @param today 今日（日本時間）
+	 */
+	@Transactional(readOnly = true)
+	public ComparisonView view(Long userId, SeasonPeriod period, LocalDate today) {
+		ComparisonResult comparison = compare(userId, period);
+		boolean showForecast = period.equals(SeasonPeriod.from(today));
+		// 数え始めの日は、最初の取引の日が季節の途中にあるときだけ、その日（設計書 5.13）
+		LocalDate countFrom = countingStart(userId, period, today);
+
+		List<ComparisonView.Line> lines = new ArrayList<>();
+		for (ComparisonRow row : comparison.rows()) {
+			lines.add(line(row, period, today, countFrom));
+		}
+		ComparisonView.Line total = line(comparison.total(), period, today, countFrom);
+		return new ComparisonView(comparison, showForecast, List.copyOf(lines), total, card(total, period, today, countFrom));
+	}
+
+	/**
+	 * 表の 1 行に、見込みと、見込みとの差（予算 − 表示する見込みの額）を添える。
+	 * 見込みは、今の季節で、予算が 0 円より大きいときだけ（LandingForecast が決める）。出さないときは、見込みも差も null（画面は「—」）。
+	 */
+	private static ComparisonView.Line line(ComparisonRow row, SeasonPeriod period, LocalDate today, LocalDate countFrom) {
+		Optional<LandingForecast.Result> forecast = LandingForecast.of(row.budget(), row.actual(), period, today, countFrom);
+		Long gap = forecast.isPresent() ? Long.valueOf(row.budget() - forecast.get().amount()) : null;
+		return new ComparisonView.Line(row, forecast.orElse(null), gap);
+	}
+
+	/**
+	 * 要約カード。合計の見込みがあるときだけ（ないときは null）。
+	 * 差の文は、合計の行の「見込みとの差」と同じ値から決める。棒は、トップの季節のメーターと同じ求め方（PeriodProgress、MeterScale）。
+	 */
+	private static ComparisonView.Card card(ComparisonView.Line total, SeasonPeriod period, LocalDate today, LocalDate countFrom) {
+		if (total.forecast() == null) {
+			return null;
+		}
+		Long budget = total.row().budget();
+		long actual = total.row().actual();
+		return new ComparisonView.Card(total.forecast(), LandingVerdict.of(total.gap()),
+				PeriodProgress.usedPercent(budget, actual), PeriodProgress.seasonElapsedPercent(period, today),
+				MeterScale.of(budget, actual, PeriodProgress.seasonElapsedPermille(period, today)),
+				// 最初の取引の日から数えたとき（その日が季節の初日より後のとき）だけ、カードに知らせる
+				countFrom.isAfter(period.startDate()) ? countFrom : null);
+	}
+
+	/** 予算（未設定なら null）と実績から、1行（科目の行も合計行も同じ）を作る。合計行は、科目の ID も名前も null。 */
+	private static ComparisonRow row(Long categoryId, String name, Long budget, long actual) {
 		Long difference = budget == null ? null : budget - actual;
 		BudgetColor color = BudgetColorJudge.judge(budget, actual);
 		boolean withinBudget = BudgetColorJudge.isWithinBudget(budget, actual);
-		return new ComparisonRow(name, budget, actual, difference, color, withinBudget);
+		return new ComparisonRow(categoryId, name, budget, actual, difference, color, withinBudget);
 	}
 
 }

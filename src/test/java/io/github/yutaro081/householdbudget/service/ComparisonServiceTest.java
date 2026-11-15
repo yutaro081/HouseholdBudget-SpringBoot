@@ -531,6 +531,23 @@ class ComparisonServiceTest {
 		assertThatThrownBy(() -> service.compare(a.id(), null)).isInstanceOf(NotFoundException.class);
 	}
 
+	// ---- 行は、科目の ID を持つ（issue 027） ----
+
+	/** 科目の行は、その科目の ID を持つ（同じ科目の行を、名前ではなく ID で探せる）。合計の行は null */
+	@Test
+	void eachRowHasItsCategoryIdAndTheTotalRowHasNone() {
+		Owner a = createOwner("cmptest26");
+		Category food = category(a, "食費");
+		Category daily = category(a, "日用品");
+		budget(a, food, AUTUMN_2026, 20_000);
+
+		ComparisonResult result = compare(a, AUTUMN_2026);
+
+		assertThat(result.rows()).extracting(ComparisonRow::categoryId).containsExactly(food.getId(), daily.getId());
+		assertThat(result.rows()).extracting(ComparisonRow::categoryName).containsExactly("食費", "日用品");
+		assertThat(result.total().categoryId()).isNull();
+	}
+
 	// ---- 何も書かない ----
 
 	@Test

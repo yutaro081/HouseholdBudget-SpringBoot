@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import io.github.yutaro081.householdbudget.domain.BudgetProposal.Rule;
 import io.github.yutaro081.householdbudget.domain.BudgetProposal.Result;
 import io.github.yutaro081.householdbudget.domain.SpendingPace.Pace;
 
@@ -87,7 +88,7 @@ class BudgetProposalTest {
 			long expected) {
 		Result r = rule1(twiceMedian, trend, choice);
 
-		assertThat(r.rule()).isEqualTo(1);
+		assertThat(r.rule()).isEqualTo(Rule.MEDIAN);
 		assertThat(r.amount()).isEqualTo(expected);
 	}
 
@@ -104,7 +105,7 @@ class BudgetProposalTest {
 		// 中央値 0.5 円（2 倍で 1）は「0 円より大きい」ので①。切り上げて 1,000 円
 		Result r = rule1(1, 100, ProposalChoice.OK);
 
-		assertThat(r.rule()).isEqualTo(1);
+		assertThat(r.rule()).isEqualTo(Rule.MEDIAN);
 		assertThat(r.amount()).isEqualTo(1_000L);
 	}
 
@@ -229,11 +230,11 @@ class BudgetProposalTest {
 		Result save = propose(OptionalLong.of(0), 110, ProposalChoice.SAVE, 3_600, pace, null, 0);
 		Result extra = propose(OptionalLong.of(0), 110, ProposalChoice.EXTRA, 3_600, pace, null, 0);
 
-		assertThat(ok.rule()).isEqualTo(2);
+		assertThat(ok.rule()).isEqualTo(Rule.PACE);
 		assertThat(ok.amount()).isEqualTo(5_000L);
-		assertThat(save.rule()).isEqualTo(2);
+		assertThat(save.rule()).isEqualTo(Rule.PACE);
 		assertThat(save.amount()).isEqualTo(5_000L);
-		assertThat(extra.rule()).isEqualTo(2);
+		assertThat(extra.rule()).isEqualTo(Rule.PACE);
 		assertThat(extra.amount()).isEqualTo(6_000L);
 	}
 
@@ -245,7 +246,7 @@ class BudgetProposalTest {
 		for (ProposalChoice choice : ProposalChoice.values()) {
 			Result r = propose(OptionalLong.empty(), 106, choice, 300, pace, null, 0);
 
-			assertThat(r.rule()).isEqualTo(2);
+			assertThat(r.rule()).isEqualTo(Rule.PACE);
 			assertThat(r.amount()).isEqualTo(1_000L);
 		}
 	}
@@ -286,9 +287,9 @@ class BudgetProposalTest {
 		// 直前の予算が未設定・0 円・大きい額でも、②が先
 		Optional<Pace> pace = autumnPace(3_600);
 
-		assertThat(propose(OptionalLong.empty(), 100, ProposalChoice.OK, 3_600, pace, null, 0).rule()).isEqualTo(2);
-		assertThat(propose(OptionalLong.empty(), 100, ProposalChoice.OK, 3_600, pace, 0L, 0).rule()).isEqualTo(2);
-		assertThat(propose(OptionalLong.empty(), 100, ProposalChoice.OK, 3_600, pace, 90_000L, 0).rule()).isEqualTo(2);
+		assertThat(propose(OptionalLong.empty(), 100, ProposalChoice.OK, 3_600, pace, null, 0).rule()).isEqualTo(Rule.PACE);
+		assertThat(propose(OptionalLong.empty(), 100, ProposalChoice.OK, 3_600, pace, 0L, 0).rule()).isEqualTo(Rule.PACE);
+		assertThat(propose(OptionalLong.empty(), 100, ProposalChoice.OK, 3_600, pace, 90_000L, 0).rule()).isEqualTo(Rule.PACE);
 	}
 
 	// ==== ルール③：直前の予算 × 割合（傾向はかけない）====
@@ -300,11 +301,11 @@ class BudgetProposalTest {
 		Result save = propose(OptionalLong.of(0), 110, ProposalChoice.SAVE, 0, autumnPace(0), 8_000L, 0);
 		Result extra = propose(OptionalLong.of(0), 110, ProposalChoice.EXTRA, 0, autumnPace(0), 8_000L, 0);
 
-		assertThat(ok.rule()).isEqualTo(3);
+		assertThat(ok.rule()).isEqualTo(Rule.PREVIOUS_BUDGET);
 		assertThat(ok.amount()).isEqualTo(8_000L);
-		assertThat(save.rule()).isEqualTo(3);
+		assertThat(save.rule()).isEqualTo(Rule.PREVIOUS_BUDGET);
 		assertThat(save.amount()).isEqualTo(8_000L);
-		assertThat(extra.rule()).isEqualTo(3);
+		assertThat(extra.rule()).isEqualTo(Rule.PREVIOUS_BUDGET);
 		assertThat(extra.amount()).isEqualTo(9_000L);
 	}
 
@@ -319,7 +320,7 @@ class BudgetProposalTest {
 	void rule3IsUsedWhenTheActualIsZeroEvenIfThePaceIsAvailable() {
 		Result r = propose(OptionalLong.empty(), 100, ProposalChoice.OK, 0, autumnPace(0), 30_000L, 0);
 
-		assertThat(r.rule()).isEqualTo(3);
+		assertThat(r.rule()).isEqualTo(Rule.PREVIOUS_BUDGET);
 		assertThat(r.amount()).isEqualTo(30_000L);
 	}
 
@@ -328,7 +329,7 @@ class BudgetProposalTest {
 		// 実績はあるが、季節が始まって 14 日たっていない（ペースが空）
 		Result r = propose(OptionalLong.empty(), 100, ProposalChoice.OK, 5_000, Optional.empty(), 30_000L, 0);
 
-		assertThat(r.rule()).isEqualTo(3);
+		assertThat(r.rule()).isEqualTo(Rule.PREVIOUS_BUDGET);
 		assertThat(r.amount()).isEqualTo(30_000L);
 	}
 
@@ -340,7 +341,7 @@ class BudgetProposalTest {
 		for (ProposalChoice choice : ProposalChoice.values()) {
 			Result r = propose(OptionalLong.of(0), 110, choice, 0, autumnPace(0), null, 5_000);
 
-			assertThat(r.rule()).isEqualTo(4);
+			assertThat(r.rule()).isEqualTo(Rule.KEEP_CURRENT);
 			assertThat(r.amount()).isEqualTo(5_000L);
 		}
 	}
@@ -349,7 +350,7 @@ class BudgetProposalTest {
 	void rule4KeepsAnUnsavedValueOfZero() {
 		Result r = propose(OptionalLong.empty(), 100, ProposalChoice.EXTRA, 0, Optional.empty(), null, 0);
 
-		assertThat(r.rule()).isEqualTo(4);
+		assertThat(r.rule()).isEqualTo(Rule.KEEP_CURRENT);
 		assertThat(r.amount()).isZero();
 	}
 
@@ -366,7 +367,7 @@ class BudgetProposalTest {
 		// Q019-1：直前の予算が 0 円（設定済み）。③にすると、画面の季節に保存済みの 5,000 円を 0 円で上書きしてしまう
 		Result r = propose(OptionalLong.empty(), 100, ProposalChoice.OK, 0, autumnPace(0), 0L, 5_000);
 
-		assertThat(r.rule()).isEqualTo(4);
+		assertThat(r.rule()).isEqualTo(Rule.KEEP_CURRENT);
 		assertThat(r.amount()).isEqualTo(5_000L);
 	}
 
@@ -374,7 +375,7 @@ class BudgetProposalTest {
 	void aBudgetOfZeroYenWithNothingSavedStaysZero() {
 		Result r = propose(OptionalLong.empty(), 100, ProposalChoice.OK, 0, Optional.empty(), 0L, 0);
 
-		assertThat(r.rule()).isEqualTo(4);
+		assertThat(r.rule()).isEqualTo(Rule.KEEP_CURRENT);
 		assertThat(r.amount()).isZero();
 	}
 
@@ -385,7 +386,7 @@ class BudgetProposalTest {
 		// 中央値 90,000、実績 3,600（ペースあり）、予算 8,000、今の値 5,000 がすべてあっても①
 		Result r = propose(OptionalLong.of(180_000), 110, ProposalChoice.OK, 3_600, autumnPace(3_600), 8_000L, 5_000);
 
-		assertThat(r.rule()).isEqualTo(1);
+		assertThat(r.rule()).isEqualTo(Rule.MEDIAN);
 		assertThat(r.amount()).isEqualTo(99_000L);
 	}
 
@@ -394,7 +395,7 @@ class BudgetProposalTest {
 		// 記録のある年の実績がすべて 0 円（中央値 0 円）。直前の実績があれば②
 		Result r = propose(OptionalLong.of(0), 110, ProposalChoice.OK, 3_600, autumnPace(3_600), 8_000L, 5_000);
 
-		assertThat(r.rule()).isEqualTo(2);
+		assertThat(r.rule()).isEqualTo(Rule.PACE);
 	}
 
 	@Test
@@ -402,14 +403,14 @@ class BudgetProposalTest {
 		// 記録のある年が 1 つもない
 		Result r = propose(OptionalLong.empty(), 100, ProposalChoice.OK, 3_600, autumnPace(3_600), 8_000L, 5_000);
 
-		assertThat(r.rule()).isEqualTo(2);
+		assertThat(r.rule()).isEqualTo(Rule.PACE);
 	}
 
 	@Test
 	void rule2BeatsRule3() {
 		Result r = propose(OptionalLong.empty(), 100, ProposalChoice.OK, 3_600, autumnPace(3_600), 8_000L, 5_000);
 
-		assertThat(r.rule()).isEqualTo(2);
+		assertThat(r.rule()).isEqualTo(Rule.PACE);
 		assertThat(r.amount()).isEqualTo(5_000L);   // ペース 4,550 → 5,000。予算 8,000 ではない
 	}
 
@@ -417,7 +418,7 @@ class BudgetProposalTest {
 	void anActualWithoutAUsablePaceFallsThroughToRule3() {
 		Result r = propose(OptionalLong.empty(), 100, ProposalChoice.OK, 3_600, Optional.empty(), 8_000L, 5_000);
 
-		assertThat(r.rule()).isEqualTo(3);
+		assertThat(r.rule()).isEqualTo(Rule.PREVIOUS_BUDGET);
 		assertThat(r.amount()).isEqualTo(8_000L);
 	}
 
@@ -425,7 +426,7 @@ class BudgetProposalTest {
 	void anActualWithoutAUsablePaceAndWithoutABudgetFallsThroughToRule4() {
 		Result r = propose(OptionalLong.empty(), 100, ProposalChoice.OK, 3_600, Optional.empty(), null, 5_000);
 
-		assertThat(r.rule()).isEqualTo(4);
+		assertThat(r.rule()).isEqualTo(Rule.KEEP_CURRENT);
 		assertThat(r.amount()).isEqualTo(5_000L);
 	}
 
@@ -433,14 +434,14 @@ class BudgetProposalTest {
 	void aZeroActualFallsThroughRule2EvenWithAPace() {
 		Result r = propose(OptionalLong.empty(), 100, ProposalChoice.OK, 0, autumnPace(0), null, 5_000);
 
-		assertThat(r.rule()).isEqualTo(4);
+		assertThat(r.rule()).isEqualTo(Rule.KEEP_CURRENT);
 	}
 
 	@Test
 	void anActualOfOneYenIsEnoughForRule2() {
 		Result r = propose(OptionalLong.empty(), 100, ProposalChoice.OK, 1, autumnPace(1), null, 0);
 
-		assertThat(r.rule()).isEqualTo(2);
+		assertThat(r.rule()).isEqualTo(Rule.PACE);
 		assertThat(r.amount()).isEqualTo(1_000L);
 	}
 
@@ -529,7 +530,7 @@ class BudgetProposalTest {
 				.toList();
 
 		assertThat(previous).isEqualTo(AUTUMN_2026);
-		assertThat(results).extracting(Result::rule).containsExactly(1, 1, 1, 2, 3, 4);
+		assertThat(results).extracting(Result::rule).containsExactly(Rule.MEDIAN, Rule.MEDIAN, Rule.MEDIAN, Rule.PACE, Rule.PREVIOUS_BUDGET, Rule.KEEP_CURRENT);
 		assertThat(results).extracting(Result::amount)
 				.containsExactly(99_000L, 42_000L, 27_000L, 5_000L, 8_000L, 5_000L);
 	}

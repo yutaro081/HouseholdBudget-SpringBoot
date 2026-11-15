@@ -3,6 +3,7 @@ package io.github.yutaro081.householdbudget.dto;
 import java.time.LocalDate;
 import java.util.List;
 
+import io.github.yutaro081.householdbudget.domain.BudgetProposal;
 import io.github.yutaro081.householdbudget.domain.ProposalChoice;
 import io.github.yutaro081.householdbudget.domain.SeasonPeriod;
 
@@ -94,7 +95,7 @@ public record AutoBudgetView(
 	 * @param previousBudget   直前の季節の予算（null ＝ 未設定）
 	 * @param previousActual   直前の季節の実績
 	 * @param paceAmount       「このペースなら」の額（100 円切り上げ）。直前の季節が今日を含み、14 日以上過ぎていて、実績が 0 円より大きいときだけ。ないときは null
-	 * @param rule             当てはまったルールの番号（1〜4）
+	 * @param rule             当てはまったルール（BudgetProposal.Rule。①〜④）
 	 * @param basisKind        根拠の種類
 	 * @param years            ルール①のとき、もとの額に使った年（季節の年。古い順）。ほかは空
 	 * @param yearsConsecutive years が 1 年ずつ続いているか（飛んでいると false。「2023・2025 年」と書き分ける）
@@ -108,7 +109,7 @@ public record AutoBudgetView(
 			Long previousBudget,
 			long previousActual,
 			Long paceAmount,
-			int rule,
+			BudgetProposal.Rule rule,
 			BasisKind basisKind,
 			List<Integer> years,
 			boolean yearsConsecutive,

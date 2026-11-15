@@ -2,9 +2,6 @@ package io.github.yutaro081.householdbudget.controller;
 
 import java.time.Clock;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
 
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
@@ -13,13 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import io.github.yutaro081.householdbudget.domain.LandingForecast;
-import io.github.yutaro081.householdbudget.domain.LandingVerdict;
-import io.github.yutaro081.householdbudget.domain.MeterScale;
-import io.github.yutaro081.householdbudget.domain.PeriodProgress;
 import io.github.yutaro081.householdbudget.domain.SeasonPeriod;
-import io.github.yutaro081.householdbudget.dto.ComparisonResult;
-import io.github.yutaro081.householdbudget.dto.ComparisonRow;
 import io.github.yutaro081.householdbudget.exception.NotFoundException;
 import io.github.yutaro081.householdbudget.security.LoginUser;
 import io.github.yutaro081.householdbudget.service.ComparisonService;
@@ -48,49 +39,18 @@ public class ComparisonController {
 	/**
 	 * 予実比較の画面。年と季節を指定しないときは、今の季節（日本時間）。
 	 * 年と季節の判定は、予算設定と同じ SeasonPeriod.resolve（Q7-1）。空なら NotFoundException（404）。
+	 * <p>
+	 * 「今日」は 1 回だけ取り、季節の判定にも、見込みにも、同じ日を使う（日付が変わる瞬間でも食い違わない。設計書 B6）。
+	 * 表の行・見込み・要約カードの値は、ComparisonService.view が作る。ここでは計算しない（issue 027）。
 	 */
 	@GetMapping
 	public String show(@AuthenticationPrincipal LoginUser loginUser,
 			@RequestParam(required = false) String year,
 			@RequestParam(required = false) String season,
 			Model model) {
-		SeasonPeriod period = SeasonPeriod.resolve(year, season, LocalDate.now(clock))
-				.orElseThrow(NotFoundException::new);
-		ComparisonResult comparison = comparisonService.compare(loginUser.getUserId(), period);
-		model.addAttribute("comparison", comparison);
 		LocalDate today = LocalDate.now(clock);
-		LocalDate countFrom = comparisonService.countingStart(loginUser.getUserId(), period, today);
-		// 着地見込み（issue 018、020）：合計行の予算・実績から。今の季節だけ。予算が未設定・0円のときは出さない（null）。
-		// 数え始めの日は、最初の取引の日が季節の途中にあるときだけ、その日（設計書 5.13）
-		Optional<LandingForecast.Result> landing = LandingForecast.of(comparison.total().budget(), comparison.total().actual(), period, today, countFrom);
-		model.addAttribute("landing", landing.orElse(null));
-		// 科目ごとの見込みの列（issue 020）：今の季節だけ。行と同じ並び。見込みを出さない科目（予算が未設定・0円）は null
-		boolean showForecast = period.equals(SeasonPeriod.from(today));
-		model.addAttribute("showForecast", showForecast);
-		List<LandingForecast.Result> rowLandings = new ArrayList<>();
-		for (ComparisonRow row : comparison.rows()) {
-			rowLandings.add(showForecast ? LandingForecast.of(row.budget(), row.actual(), period, today, countFrom).orElse(null) : null);
-		}
-		model.addAttribute("rowLandings", rowLandings);
-		// 見込みとの差の列（issue 020）＝ 予算 − 見込み（表示する見込みの額）。見込みが出ない科目・合計は null（画面は「—」）。計算は、テンプレートでなく、ここで行う
-		List<Long> rowGaps = new ArrayList<>();
-		for (int i = 0; i < rowLandings.size(); i++) {
-			LandingForecast.Result forecast = rowLandings.get(i);
-			Long budget = comparison.rows().get(i).budget();
-			rowGaps.add(forecast == null || budget == null ? null : budget - forecast.amount());
-		}
-		model.addAttribute("rowGaps", rowGaps);
-		model.addAttribute("totalGap", landing.isPresent() ? comparison.total().budget() - landing.get().amount() : null);
-		// 要約カードの棒と文（トップの季節のメーターと同じ値の求め方。PeriodProgress）
-		if (landing.isPresent()) {
-			// 差の文（issue 024）：予算 − 見込みの額（表の見込みとの差の合計行と同じ値）を domain の LandingVerdict に渡して、向き・額・赤かどうかを決める。テンプレートでは判定しない
-			model.addAttribute("verdict", LandingVerdict.of(comparison.total().budget() - landing.get().amount()));
-			model.addAttribute("cardUsedPercent", PeriodProgress.usedPercent(comparison.total().budget(), comparison.total().actual()));
-			model.addAttribute("cardElapsedPercent", PeriodProgress.seasonElapsedPercent(period, today));
-			model.addAttribute("cardMeter", MeterScale.of(comparison.total().budget(), comparison.total().actual(), PeriodProgress.seasonElapsedPermille(period, today)));
-			// 最初の取引の日から数えたとき（その日が季節の初日より後のとき）だけ、カードに知らせる
-			model.addAttribute("countingFrom", countFrom.isAfter(period.startDate()) ? countFrom : null);
-		}
+		SeasonPeriod period = SeasonPeriod.resolve(year, season, today).orElseThrow(NotFoundException::new);
+		model.addAttribute("view", comparisonService.view(loginUser.getUserId(), period, today));
 		return "comparison/index";
 	}
 

@@ -7,6 +7,7 @@ import io.github.yutaro081.householdbudget.domain.BudgetColor;
  * <p>
  * 画面が読む値は、すべてこの中に入れて渡す（open-in-view=false なので、遅延読み込みに頼らない。実行計画書 ルール8）。
  *
+ * @param categoryId   科目のID。合計行では null。同じ科目の行を探すときに使う（名前では探さない）。画面には出さない（issue 027）
  * @param categoryName 科目名。合計行では null（画面で「合計」を出す）
  * @param budget       予算（円）。その季節の予算が未設定なら null（0円とは別。0円は設定済み）。合計行では、設定済みの科目の予算の合計で、全科目が未設定なら null
  * @param actual       実績（円）。期間内の取引の合計。取引がなければ0。合計行では全科目の合計。INT を超えうるので long
@@ -14,5 +15,5 @@ import io.github.yutaro081.householdbudget.domain.BudgetColor;
  * @param color        色。予算が未設定なら色なし（BudgetColorJudge）
  * @param withinBudget 予算内の印（「予算内」のチップ）を出すか（Phase 8 の issue 005。issue 024 で 💮 から置きかえた）。色とは別に持つ（BudgetColorJudge.isWithinBudget）。合計行にも同じ判定
  */
-public record ComparisonRow(String categoryName, Long budget, long actual, Long difference, BudgetColor color, boolean withinBudget) {
+public record ComparisonRow(Long categoryId, String categoryName, Long budget, long actual, Long difference, BudgetColor color, boolean withinBudget) {
 }

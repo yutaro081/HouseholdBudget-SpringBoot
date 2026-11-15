@@ -3,7 +3,9 @@
 <head th:replace="~{fragments/common :: head('予実比較')}"></head>
 <body>
 <header th:replace="~{fragments/common :: header('comparison')}"></header>
-<main class="container table-wide">
+<!--/* 画面が読む値は、ComparisonView の 1 つ（view）。ComparisonService.view が作る（設計書 4.5・4.7、issue 027）。ここでは計算も判定もしない。
+     comparison＝季節と表の行、showForecast＝今の季節か（表を 7 列にする）、card＝要約カード（今の季節で、合計の予算が 0 円より大きいときだけ。ほかは null） */-->
+<main class="container table-wide" th:with="comparison=${view.comparison}, showForecast=${view.showForecast}, card=${view.card}">
     <h1>予実比較</h1>
 
     <!--/* 見出し（年・季節・期間）と、前・次の季節のリンク。範囲の端ではリンクを出さない（設計書 2.4）。予算設定と共有する部品 */-->
@@ -13,27 +15,27 @@
          上の段に、3 つの数字を左に寄せて横に並べる（間は 48px）。それぞれ「ラベルを上、数字を下」の 2 段：予算 → 実績〔ラベルは「実績（予算の ○%）」〕→ 季節の終わりの見込み〔いちばん大きな字〕。
          差の文「予算より 約 ○円 少ない（多い）見込みです。」「予算どおりの見込みです。」は、見込みの数字のすぐ右（下の線をそろえる）。多いときだけ赤（verdict.over。向き・額・赤かどうかは domain の LandingVerdict が決める。ここでは判定しない）。
          その下に、カードの幅いっぱいのメーター（トップの季節のメーターと同じ作りの棒。style には数字だけを入れる。7.5）。「今日」の名前は棒の上。メーター上の「予算のうち ○% を使った」は、なくした。
-         補足と、「○/○ に記録を始めた」の 1 行は、メーターの下。最初の取引の日から数えたとき（countingFrom が null でないとき）だけ、その日を知らせる。
-         予算が未設定・0円、過去・未来の季節、科目が0件のときは、landing が null で出ない。式は LandingForecast */-->
-    <section class="comparison-card" th:if="${landing != null}">
+         補足と、「○/○ に記録を始めた」の 1 行は、メーターの下。最初の取引の日から数えたとき（card.countingFrom が null でないとき）だけ、その日を知らせる。
+         予算が未設定・0円、過去・未来の季節、科目が0件のときは、card が null で出ない。式は LandingForecast */-->
+    <section class="comparison-card" th:if="${card != null}">
         <div class="comparison-card-figures">
             <div class="comparison-card-item"><span class="comparison-card-label" th:text="#{comparison.card.budget.label}">予算</span><strong class="comparison-card-figure" th:text="#{comparison.card.budget(${comparison.total.budget})}">175,000円</strong></div>
-            <div class="comparison-card-item"><span class="comparison-card-label" th:text="#{comparison.card.actual.label(${cardUsedPercent})}">実績（予算の 62%）</span><strong class="comparison-card-figure" th:text="#{comparison.card.actual(${comparison.total.actual})}">107,800円</strong></div>
+            <div class="comparison-card-item"><span class="comparison-card-label" th:text="#{comparison.card.actual.label(${card.usedPercent})}">実績（予算の 62%）</span><strong class="comparison-card-figure" th:text="#{comparison.card.actual(${comparison.total.actual})}">107,800円</strong></div>
             <div class="comparison-card-item">
                 <span class="comparison-card-label" th:text="#{comparison.card.amount.label}">季節の終わりの見込み</span>
                 <div class="comparison-card-forecast-row">
-                    <strong class="comparison-card-forecast" th:text="#{comparison.card.amount(${landing.amount})}">約 142,000円</strong>
-                    <p class="comparison-card-verdict" th:classappend="${verdict.over} ? 'comparison-card-verdict-over'"
-                       th:text="#{|comparison.verdict.${verdict.key}|(${verdict.amount})}">予算より 約 33,000円 少ない見込みです。</p>
+                    <strong class="comparison-card-forecast" th:text="#{comparison.card.amount(${card.forecast.amount})}">約 142,000円</strong>
+                    <p class="comparison-card-verdict" th:classappend="${card.verdict.over} ? 'comparison-card-verdict-over'"
+                       th:text="#{|comparison.verdict.${card.verdict.key}|(${card.verdict.amount})}">予算より 約 33,000円 少ない見込みです。</p>
                 </div>
             </div>
         </div>
         <div class="comparison-card-meter">
-            <th:block th:replace="~{fragments/meter :: meter(${cardMeter}, true, #{meter.today(${cardElapsedPercent})})}"></th:block>
+            <th:block th:replace="~{fragments/meter :: meter(${card.meter}, true, #{meter.today(${card.elapsedPercent})})}"></th:block>
         </div>
         <p class="comparison-card-note" th:text="#{comparison.landing.note}">月ごとにまとめて払うものは、払う日で見込みが上下します。</p>
-        <p class="comparison-card-note" th:if="${countingFrom != null}"
-           th:text="#{comparison.card.counting(${countingFrom.monthValue}, ${countingFrom.dayOfMonth})}">11/1 に記録を始めたので、その日から数えています。</p>
+        <p class="comparison-card-note" th:if="${card.countingFrom != null}"
+           th:text="#{comparison.card.counting(${card.countingFrom.monthValue}, ${card.countingFrom.dayOfMonth})}">11/1 に記録を始めたので、その日から数えています。</p>
     </section>
 
     <!--/* 科目が0件のときは、案内を出して、表と合計行は出さない（設計書 2.3、Q7-7 の A） */-->
@@ -67,8 +69,8 @@
             </tr>
             </thead>
             <tbody>
-            <tr th:each="row, stat : ${comparison.rows}"
-                th:with="forecast=${rowLandings[stat.index]}">
+            <tr th:each="line : ${view.lines}"
+                th:with="row=${line.row}, forecast=${line.forecast}">
                 <td th:text="${row.categoryName}">食費</td>
                 <td class="status-cell"><th:block th:replace="~{fragments/chip :: status(${row.color.name()}, ${row.withinBudget})}"></th:block></td>
                 <td class="num" th:text="${row.budget != null} ? ${#numbers.formatInteger(row.budget, 1, 'COMMA')} : '未設定'">30,000</td>
@@ -80,7 +82,7 @@
                     <th:block th:if="${forecast != null}"><span th:text="${#numbers.formatInteger(forecast.amount, 1, 'COMMA')}">38,100</span><span class="cell-sub" th:text="| / ${#numbers.formatInteger(row.budget, 1, 'COMMA')}|"> / 40,000</span></th:block>
                     <th:block th:unless="${forecast != null}">—</th:block>
                 </td>
-                <td class="num gap-cell" th:if="${showForecast}" th:with="gap=${rowGaps[stat.index]}" th:classappend="${gap != null and gap < 0} ? 'gap-over'">
+                <td class="num gap-cell" th:if="${showForecast}" th:with="gap=${line.gap}" th:classappend="${gap != null and gap < 0} ? 'gap-over'">
                     <th:block th:if="${gap != null}"><span class="chip chip-over" th:if="${gap < 0}">超える見込み</span><span th:text="${#numbers.formatInteger(gap, 1, 'COMMA')}">1,900</span></th:block>
                     <th:block th:unless="${gap != null}">—</th:block>
                 </td>
@@ -97,10 +99,10 @@
                     <th:block th:if="${comparison.total.difference != null}"><span th:text="${#numbers.formatInteger(comparison.total.difference, 1, 'COMMA')}">73,500</span></th:block>
                 </td>
                 <td class="num forecast-cell" th:if="${showForecast}">
-                    <th:block th:if="${landing != null}"><span th:text="${#numbers.formatInteger(landing.amount, 1, 'COMMA')}">142,000</span><span class="cell-sub" th:text="| / ${#numbers.formatInteger(comparison.total.budget, 1, 'COMMA')}|"> / 175,000</span></th:block>
-                    <th:block th:unless="${landing != null}">—</th:block>
+                    <th:block th:if="${view.total.forecast != null}"><span th:text="${#numbers.formatInteger(view.total.forecast.amount, 1, 'COMMA')}">142,000</span><span class="cell-sub" th:text="| / ${#numbers.formatInteger(comparison.total.budget, 1, 'COMMA')}|"> / 175,000</span></th:block>
+                    <th:block th:unless="${view.total.forecast != null}">—</th:block>
                 </td>
-                <td class="num gap-cell" th:if="${showForecast}" th:classappend="${totalGap != null and totalGap < 0} ? 'gap-over'">
+                <td class="num gap-cell" th:if="${showForecast}" th:with="totalGap=${view.total.gap}" th:classappend="${totalGap != null and totalGap < 0} ? 'gap-over'">
                     <th:block th:if="${totalGap != null}"><span class="chip chip-over" th:if="${totalGap < 0}">超える見込み</span><span th:text="${#numbers.formatInteger(totalGap, 1, 'COMMA')}">-500</span></th:block>
                     <th:block th:unless="${totalGap != null}">—</th:block>
                 </td>

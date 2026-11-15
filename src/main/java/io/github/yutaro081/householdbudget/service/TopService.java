@@ -100,7 +100,7 @@ public class TopService {
 					? Long.valueOf(seasonBudgetOf.get(category.getId())) : null;
 			Long weeklyBudget = WeeklyAmount.weeklyBudget(seasonBudget);
 			long actual = WeeklyAmount.roundUpActual(weekActualOf.getOrDefault(category.getId(), 0L));
-			WeekRow weekRow = row(category.getName(), weeklyBudget, actual, weekElapsedPermille);
+			WeekRow weekRow = row(category.getId(), category.getName(), weeklyBudget, actual, weekElapsedPermille);
 			rows.add(weekRow);
 			// 円グラフの一覧には、判定を出さない（issue 024）。判定は、「今週の進み具合」の行（weekRow）のチップだけ
 			pieEntries.add(new PieSlices.Entry(category.getName(), actual));
@@ -112,7 +112,7 @@ public class TopService {
 				anyBudget = true;
 			}
 		}
-		WeekRow total = row(null, anyBudget ? Long.valueOf(totalBudget) : null, totalActual, weekElapsedPermille);
+		WeekRow total = row(null, null, anyBudget ? Long.valueOf(totalBudget) : null, totalActual, weekElapsedPermille);
 
 		List<PieSlices.Slice> slices = PieSlices.of(pieEntries);
 		long pieTotal = slices.stream().mapToLong(PieSlices.Slice::amount).sum();
@@ -145,6 +145,7 @@ public class TopService {
 	/**
 	 * 今週の科目のひとこと（issue 020。設計書 5.15）：今週いちばん進んでいる科目（WeekPick）の、季節の見込み。
 	 * 見込みは、予実比較の同じ科目の行の予算・実績から、予実比較と同じ式（LandingForecast）で求める。
+	 * 同じ科目の行は、選ばれた今週の行が持つ科目の ID で探す（名前でも、並びの番号でも探さない。issue 027）。
 	 * 科目が選ばれないとき、選んだ科目の季節の見込みが出ないときは、null（文を出さない）。
 	 */
 	private static WeekPickView weekPick(List<WeekRow> rows, ComparisonResult seasonComparison, SeasonPeriod season,
@@ -155,8 +156,10 @@ public class TopService {
 		if (picked.isEmpty()) {
 			return null;
 		}
-		String name = rows.get(picked.getAsInt()).categoryName();
-		Optional<ComparisonRow> seasonRow = seasonComparison.rows().stream().filter(r -> name.equals(r.categoryName())).findFirst();
+		WeekRow pickedRow = rows.get(picked.getAsInt());
+		String name = pickedRow.categoryName();
+		Optional<ComparisonRow> seasonRow = seasonComparison.rows().stream()
+				.filter(r -> pickedRow.categoryId().equals(r.categoryId())).findFirst();
 		if (seasonRow.isEmpty()) {
 			return null;
 		}
@@ -165,13 +168,13 @@ public class TopService {
 	}
 
 	/** 週の予算（未設定なら null）と、切り上げた実績から、1行（科目の行も合計の行も同じ）を作る。 */
-	private static WeekRow row(String name, Long weeklyBudget, long actual, int weekElapsedPermille) {
+	private static WeekRow row(Long categoryId, String name, Long weeklyBudget, long actual, int weekElapsedPermille) {
 		Long difference = weeklyBudget == null ? null : weeklyBudget - actual;
 		BudgetColor color = BudgetColorJudge.judge(weeklyBudget, actual);
 		boolean within = BudgetColorJudge.isWithinBudget(weeklyBudget, actual);
 		// 状態のチップ（issue 024）：予算超え・使い残し・予算内は、色と予算内の印（判定済み）から、画面が決める。予算超えのときだけ、金額（実績 − 週の予算）を持つ
 		Long overAmount = color == BudgetColor.RED && weeklyBudget != null ? Long.valueOf(actual - weeklyBudget) : null;
-		return new WeekRow(name, weeklyBudget, actual, difference, color, within,
+		return new WeekRow(categoryId, name, weeklyBudget, actual, difference, color, within,
 				MeterScale.of(weeklyBudget, actual, weekElapsedPermille), overAmount);
 	}
 

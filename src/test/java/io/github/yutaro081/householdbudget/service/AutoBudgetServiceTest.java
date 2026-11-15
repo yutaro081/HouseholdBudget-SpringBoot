@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import io.github.yutaro081.householdbudget.domain.BudgetProposal.Rule;
 import io.github.yutaro081.householdbudget.domain.ProposalChoice;
 import io.github.yutaro081.householdbudget.domain.Season;
 import io.github.yutaro081.householdbudget.domain.SeasonPeriod;
@@ -181,7 +182,7 @@ class AutoBudgetServiceTest {
 		AutoBudgetView.Row row = rowOf(proposeOk(a, WINTER_2026, NOV_11_2026), food);
 
 		// 90,000・0・30,000 の中央値 ＝ 30,000（0 を数えず平均にすると 60,000 になってしまう）
-		assertThat(row.rule()).isEqualTo(1);
+		assertThat(row.rule()).isEqualTo(Rule.MEDIAN);
 		assertThat(row.basisKind()).isEqualTo(BasisKind.MEDIAN);
 		assertThat(row.years()).containsExactly(2023, 2024, 2025);
 		assertThat(row.yearsConsecutive()).isTrue();
@@ -324,7 +325,7 @@ class AutoBudgetServiceTest {
 		AutoBudgetView view = proposeOk(a, WINTER_2026, LocalDate.of(2026, 12, 10));
 
 		assertThat(view.hasRecordYears()).isFalse();
-		assertThat(rowOf(view, food).rule()).isEqualTo(4);
+		assertThat(rowOf(view, food).rule()).isEqualTo(Rule.KEEP_CURRENT);
 	}
 
 	/** 2000 年 春より前は数えない：2002 年 冬を開くと、同じ季節は 2000・2001 年の 2 年だけ */
@@ -357,9 +358,9 @@ class AutoBudgetServiceTest {
 
 		assertThat(view.hasRecordYears()).isFalse();
 		assertThat(view.trendKind()).isEqualTo(TrendKind.NOT_CALCULATED);
-		assertThat(rowOf(view, food).rule()).isEqualTo(2);
-		assertThat(rowOf(view, fare).rule()).isEqualTo(3);
-		assertThat(rowOf(view, misc).rule()).isEqualTo(4);
+		assertThat(rowOf(view, food).rule()).isEqualTo(Rule.PACE);
+		assertThat(rowOf(view, fare).rule()).isEqualTo(Rule.PREVIOUS_BUDGET);
+		assertThat(rowOf(view, misc).rule()).isEqualTo(Rule.KEEP_CURRENT);
 		assertThat(view.noMaterial()).isFalse();
 	}
 
@@ -564,7 +565,7 @@ class AutoBudgetServiceTest {
 		assertThat(view.previousContainsToday()).isFalse();
 		assertThat(view.previousPaceTotal()).isNull();
 		assertThat(row.paceAmount()).isNull();
-		assertThat(row.rule()).isEqualTo(2);
+		assertThat(row.rule()).isEqualTo(Rule.PACE);
 		assertThat(row.basisKind()).isEqualTo(BasisKind.ACTUAL);
 		assertThat(row.baseAmount()).isEqualTo(15_200L);
 		assertThat(row.amount()).isEqualTo(16_000L);
@@ -584,7 +585,7 @@ class AutoBudgetServiceTest {
 		assertThat(view.previousContainsToday()).isTrue();
 		assertThat(view.previousPaceTotal()).isNull();
 		assertThat(row.paceAmount()).isNull();
-		assertThat(row.rule()).isEqualTo(3);
+		assertThat(row.rule()).isEqualTo(Rule.PREVIOUS_BUDGET);
 		assertThat(row.amount()).isEqualTo(30_000L);
 	}
 
@@ -602,7 +603,7 @@ class AutoBudgetServiceTest {
 
 		assertThat(view.previousPaceTotal()).isEqualTo(32_500L);
 		assertThat(row.paceAmount()).isEqualTo(32_500L);
-		assertThat(row.rule()).isEqualTo(2);
+		assertThat(row.rule()).isEqualTo(Rule.PACE);
 		assertThat(row.basisKind()).isEqualTo(BasisKind.PACE);
 		assertThat(row.baseAmount()).isEqualTo(32_500L);
 		assertThat(row.amount()).isEqualTo(33_000L);
@@ -628,9 +629,9 @@ class AutoBudgetServiceTest {
 		AutoBudgetView view = proposeOk(a, WINTER_2026, NOV_11_2026);
 
 		assertThat(view.hasRecordYears()).isTrue();
-		assertThat(rowOf(view, food).rule()).isEqualTo(2);
-		assertThat(rowOf(view, fare).rule()).isEqualTo(3);
-		assertThat(rowOf(view, misc).rule()).isEqualTo(4);
+		assertThat(rowOf(view, food).rule()).isEqualTo(Rule.PACE);
+		assertThat(rowOf(view, fare).rule()).isEqualTo(Rule.PREVIOUS_BUDGET);
+		assertThat(rowOf(view, misc).rule()).isEqualTo(Rule.KEEP_CURRENT);
 		assertThat(view.noMaterial()).isFalse();
 	}
 
@@ -645,9 +646,9 @@ class AutoBudgetServiceTest {
 		AutoBudgetView view = proposeOk(a, WINTER_2026, NOV_11_2026);
 
 		assertThat(view.noMaterial()).isTrue();
-		assertThat(rowOf(view, food).rule()).isEqualTo(4);
+		assertThat(rowOf(view, food).rule()).isEqualTo(Rule.KEEP_CURRENT);
 		assertThat(rowOf(view, food).amount()).isEqualTo(12_000L);
-		assertThat(rowOf(view, fare).rule()).isEqualTo(4);
+		assertThat(rowOf(view, fare).rule()).isEqualTo(Rule.KEEP_CURRENT);
 		assertThat(rowOf(view, fare).amount()).isZero();
 		assertThat(totalOf(view)).isEqualTo(12_000L);
 	}
@@ -669,7 +670,7 @@ class AutoBudgetServiceTest {
 
 		AutoBudgetView.Row row = rowOf(proposeOk(a, WINTER_2026, NOV_11_2026), medical);
 
-		assertThat(row.rule()).isEqualTo(2);
+		assertThat(row.rule()).isEqualTo(Rule.PACE);
 		assertThat(row.basisKind()).isEqualTo(BasisKind.PACE);
 		assertThat(row.years()).isEmpty();
 		assertThat(row.amount()).isEqualTo(5_000L);               // 3,600 × 91 ÷ 72 ＝ 4,550 → 5,000
@@ -687,7 +688,7 @@ class AutoBudgetServiceTest {
 
 		AutoBudgetView.Row row = rowOf(proposeOk(a, WINTER_2026, NOV_11_2026), food);
 
-		assertThat(row.rule()).isEqualTo(1);
+		assertThat(row.rule()).isEqualTo(Rule.MEDIAN);
 		assertThat(row.amount()).isEqualTo(20_000L);
 	}
 
@@ -702,7 +703,7 @@ class AutoBudgetServiceTest {
 
 		AutoBudgetView.Row row = rowOf(proposeOk(a, WINTER_2026, NOV_11_2026), food);
 
-		assertThat(row.rule()).isEqualTo(2);
+		assertThat(row.rule()).isEqualTo(Rule.PACE);
 		assertThat(row.amount()).isEqualTo(5_000L);
 	}
 
@@ -724,13 +725,13 @@ class AutoBudgetServiceTest {
 
 		AutoBudgetView view = proposeOk(a, WINTER_2026, NOV_11_2026);
 
-		assertThat(rowOf(view, one).rule()).isEqualTo(1);
+		assertThat(rowOf(view, one).rule()).isEqualTo(Rule.MEDIAN);
 		assertThat(rowOf(view, one).source()).isEqualTo(AutoBudgetView.Source.BASIS);
-		assertThat(rowOf(view, two).rule()).isEqualTo(2);
+		assertThat(rowOf(view, two).rule()).isEqualTo(Rule.PACE);
 		assertThat(rowOf(view, two).source()).isEqualTo(AutoBudgetView.Source.PACE_NOTE);
-		assertThat(rowOf(view, three).rule()).isEqualTo(3);
+		assertThat(rowOf(view, three).rule()).isEqualTo(Rule.PREVIOUS_BUDGET);
 		assertThat(rowOf(view, three).source()).isEqualTo(AutoBudgetView.Source.PREVIOUS_BUDGET);
-		assertThat(rowOf(view, four).rule()).isEqualTo(4);
+		assertThat(rowOf(view, four).rule()).isEqualTo(Rule.KEEP_CURRENT);
 		assertThat(rowOf(view, four).source()).isEqualTo(AutoBudgetView.Source.NONE);
 	}
 
@@ -743,7 +744,7 @@ class AutoBudgetServiceTest {
 
 		AutoBudgetView.Row row = rowOf(proposeOk(a, WINTER_2026, LocalDate.of(2026, 12, 5)), food);
 
-		assertThat(row.rule()).isEqualTo(2);
+		assertThat(row.rule()).isEqualTo(Rule.PACE);
 		assertThat(row.source()).isEqualTo(AutoBudgetView.Source.PREVIOUS_ACTUAL);
 	}
 
@@ -756,7 +757,7 @@ class AutoBudgetServiceTest {
 
 		AutoBudgetView.Row row = rowOf(proposeOk(a, WINTER_2026, NOV_11_2026), daily);
 
-		assertThat(row.rule()).isEqualTo(3);
+		assertThat(row.rule()).isEqualTo(Rule.PREVIOUS_BUDGET);
 		assertThat(row.basisKind()).isEqualTo(BasisKind.BUDGET);
 		assertThat(row.baseAmount()).isEqualTo(8_000L);
 		assertThat(row.amount()).isEqualTo(8_000L);
@@ -775,10 +776,10 @@ class AutoBudgetServiceTest {
 		for (ProposalChoice choice : ProposalChoice.values()) {
 			AutoBudgetView view = propose(a, WINTER_2026, choice, NOV_11_2026);
 
-			assertThat(rowOf(view, saved).rule()).isEqualTo(4);
+			assertThat(rowOf(view, saved).rule()).isEqualTo(Rule.KEEP_CURRENT);
 			assertThat(rowOf(view, saved).basisKind()).isEqualTo(BasisKind.NONE);
 			assertThat(rowOf(view, saved).amount()).isEqualTo(5_000L);      // 割合もかけない
-			assertThat(rowOf(view, unsaved).rule()).isEqualTo(4);
+			assertThat(rowOf(view, unsaved).rule()).isEqualTo(Rule.KEEP_CURRENT);
 			assertThat(rowOf(view, unsaved).amount()).isZero();
 		}
 	}
@@ -794,7 +795,7 @@ class AutoBudgetServiceTest {
 		AutoBudgetView.Row row = rowOf(proposeOk(a, WINTER_2026, NOV_11_2026), fun);
 
 		assertThat(row.previousBudget()).isEqualTo(0L);
-		assertThat(row.rule()).isEqualTo(4);
+		assertThat(row.rule()).isEqualTo(Rule.KEEP_CURRENT);
 		assertThat(row.amount()).isEqualTo(7_000L);
 	}
 
@@ -807,7 +808,7 @@ class AutoBudgetServiceTest {
 
 		AutoBudgetView.Row row = rowOf(proposeOk(a, WINTER_2026, NOV_11_2026), fun);
 
-		assertThat(row.rule()).isEqualTo(4);
+		assertThat(row.rule()).isEqualTo(Rule.KEEP_CURRENT);
 		assertThat(row.amount()).isZero();                        // Q6-4：未保存の今の値は 0 円
 	}
 
@@ -885,7 +886,7 @@ class AutoBudgetServiceTest {
 		assertThat(view.previousBudgetTotal()).isNull();
 		assertThat(view.hasRecordYears()).isFalse();
 		assertThat(view.noMaterial()).isTrue();
-		assertThat(rowOf(view, food).rule()).isEqualTo(4);
+		assertThat(rowOf(view, food).rule()).isEqualTo(Rule.KEEP_CURRENT);
 		assertThat(rowOf(view, food).amount()).isEqualTo(9_000L);
 	}
 
@@ -901,9 +902,9 @@ class AutoBudgetServiceTest {
 
 		assertThat(view.hasRecordYears()).isFalse();
 		assertThat(view.previousSeason()).isEqualTo(p(2000, Season.SPRING));
-		assertThat(rowOf(view, daily).rule()).isEqualTo(3);
+		assertThat(rowOf(view, daily).rule()).isEqualTo(Rule.PREVIOUS_BUDGET);
 		assertThat(rowOf(view, daily).amount()).isEqualTo(8_000L);
-		assertThat(rowOf(view, misc).rule()).isEqualTo(4);
+		assertThat(rowOf(view, misc).rule()).isEqualTo(Rule.KEEP_CURRENT);
 		assertThat(view.noMaterial()).isFalse();
 	}
 
@@ -933,7 +934,7 @@ class AutoBudgetServiceTest {
 		assertThat(forA.previousPaceTotal()).isNull();
 		assertThat(forA.noMaterial()).isTrue();
 		assertThat(totalOf(forA)).isZero();
-		assertThat(rowOf(forA, aFood).rule()).isEqualTo(4);
+		assertThat(rowOf(forA, aFood).rule()).isEqualTo(Rule.KEEP_CURRENT);
 		assertThat(rowOf(forA, aFood).amount()).isZero();
 	}
 
@@ -1058,7 +1059,7 @@ class AutoBudgetServiceTest {
 		assertThat(view.noMaterial()).isFalse();
 
 		// ルールと案
-		assertThat(view.rows()).extracting(AutoBudgetView.Row::rule).containsExactly(1, 1, 1, 2, 3, 4);
+		assertThat(view.rows()).extracting(AutoBudgetView.Row::rule).containsExactly(Rule.MEDIAN, Rule.MEDIAN, Rule.MEDIAN, Rule.PACE, Rule.PREVIOUS_BUDGET, Rule.KEEP_CURRENT);
 		assertThat(view.rows()).extracting(AutoBudgetView.Row::amount)
 				.containsExactly(99_000L, 42_000L, 27_000L, 5_000L, 8_000L, 5_000L);
 		assertThat(view.rows()).extracting(AutoBudgetView.Row::categoryName)
@@ -1100,7 +1101,7 @@ class AutoBudgetServiceTest {
 		assertThat(totalOf(extra)).isEqualTo(205_000L);
 		// 傾向・ルールは選ぶ割合に関わらず同じ
 		assertThat(save.trendPercent()).isEqualTo(110);
-		assertThat(extra.rows()).extracting(AutoBudgetView.Row::rule).containsExactly(1, 1, 1, 2, 3, 4);
+		assertThat(extra.rows()).extracting(AutoBudgetView.Row::rule).containsExactly(Rule.MEDIAN, Rule.MEDIAN, Rule.MEDIAN, Rule.PACE, Rule.PREVIOUS_BUDGET, Rule.KEEP_CURRENT);
 	}
 
 	@Test

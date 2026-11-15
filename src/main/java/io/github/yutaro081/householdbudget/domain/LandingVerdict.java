@@ -6,7 +6,7 @@ package io.github.yutaro081.householdbudget.domain;
  * プラスなら見込みは予算より少なく（LESS）、マイナスなら多く（MORE）、0 なら予算どおり（SAME）。額は絶対値。
  * 赤にするのは MORE のときだけ（見込みが予算を超えるとき。見込みとの差・トップの文・今週のひとことと同じ決まり）。
  * 多いか少ないか・赤にするかは「決まり」なので、色の判定（BudgetColorJudge）と同じく domain に置く（画面にも DB にも頼らない）。
- * Controller が差を渡して作り、テンプレートでは判定しない。
+ * ComparisonService.view が差を渡して作り、テンプレートでは判定しない。
  *
  * @param direction 見込みが予算より少ないか、多いか、同じか
  * @param amount    差の額（円。0 以上。向きは direction）

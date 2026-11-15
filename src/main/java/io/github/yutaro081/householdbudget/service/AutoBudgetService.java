@@ -126,7 +126,7 @@ public class AutoBudgetService {
 		}
 
 		boolean hasRecordYears = !recordSeasons.isEmpty();
-		boolean noMaterial = rows.stream().allMatch(r -> r.rule() == 4);
+		boolean noMaterial = rows.stream().allMatch(r -> r.rule() == BudgetProposal.Rule.KEEP_CURRENT);
 
 		return new AutoBudgetView(choice, previous.orElse(null), previousBudgetTotal, previousActualTotal,
 				previousContainsToday, today, previousPaceTotal, hasRecordYears,
@@ -136,36 +136,25 @@ public class AutoBudgetService {
 	private AutoBudgetView.Row row(BudgetEditView.Row currentRow, Long previousBudget, long previousActual,
 			Long paceAmount, BudgetProposal.Result result, OptionalLong twiceMedian, List<Integer> years,
 			boolean yearsConsecutive, boolean previousContainsToday, Optional<SpendingPace.Pace> pace) {
-		BasisKind kind;
-		AutoBudgetView.Source source;
-		long base;
-		List<Integer> usedYears = List.of();
-		switch (result.rule()) {
-		case 1 -> {
-			kind = years.size() >= 3 ? BasisKind.MEDIAN : (years.size() == 2 ? BasisKind.AVERAGE : BasisKind.SINGLE_YEAR);
-			base = MedianAmount.display(twiceMedian.getAsLong());
-			usedYears = years;
-			source = AutoBudgetView.Source.BASIS;
-		}
-		case 2 -> {
-			kind = previousContainsToday ? BasisKind.PACE : BasisKind.ACTUAL;
-			base = previousContainsToday ? pace.get().displayAmount() : previousActual;
-			source = previousContainsToday ? AutoBudgetView.Source.PACE_NOTE : AutoBudgetView.Source.PREVIOUS_ACTUAL;
-		}
-		case 3 -> {
-			kind = BasisKind.BUDGET;
-			base = previousBudget;
-			source = AutoBudgetView.Source.PREVIOUS_BUDGET;
-		}
-		default -> {
-			kind = BasisKind.NONE;
-			base = currentRow.amount();
-			source = AutoBudgetView.Source.NONE;
-		}
-		}
+		// ルールごとに、根拠の種類・根拠の額・目印を付ける数字・使った年を決める。
+		// switch 式なので、ルール（BudgetProposal.Rule）を足したら、ここを直すまでコンパイルが通らない
+		Basis basis = switch (result.rule()) {
+		case MEDIAN -> new Basis(
+				years.size() >= 3 ? BasisKind.MEDIAN : (years.size() == 2 ? BasisKind.AVERAGE : BasisKind.SINGLE_YEAR),
+				MedianAmount.display(twiceMedian.getAsLong()), AutoBudgetView.Source.BASIS, years);
+		case PACE -> previousContainsToday
+				? new Basis(BasisKind.PACE, pace.get().displayAmount(), AutoBudgetView.Source.PACE_NOTE, List.of())
+				: new Basis(BasisKind.ACTUAL, previousActual, AutoBudgetView.Source.PREVIOUS_ACTUAL, List.of());
+		case PREVIOUS_BUDGET -> new Basis(BasisKind.BUDGET, previousBudget, AutoBudgetView.Source.PREVIOUS_BUDGET, List.of());
+		case KEEP_CURRENT -> new Basis(BasisKind.NONE, currentRow.amount(), AutoBudgetView.Source.NONE, List.of());
+		};
 		return new AutoBudgetView.Row(currentRow.categoryId(), currentRow.categoryName(), previousBudget,
-				previousActual, paceAmount, result.rule(), kind, usedYears, result.rule() != 1 || yearsConsecutive, base,
-				result.amount(), source);
+				previousActual, paceAmount, result.rule(), basis.kind(), basis.years(),
+				result.rule() != BudgetProposal.Rule.MEDIAN || yearsConsecutive, basis.amount(), result.amount(), basis.source());
+	}
+
+	/** 案の根拠（row の中だけで使う）：根拠の種類、根拠の額、目印を付ける数字、もとの額に使った年（ルール①のときだけ。ほかは空） */
+	private record Basis(BasisKind kind, long amount, AutoBudgetView.Source source, List<Integer> years) {
 	}
 
 	/** 直前の季節の、自分の予算を、科目IDをキーにして返す（保存されている行だけ。0 円も入る）。 */
