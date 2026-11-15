@@ -42,6 +42,15 @@ public class VendorService {
 		return vendorRepository.findByUserIdOrderByIdAsc(userId);
 	}
 
+	/**
+	 * 取引の登録・編集画面の選択肢。自分の取引先を、取引の件数が多い順（同じなら登録順）で返す（要件定義書 4.2、issue 029）。
+	 * 一覧の画面は、今までどおり list（登録順）を使う。
+	 */
+	@Transactional(readOnly = true)
+	public List<Vendor> listForChoices(Long userId) {
+		return vendorRepository.findChoicesByUserId(userId);
+	}
+
 	/** 自分の取引先を1件返す（変更画面用）。 */
 	@Transactional(readOnly = true)
 	public Vendor get(Long userId, Long id) {

@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import io.github.yutaro081.householdbudget.entity.Vendor;
 
@@ -18,6 +20,20 @@ public interface VendorRepository extends JpaRepository<Vendor, Long> {
 
 	/** 自分の取引先を、登録順（id の順）で全件。一覧に使う（Q14）。 */
 	List<Vendor> findByUserIdOrderByIdAsc(Long userId);
+
+	/**
+	 * 自分の取引先を、取引の登録・編集画面の選択肢の順で全件（要件定義書 4.2、issue 029）。
+	 * 全期間の取引の件数が多い順。件数が同じなら id の順（登録順）。取引が 0 件のものは最後（left join なので、0 件も出る）。
+	 * 件数は、1 本の検索の中で数える（検索の本数を増やさない）。数える取引も user_id で絞る（ほかの人の取引は数えない。設計書 3.9）。
+	 */
+	@Query("""
+			select x from Vendor x
+			left join Transaction t on t.vendor = x and t.userId = :userId
+			where x.userId = :userId
+			group by x
+			order by count(t) desc, x.id asc
+			""")
+	List<Vendor> findChoicesByUserId(@Param("userId") Long userId);
 
 	/** ID と user_id の両方で1件探す。他人のものや、存在しない ID は見つからない。 */
 	Optional<Vendor> findByIdAndUserId(Long id, Long userId);

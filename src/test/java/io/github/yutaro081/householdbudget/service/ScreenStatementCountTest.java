@@ -30,6 +30,7 @@ import jakarta.persistence.EntityManager;
 /**
  * 画面を作るときの SQL の本数が、科目の数で増えないこと（N+1 がないこと。設計書 4.6、issue 027）。
  * 予実比較・トップ・予算設定（「自動予算」を押したとき）が呼ぶ Service を、科目 2 個のときと 8 個のときで呼び、SQL の本数が同じことを確かめる。
+ * 取引の登録・編集画面（issue 029）は、科目・取引先・支払方法 2 個ずつと 8 個ずつ（取引の件数も変える）で、選択肢を取る本数が同じことを確かめる。
  * どの科目にも、予算と取引がある（行ごとに検索する作りなら、科目の数だけ本数が増える）。
  * <p>
  * 本数は、Hibernate の統計（発行した SQL の数）で数える。取引一覧は、TransactionRepositoryFetchTest と TransactionListSingleSearchTest が確かめている。
@@ -65,6 +66,14 @@ class ScreenStatementCountTest {
 	private BudgetService budgetService;
 	@Autowired
 	private AutoBudgetService autoBudgetService;
+	@Autowired
+	private CategoryService categoryService;
+	@Autowired
+	private VendorService vendorService;
+	@Autowired
+	private PaymentMethodService paymentMethodService;
+	@Autowired
+	private TransactionService transactionService;
 	@Autowired
 	private EntityManager entityManager;
 
@@ -138,6 +147,58 @@ class ScreenStatementCountTest {
 
 		assertThat(withEight).as("科目 8 個でも、2 個のときと同じ本数").isEqualTo(withTwo);
 		assertThat(withTwo).isEqualTo(7);
+	}
+
+	// ---- 取引の登録・編集画面（issue 029 の段階 2） ----
+
+	/**
+	 * 科目・取引先・支払方法を count 個ずつ持ち、取引先 i に i + 1 件の取引があるユーザーを作る（取引の件数で並ぶので、件数を変えておく）。
+	 * そのあと、TransactionController.addFormModel と同じ順に、選択肢を取る（編集なら、先に取引を 1 件取る）。その間の SQL の本数を返す。
+	 */
+	private long statementsToOpenTheForm(String username, int count, boolean edit) {
+		Long userId = userRepository.save(new User(username, "dummy-hash-for-test")).getId();
+		Long transactionId = null;
+		for (int i = 0; i < count; i++) {
+			Category category = categoryRepository.save(new Category(userId, "科目" + i));
+			Vendor vendor = vendorRepository.save(new Vendor(userId, "取引先" + i));
+			PaymentMethod payment = paymentMethodRepository.save(new PaymentMethod(userId, "支払方法" + i));
+			for (int n = 0; n <= i; n++) {
+				transactionId = transactionRepository.save(
+						new Transaction(userId, LocalDate.of(2026, 11, 9), 1_000 + n, category, null, vendor, payment)).getId();
+			}
+		}
+		entityManager.flush();
+		entityManager.clear();
+
+		var statistics = entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
+		statistics.clear();
+		if (edit) {
+			assertThat(transactionService.get(userId, transactionId).getVendor().getId()).isNotNull();
+		}
+		assertThat(categoryService.list(userId)).hasSize(count);
+		assertThat(vendorService.listForChoices(userId)).hasSize(count);
+		assertThat(paymentMethodService.listForChoices(userId)).hasSize(count);
+		return statistics.getPrepareStatementCount();
+	}
+
+	/** 取引の登録画面：科目、取引先（件数の順）、支払方法（件数の順）の 3 本。科目・取引先・支払方法・取引が増えても同じ */
+	@Test
+	void theNewTransactionFormDoesNotIssueMoreStatementsForMoreChoicesOrTransactions() {
+		long withTwo = statementsToOpenTheForm("stmtform1", 2, false);
+		long withEight = statementsToOpenTheForm("stmtform2", 8, false);
+
+		assertThat(withEight).as("8 個ずつ（取引 36 件）でも、2 個ずつ（取引 3 件）のときと同じ本数").isEqualTo(withTwo);
+		assertThat(withTwo).isEqualTo(3);
+	}
+
+	/** 取引の編集画面：取引 1 件と、登録画面と同じ 3 本で 4 本。増えても同じ */
+	@Test
+	void theEditTransactionFormDoesNotIssueMoreStatementsForMoreChoicesOrTransactions() {
+		long withTwo = statementsToOpenTheForm("stmtform3", 2, true);
+		long withEight = statementsToOpenTheForm("stmtform4", 8, true);
+
+		assertThat(withEight).as("8 個ずつでも、2 個ずつのときと同じ本数").isEqualTo(withTwo);
+		assertThat(withTwo).isEqualTo(4);
 	}
 
 }

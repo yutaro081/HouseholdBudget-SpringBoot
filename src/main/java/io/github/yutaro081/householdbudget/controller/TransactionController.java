@@ -172,14 +172,15 @@ public class TransactionController {
 
 	/**
 	 * 登録・編集のフォームの表示に必要なものを、model に入れる（表示と、入力エラーの表示し直しで共通）。
-	 * プルダウンの選択肢は、ログイン中のユーザー自身のものだけを、登録順に並べる（設計書 6.7、Q14）。
+	 * プルダウンの選択肢は、ログイン中のユーザー自身のものだけを並べる（設計書 6.7）。科目は登録順（Q14）。
+	 * 取引先・支払方法は、取引の件数が多い順、同じなら登録順（要件定義書 4.2、issue 029）。選んでいる値は th:field が id で決めるので、並びが変わっても選ばれたまま。
 	 *
 	 * @param transactionId 編集のときは取引のID、登録のときは null
 	 */
 	private void addFormModel(Model model, Long userId, Long transactionId) {
 		model.addAttribute("categories", categoryService.list(userId));
-		model.addAttribute("vendors", vendorService.list(userId));
-		model.addAttribute("paymentMethods", paymentMethodService.list(userId));
+		model.addAttribute("vendors", vendorService.listForChoices(userId));
+		model.addAttribute("paymentMethods", paymentMethodService.listForChoices(userId));
 		model.addAttribute("transactionId", transactionId);
 		model.addAttribute("pageTitle", transactionId == null ? "取引の登録" : "取引の編集");
 	}
