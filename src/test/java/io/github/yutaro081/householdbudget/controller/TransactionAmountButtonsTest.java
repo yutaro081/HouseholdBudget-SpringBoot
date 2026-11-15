@@ -103,7 +103,7 @@ class TransactionAmountButtonsTest {
 		assertThat(body.indexOf("data-amount-add=\"1\"")).as("足すボタンは 1 → 10 → 100 → 1000 → 10000 の順")
 				.isLessThan(body.indexOf("data-amount-add=\"10\"")).isLessThan(body.indexOf("data-amount-add=\"100\""))
 				.isLessThan(body.indexOf("data-amount-add=\"1000\"")).isLessThan(body.indexOf("data-amount-add=\"10000\""));
-		assertThat(body).as("「金額をクリア」は、右の端に寄せない（ms-auto なし）。税込にするのまとまりのすぐ右").containsPattern("class=\"amount-clear\"\\s+data-amount-clear").doesNotContain("ms-auto");
+		assertThat(body).as("「金額をクリア」は、右の端に寄せない（ms-auto なし）。税込にするのまとまりのすぐ右").containsPattern("class=\"row-btn amount-clear\"\\s+data-amount-clear").doesNotContain("ms-auto");
 		assertThat(body).as("クリアのボタンも、送信しない").containsPattern("type=\"button\"[^>]*data-amount-clear");
 		assertThat(body).as("ボタンは送信しない").contains("type=\"button\"");
 		assertThat(body).as("固定の文が、HTML に書いてある").contains(NOTE);
@@ -200,12 +200,15 @@ class TransactionAmountButtonsTest {
 		assertThat(box.indexOf("足す")).as("足す → 税込にする の順").isLessThan(box.indexOf("税込にする"));
 	}
 
-	/** 「金額をクリア」は、「税込にする」のまとまりの右端（すぐ右）。文字のリンクの見た目の button（type="button"）。Bootstrap の btn は使わない */
+	/**
+	 * 「金額をクリア」は、「税込にする」のまとまりの右端（すぐ右）。つながった形（</div>）の外に置く、灰色の枠の小さいボタン
+	 * （一覧の「編集」と同じ row-btn。type="button"。issue 029 で、文字のリンクの見た目から変えた）。Bootstrap の btn は使わない
+	 */
 	@Test
-	void theClearButtonIsATextLinkLookingButtonRightAfterTheTaxGroup() throws Exception {
+	void theClearButtonIsASmallOutlinedButtonRightAfterTheTaxGroup() throws Exception {
 		String box = boxOf(page("/transactions/new"));
 
-		assertThat(box).containsPattern("(?s)data-amount-tax=\"108\"[^>]*>8%</button>\\s*</div>\\s*<button type=\"button\" class=\"amount-clear\" data-amount-clear>金額をクリア</button>");
+		assertThat(box).containsPattern("(?s)data-amount-tax=\"108\"[^>]*>8%</button>\\s*</div>\\s*<button type=\"button\" class=\"row-btn amount-clear\" data-amount-clear>金額をクリア</button>");
 		assertThat(box).doesNotContain("class=\"btn", ">クリア<", "ms-3", "ms-auto");
 		assertThat(count(box, "data-amount-clear")).isEqualTo(1);
 	}

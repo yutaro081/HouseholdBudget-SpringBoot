@@ -285,7 +285,7 @@ main.form-wide {
 }
 
 /* 金額を入れやすくするボタン（issue 009、issue 025 の段階 4 で 2 つのまとまりに）：「足す」と「税込にする」。左に 13px の灰色のラベル、右に、つながった 1 つの形のボタン（外枠 1 つ、間は線）。
-   「金額をクリア」は、税込にするのまとまりのすぐ右の、文字のリンクの見た目の button。押せない（税込）ときは、灰色の地と文字。動きは amount-buttons.js（data- の印だけに頼る。クラス名には頼らない） */
+   「金額をクリア」は、税込にするのまとまりのすぐ右の、灰色の枠の小さいボタン（row-btn。issue 029 で、文字のリンクの見た目から変えた）。押せない（税込）ときは、灰色の地と文字。動きは amount-buttons.js（data- の印だけに頼る。クラス名には頼らない） */
 .amount-buttons {
     margin-top: var(--hb-space-2);
 }
@@ -342,15 +342,9 @@ main.form-wide {
     cursor: not-allowed;
 }
 
+/* 金額をクリア：見た目は .row-btn（灰色の枠、13px）。8% との間を、まとまりの間の 12px ＋ 4px で 16px にする（押し間違いを防ぐ。issue 029） */
 .amount-clear {
-    padding: 0;
-    border: 0;
-    background: none;
-    color: var(--hb-teal-text);
-    font: inherit;
-    font-size: var(--hb-font-size-small);
-    text-decoration: underline;
-    cursor: pointer;
+    margin-left: var(--hb-space-1);
 }
 
 .amount-note {

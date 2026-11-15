@@ -385,14 +385,21 @@ class TransactionFormLayoutTest {
 		assertThat(css).doesNotContain("btn-sm");
 	}
 
-	/** ラベル「足す」「税込にする」は 13px の灰色。「金額をクリア」は文字のリンクの見た目（濃いターコイズ、下線、枠も背景もない）。説明は 13px */
+	/**
+	 * ラベル「足す」「税込にする」は 13px の灰色。説明は 13px。
+	 * 「金額をクリア」は、row-btn（灰色の枠、13px）の見た目で、文字のリンクの見た目（枠なし・下線）をやめる。
+	 * 8% との間は、まとまりの間（12px）＋ 左の 4px で 16px（押し間違いを防ぐため。issue 029）
+	 */
 	@Test
-	void theLabelsAreSmallGrayTheClearIsATextLinkAndTheNoteIs13px() throws Exception {
+	void theLabelsAreSmallGrayTheClearIsAnOutlinedButton16pxAwayAndTheNoteIs13px() throws Exception {
 		String css = css();
 
 		assertThat(rule(css, ".amount-row-label")).contains("font-size: var(--hb-font-size-small)", "color: var(--hb-text-sub)");
+		assertThat(rule(css, ".amount-row")).contains("gap: var(--hb-space-2) var(--hb-space-3)");
 		String clear = rule(css, ".amount-clear");
-		assertThat(clear).contains("border: 0", "background: none", "color: var(--hb-teal-text)", "text-decoration: underline", "font-size: var(--hb-font-size-small)");
+		assertThat(clear).contains("margin-left: var(--hb-space-1)")
+				.doesNotContain("border: 0", "background: none", "text-decoration: underline");
+		assertThat(rule(css, ".row-btn")).contains("border: 1px solid var(--hb-text-sub)", "font-size: var(--hb-font-size-small)");
 		assertThat(rule(css, ".amount-note")).contains("font-size: var(--hb-font-size-small)", "color: var(--hb-text-sub)");
 	}
 

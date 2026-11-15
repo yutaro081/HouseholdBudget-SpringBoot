@@ -94,7 +94,8 @@
                                 <button type="button" class="amount-btn" data-amount-tax="110">10%</button>
                                 <button type="button" class="amount-btn" data-amount-tax="108">8%</button>
                             </div>
-                            <button type="button" class="amount-clear" data-amount-clear>金額をクリア</button>
+                            <!--/* 金額をクリア：一覧の「編集」と同じ灰色の枠の小さいボタン（row-btn。issue 029）。つながった形の外に、8% と 16px 空けて置く（押し間違いを防ぐ） */-->
+                            <button type="button" class="row-btn amount-clear" data-amount-clear>金額をクリア</button>
                         </div>
                         <!--/* 説明は 1 つの段落（13px。中身は変えない）。押せないときの文（span。hidden のまま。JavaScript が見せる・隠すだけ）が先頭 */-->
                         <p class="amount-note"><span data-amount-tax-note hidden>この金額には、もう税をかけられません。税抜きの金額を入れ直すと、押せるようになります。</span> 「税込にする」のボタンは、欄の金額を税抜として計算します（端数は切り捨て）。8%と10%が混ざるレシートは、税率ごとに取引を分けて登録してください。</p>
