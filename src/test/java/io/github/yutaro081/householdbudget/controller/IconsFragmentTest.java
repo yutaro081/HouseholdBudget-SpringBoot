@@ -22,9 +22,9 @@ import org.thymeleaf.spring6.SpringTemplateEngine;
 @SpringBootTest
 class IconsFragmentTest {
 
-	/** 設計書 2.3「アイコン」の 17 個（issue 017 の 2 回目で check、issue 019 で sparkle、issue 024 で flower、issue 025 で pencil・copy・trash を足した） */
+	/** 設計書 2.3「アイコン」の 19 個（issue 017 の 2 回目で check、issue 019 で sparkle、issue 024 で flower、issue 025 で pencil・copy・trash、issue 021 で alert・info を足した） */
 	private static final List<String> NAMES = List.of("logo", "top", "transactions", "categories", "vendors",
-			"payment-methods", "budgets", "comparison", "plus", "sun", "pie", "check", "sparkle", "flower", "pencil", "copy", "trash");
+			"payment-methods", "budgets", "comparison", "plus", "sun", "pie", "check", "sparkle", "flower", "pencil", "copy", "trash", "alert", "info");
 
 	private static final Pattern SVG = Pattern.compile("<svg.*?</svg>", Pattern.DOTALL);
 
@@ -49,7 +49,7 @@ class IconsFragmentTest {
 	}
 
 	@Test
-	void eachOfTheSeventeenNamesGivesOneSvg() {
+	void eachOfTheNineteenNamesGivesOneSvg() {
 		for (String name : NAMES) {
 			List<String> svgs = svgs(render(List.of(name), 18, 2));
 			assertThat(svgs).as(name).hasSize(1);
@@ -57,14 +57,14 @@ class IconsFragmentTest {
 	}
 
 	@Test
-	void theSeventeenIconsAreAllDifferent() {
+	void theNineteenIconsAreAllDifferent() {
 		Set<String> shapes = new HashSet<>();
 		for (String name : NAMES) {
 			String svg = svgs(render(List.of(name), 18, 2)).get(0);
 			// 形（中身）だけを比べる
 			shapes.add(svg.substring(svg.indexOf('>') + 1));
 		}
-		assertThat(shapes).hasSize(17);
+		assertThat(shapes).hasSize(19);
 	}
 
 	@Test
@@ -88,7 +88,7 @@ class IconsFragmentTest {
 	@Test
 	void noIconContainsAnythingUnsafeOrExternal() {
 		String all = String.join(" ", svgs(render(NAMES, 18, 2)));
-		assertThat(svgs(all)).hasSize(17);
+		assertThat(svgs(all)).hasSize(19);
 
 		assertThat(all).doesNotContain("<script", "<use", "<image", "xmlns", "style=", "http", "onclick", "onload", "href", "url(");
 	}
@@ -160,4 +160,21 @@ class IconsFragmentTest {
 		assertThat(trash).as("ごみ箱：ふた、取っ手、箱、中の 2 本の線").contains("<path d=\"M4 7h16\"></path>", "<path d=\"M9 7V4h6v3\"></path>", "<path d=\"M6 7l1 13h10l1-13\"></path>",
 				"<path d=\"M10 11v5\"></path>", "<path d=\"M14 11v5\"></path>");
 	}
+	/**
+	 * issue 021：お知らせのアイコン。失敗は丸の中に「！」（alert）、案内と複写のお知らせは丸の中に「i」（info）。成功は check。
+	 * ほかのアイコンと同じ作り（線だけ、currentColor、飾りなので aria-hidden）。18px、線の太さ 2 で使う
+	 */
+	@Test
+	void theAlertAndTheInfoIconsAreACircleWithAnExclamationMarkAndWithAnI() {
+		String alert = svgs(render(List.of("alert"), 18, 2)).get(0);
+		String info = svgs(render(List.of("info"), 18, 2)).get(0);
+
+		for (String svg : List.of(alert, info)) {
+			assertThat(svg).contains("width=\"18\"", "stroke=\"currentColor\"", "fill=\"none\"", "aria-hidden=\"true\"", "focusable=\"false\"",
+					"<circle cx=\"12\" cy=\"12\" r=\"9\"></circle>");
+		}
+		assertThat(alert).as("「！」：上に縦の線、下に点").contains("<path d=\"M12 7.5v5.5\"></path>", "<path d=\"M12 16.5h.01\"></path>");
+		assertThat(info).as("「i」：上に点、下に縦の線").contains("<path d=\"M12 7.5h.01\"></path>", "<path d=\"M12 11v5.5\"></path>");
+	}
+
 }

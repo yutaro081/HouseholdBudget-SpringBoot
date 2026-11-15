@@ -77,10 +77,10 @@ class MeterStyleSheetTest {
 		assertThat(rule(css, ".top-meter-today-arrow")).contains("left: var(--today)", "transform: translateX(-50%)");
 	}
 
-	/** 予算を超えた部分だけが、予算超過の色（赤 #c62828） */
+	/** 予算を超えた部分だけが、予算超過の色（赤。変数 --hb-over。issue 021） */
 	@Test
 	void theExceededPartIsRed() throws Exception {
-		assertThat(rule(css(), ".top-meter-bar.top-meter-over")).contains("background: #c62828");
+		assertThat(rule(css(), ".top-meter-bar.top-meter-over")).contains("background: var(--hb-over)");
 	}
 
 	@Test
@@ -93,7 +93,7 @@ class MeterStyleSheetTest {
 	void theOverflowPercentIsASmallRedTextToTheRightOfTheBar() throws Exception {
 		String overflow = rule(css(), ".top-meter-excess");
 
-		assertThat(overflow).contains("color: #c62828", "font-size: var(--hb-font-size-small)", "white-space: nowrap");
+		assertThat(overflow).contains("color: var(--hb-over)", "font-size: var(--hb-font-size-small)", "white-space: nowrap");
 	}
 
 	/** 棒の右に「+○%」の幅（3.25rem）をいつもあける（縮尺がメーターによってずれないため）。グリッドで、棒・「+○%」・「予算」を並べる */

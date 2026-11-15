@@ -1352,7 +1352,7 @@ class BudgetAutoControllerTest {
 
 		assertThat(css).containsPattern("(?s)\\.budget-table tbody td[^{]*\\{[^}]*color:\\s*var\\(--hb-text\\)");
 		assertThat(css).containsPattern("(?s)\\.budget-amount[^{]*\\{[^}]*font-weight:\\s*700");
-		assertThat(css).containsPattern("(?s)\\.budget-dash\\s*\\{[^}]*color:\\s*#");
+		assertThat(css).containsPattern("(?s)\\.budget-dash\\s*\\{[^}]*color:\\s*var\\(--hb-text-sub\\)");
 		assertThat(css).containsPattern("(?s)tfoot[^{]*\\{[^}]*font-size:\\s*1\\.25rem");
 		assertThat(css).containsPattern("(?s)tfoot[^{]*\\{[^}]*border-top:\\s*[3-9]px");
 	}

@@ -160,7 +160,9 @@ class AuthAndListStyleSheetTest {
 			} else {
 				assertThat(body).as(selector + " は薄いターコイズを使わない").doesNotContain("--hb-teal-pale", "#E1F3F2");
 			}
-			assertThat(body).as(selector).doesNotContain("#0E9594", "#c62828", "#1565c0", "--hb-apricot", "url(");
+			assertThat(body).as(selector).doesNotContain("#0E9594", "--hb-apricot", "url(");
+			// 意味の色は、値で書いても変数で書いても見つける（issue 021：#c62828 を var(--hb-over) に書きかえたため）
+			assertThat(body).as(selector).doesNotContainIgnoringCase("#c62828").doesNotContainIgnoringCase("#1565c0").doesNotContain("--hb-over", "--hb-low");
 			assertThat(body).as(selector + "：--hb-teal は枠の線だけ").doesNotContainPattern("(?<![a-z-])(background|color)[^;]*var\\(--hb-teal\\)");
 		}
 		assertThat(rules).isGreaterThan(5);

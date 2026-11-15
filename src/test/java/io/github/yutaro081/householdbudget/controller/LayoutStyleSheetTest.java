@@ -92,7 +92,9 @@ class LayoutStyleSheetTest {
 		String pace = rule(css, ".top-season-pace");
 
 		assertThat(pace).contains("color: var(--hb-teal-text)", "font-weight: 700");
-		assertThat(pace).doesNotContain("#c62828").doesNotContain("#1565c0").doesNotContain("--hb-apricot").doesNotContain("--hb-danger");
+		// 意味の色は、値で書いても変数で書いても見つける（issue 021：#c62828 を var(--hb-over) に書きかえたため）
+		assertThat(pace).doesNotContainIgnoringCase("#c62828").doesNotContainIgnoringCase("#1565c0").doesNotContain("--hb-over").doesNotContain("--hb-low")
+				.doesNotContain("--hb-apricot").doesNotContain("--hb-danger");
 		assertThat(css).as("見込みの大きさ（予算を上回るかどうか）で色を変える規則を作らない。issue 017 の判定ごとのクラスも残さない").doesNotContain("top-season-pace.").doesNotContain("pace-slow")
 				.doesNotContain("pace-fast").doesNotContain("pace-same");
 		assertThat(css).as("リンクの文字と同じ色（--hb-teal-text は #0B6E6B）").contains("--hb-teal-text: #0B6E6B");

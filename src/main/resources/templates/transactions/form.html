@@ -19,12 +19,14 @@
          入力欄には、カンマも「円」も使わない（2.3）。金額は文字として受け付ける（G1）。
          エラーで戻ったときも、入力値と選んでいた値が残る（th:field）。利用者の入力は th:field / th:text で出す。th:utext は使わない（7.5） */-->
     <!--/* 取引の複写（issue 012、U8）：複写で開いたときだけ出す固定の 1 行。利用者の入力は入れない。エラーで表示し直した画面には出ない */-->
-    <p class="alert alert-info" th:if="${copied}">この取引を写しています。日付は今日にしてあります。「保存」を押すまで、保存されません。</p>
+    <p class="alert alert-info" th:if="${copied}"><span class="alert-icon"><th:block th:replace="~{fragments/icons :: icon('info', 18, 2)}"></th:block></span><span>この取引を写しています。日付は今日にしてあります。「保存」を押すまで、保存されません。</span></p>
 
     <div class="notice alert alert-warning" th:if="${#lists.isEmpty(categories) or #lists.isEmpty(vendors) or #lists.isEmpty(paymentMethods)}">
+        <span class="alert-icon"><th:block th:replace="~{fragments/icons :: icon('info', 18, 2)}"></th:block></span><div class="alert-body">
         <p th:if="${#lists.isEmpty(categories)}">先に科目を追加してください。<a th:href="@{/categories}">科目の画面へ</a></p>
         <p th:if="${#lists.isEmpty(vendors)}">先に取引先を追加してください。<a th:href="@{/vendors}">取引先の画面へ</a></p>
         <p th:if="${#lists.isEmpty(paymentMethods)}">先に支払方法を追加してください。<a th:href="@{/payment-methods}">支払方法の画面へ</a></p>
+        </div>
     </div>
 
     <form th:unless="${#lists.isEmpty(categories) or #lists.isEmpty(vendors) or #lists.isEmpty(paymentMethods)}"

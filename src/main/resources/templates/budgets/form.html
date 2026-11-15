@@ -21,7 +21,9 @@
 
     <!--/* 科目が0件のときは、案内を出して、保存ボタンは出さない（設計書 2.3） */-->
     <div class="notice alert alert-warning" th:if="${#lists.isEmpty(budgetView.rows)}">
+        <span class="alert-icon"><th:block th:replace="~{fragments/icons :: icon('info', 18, 2)}"></th:block></span><div class="alert-body">
         <p>先に科目を追加してください。<a th:href="@{/categories}">科目の画面へ</a></p>
+        </div>
     </div>
 
     <!--/* 「自動予算」ボタンと、ボタンの横の一言（設計書 2.3、issue 019）。GET のリンクで、押しても保存しない。

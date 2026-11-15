@@ -1021,7 +1021,7 @@ table.list th.num {
 
 /* 見込みが予算を超えるとき、「予算の ○%」だけを赤（予算超過の意味の色。今週のひとこと・予実比較の「見込みとの差」と同じ決まり。Service が決める） */
 .top-season-pace-over {
-    color: #c62828;
+    color: var(--hb-over);
 }
 
 .top-season-unset {
@@ -1077,7 +1077,7 @@ table.list th.num {
 
 /* 予算を超えた部分だけ、予算超過の色（赤。意味の色。issue 020）。予算の位置から始まる（left と width は style 属性。縮尺は MeterScale） */
 .top-meter-bar.top-meter-over {
-    background: #c62828;
+    background: var(--hb-over);
     border-radius: 0 0.375rem 0.375rem 0;
 }
 
@@ -1143,7 +1143,7 @@ table.list th.num {
     grid-column: 2;
     grid-row: 2;
     padding-left: var(--hb-space-2);
-    color: #c62828;
+    color: var(--hb-over);
     font-size: var(--hb-font-size-small);
     white-space: nowrap;
 }
@@ -1345,7 +1345,7 @@ table.list th.num {
 
 /* 見込みが予算を超えるとき、「予算の ○%」の部分だけを赤（予算超過の意味の色。予実比較の「見込みとの差」の赤と同じ決まり） */
 .top-week-pick-over {
-    color: #c62828;
+    color: var(--hb-over);
 }
 
 .top-weeks .top-meter {
@@ -1663,7 +1663,7 @@ main.list-wide {
 }
 
 /* 取引一覧の操作の列（issue 025 の段階 3。本人の指示で、文字リンクから小さい枠のボタンに変えた）：編集・複写・削除の 3 つとも、13px、角丸、上下に少し余白、背景は白。
-   編集・複写（a 要素のまま。見た目だけボタン）は、枠 #56625F（--hb-text-sub）・文字 #24302F（--hb-text）。削除（button のまま）は、枠と文字を #C62828（--hb-over）に。
+   編集・複写（a 要素のまま。見た目だけボタン）は、枠 #56625F（--hb-text-sub）・文字 #24302F（--hb-text）。削除（button のまま）は、枠と文字を #B02A37（--hb-danger。エラーの赤）に（issue 021 で、予算超えの赤 --hb-over から直した）。
    3 つの間は 8px（--hb-space-2。余白の目盛りのとおり）で、右端に詰める。1 行に収める（折り返さない）。文字の左に、14px の線のアイコン（えんぴつ・2 枚重ねの紙・ごみ箱。fragments/icons）。科目・取引先・支払方法の一覧の「変更」「削除」も、同じ見た目（段階 5）。 */
 .row-actions {
     display: flex;
@@ -1703,13 +1703,14 @@ main.list-wide {
     color: var(--hb-text);
 }
 
+/* 削除ボタン：エラーの赤（--hb-danger。設計書 2.3）。予算超えの赤（--hb-over）は意味の色なので使わない（issue 021 で直した） */
 .row-btn-danger {
-    border-color: var(--hb-over);
-    color: var(--hb-over);
+    border-color: var(--hb-danger);
+    color: var(--hb-danger);
 }
 
 .row-btn-danger:hover {
-    color: var(--hb-over);
+    color: var(--hb-danger);
 }
 
 /* 予算設定の「自動予算」（設計書 2.3、issue 019）：ボタンと一言、選ぶリンク、最初の文、表の数字 */
@@ -1870,7 +1871,7 @@ main.list-wide {
 
 /* 前の季節の予算が未設定のときの「—」 */
 .budget-dash {
-    color: #A7B0AE;
+    color: var(--hb-text-sub);
 }
 
 .budget-table tfoot th,
@@ -1884,11 +1885,68 @@ main.list-wide {
     padding-right: calc(0.5rem + 2px + var(--hb-budget-digit-inset));
 }
 
-/* 複写のお知らせの 1 行（alert-info。設計書 2.3「色の決まり」）：Bootstrap の標準の水色はやめて、白い地・左に 4px のターコイズの線・本文の色。
-   薄いターコイズは「メニューの今の項目と小さな印だけ」の決まりなので使わない。基本のターコイズは枠（border）だけ */
-.alert-info {
+/* お知らせの枠（issue 021。設計書 2.3「色の決まり」）：成功・失敗・案内・複写のお知らせを、同じ形にそろえる。
+   白い地・本文の色の文字・左に 4px の線。線の色だけで分けず、文の左にアイコンも置く（fragments/icons。飾りなので aria-hidden）。
+   成功＝ターコイズの線（基本のターコイズは枠だけ）と check。失敗＝エラーの赤の線と alert。案内と複写のお知らせ＝補足の灰色の線と info。
+   複写のお知らせは、issue 019 ではターコイズの線だったが、「まだ保存されていない」ので、成功に見えないよう案内の形にした（issue 021）。
+   Bootstrap の標準の緑・赤・黄・水色は使わない。薄いターコイズは「メニューの今の項目と小さな印だけ」の決まりなので使わない */
+.alert-success {
     --bs-alert-color: var(--hb-text);
     --bs-alert-bg: var(--hb-input-bg);
     --bs-alert-border-color: var(--hb-line);
     border-left: 4px solid var(--hb-teal);
+}
+
+.alert-danger {
+    --bs-alert-color: var(--hb-text);
+    --bs-alert-bg: var(--hb-input-bg);
+    --bs-alert-border-color: var(--hb-line);
+    border-left: 4px solid var(--hb-danger);
+}
+
+.alert-warning {
+    --bs-alert-color: var(--hb-text);
+    --bs-alert-bg: var(--hb-input-bg);
+    --bs-alert-border-color: var(--hb-line);
+    border-left: 4px solid var(--hb-text-sub);
+}
+
+.alert-info {
+    --bs-alert-color: var(--hb-text);
+    --bs-alert-bg: var(--hb-input-bg);
+    --bs-alert-border-color: var(--hb-line);
+    border-left: 4px solid var(--hb-text-sub);
+}
+
+/* アイコンと文を横に並べる（アイコンは文の左。文が 2 行になっても、アイコンは 1 行目の高さ） */
+.alert-success,
+.alert-danger,
+.alert-warning,
+.alert-info {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--hb-space-2);
+}
+
+.alert-icon {
+    flex: none;
+    display: inline-flex;
+    padding-top: 0.125rem;
+}
+
+/* アイコンの色は、線と同じ色。成功だけは、文字のターコイズ（基本のターコイズは枠の線だけの決まりのため） */
+.alert-success .alert-icon {
+    color: var(--hb-teal-text);
+}
+
+.alert-danger .alert-icon {
+    color: var(--hb-danger);
+}
+
+.alert-warning .alert-icon {
+    color: var(--hb-text-sub);
+}
+
+.alert-info .alert-icon {
+    color: var(--hb-text-sub);
 }

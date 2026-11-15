@@ -211,6 +211,6 @@ class TopSeasonSentenceTest {
 		String css = css();
 
 		assertThat(rule(css, ".top-season-pace-line")).contains("display: block");
-		assertThat(rule(css, ".top-season-pace-over")).contains("color: #c62828");
+		assertThat(rule(css, ".top-season-pace-over")).contains("color: var(--hb-over)");
 	}
 }

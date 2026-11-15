@@ -67,7 +67,9 @@ class HitokotoStyleSheetTest {
 				continue;
 			}
 			assertThat(body).as(selector + " は薄いターコイズを使わない").doesNotContain("--hb-teal-pale").doesNotContain("#E1F3F2");
-			assertThat(body).as(selector).doesNotContain("#c62828").doesNotContain("#1565c0").doesNotContain("--hb-apricot");
+			// 意味の色は、値で書いても変数で書いても見つける（issue 021：#c62828 を var(--hb-over) に書きかえたため）
+			assertThat(body).as(selector).doesNotContainIgnoringCase("#c62828").doesNotContainIgnoringCase("#1565c0").doesNotContain("--hb-over")
+					.doesNotContain("--hb-low").doesNotContain("--hb-apricot");
 		}
 		assertThat(rules).isGreaterThan(0);
 		assertThat(iconRule).as(".hitokoto-icon の規則がある").isTrue();

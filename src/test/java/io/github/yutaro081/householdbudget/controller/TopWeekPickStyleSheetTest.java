@@ -40,6 +40,6 @@ class TopWeekPickStyleSheetTest {
 
 	@Test
 	void onlyThePercentPartTurnsRed() throws Exception {
-		assertThat(rule(css(), ".top-week-pick-over")).contains("color: #c62828");
+		assertThat(rule(css(), ".top-week-pick-over")).contains("color: var(--hb-over)");
 	}
 }

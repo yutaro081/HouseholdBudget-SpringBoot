@@ -26,7 +26,9 @@
 
     <!--/* 科目が0件のときは、案内だけを出す（予実比較・予算設定と同じ。Q010-4） */-->
     <div class="notice alert alert-warning" th:unless="${top.hasCategories}">
+        <span class="alert-icon"><th:block th:replace="~{fragments/icons :: icon('info', 18, 2)}"></th:block></span><div class="alert-body">
         <p>先に科目を追加してください。<a th:href="@{/categories}">科目の画面へ</a></p>
+        </div>
     </div>
 
     <!--/* 科目が0件でも、暦のひとことは出す（グラフへのひとことは出ない。設計書 2.3、Q016-8） */-->

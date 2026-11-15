@@ -255,18 +255,18 @@ class TransactionRowActionsTest {
 		return m.group(1);
 	}
 
-	/** 「編集」「複写」「削除」は、小さい枠のボタン（13px、角丸、上下に少し余白、背景は白）。編集・複写は、枠 #56625F・文字 #24302F。削除は、枠と文字 #C62828。3 つの間は 8px（余白の目盛り）で、右端に詰める。1 行に収まる。アイコンは文字の左 */
+	/** 「編集」「複写」「削除」は、小さい枠のボタン（13px、角丸、上下に少し余白、背景は白）。編集・複写は、枠 #56625F・文字 #24302F。削除は、枠と文字 #B02A37（エラーの赤。issue 021 で、予算超えの赤 #C62828 から直した）。3 つの間は 8px（余白の目盛り）で、右端に詰める。1 行に収まる。アイコンは文字の左 */
 	@Test
 	void theRowActionsAreSmallOutlinedButtons() throws Exception {
 		String css = css();
 
-		assertThat(css).contains("--hb-text-sub: #56625F", "--hb-text: #24302F", "--hb-over: #C62828", "--hb-input-bg: #FFFFFF", "--hb-space-2: 0.5rem");
+		assertThat(css).contains("--hb-text-sub: #56625F", "--hb-text: #24302F", "--hb-danger: #B02A37", "--hb-input-bg: #FFFFFF", "--hb-space-2: 0.5rem");
 		String button = rule(css, ".row-btn");
 		assertThat(button).contains("font-size: var(--hb-font-size-small)", "border: 1px solid var(--hb-text-sub)", "color: var(--hb-text)",
 				"background-color: var(--hb-input-bg)", "border-radius: var(--hb-radius-control)", "padding: 0.25rem 0.75rem");
 		assertThat(button).as("アイコンと文字を横に並べる（アイコンは文字の左）").contains("display: inline-flex", "align-items: center", "gap: var(--hb-space-1)");
 		String danger = rule(css, ".row-btn-danger");
-		assertThat(danger).contains("color: var(--hb-over)", "border-color: var(--hb-over)");
+		assertThat(danger).contains("color: var(--hb-danger)", "border-color: var(--hb-danger)").doesNotContain("--hb-over");
 		String actions = rule(css, ".row-actions");
 		assertThat(actions).as("間は 8px（余白の目盛り。目盛りの外の例外を増やさない）、右端に詰める、折り返さない")
 				.contains("gap: var(--hb-space-2)", "justify-content: flex-end", "white-space: nowrap").doesNotContain("0.375rem");

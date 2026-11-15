@@ -211,18 +211,92 @@ class ColorSchemeStyleSheetTest {
 	}
 
 	/**
-	 * 複写のお知らせの 1 行（alert-info。issue 019 のあとのブラウザの確認）：Bootstrap の標準の水色をやめて、白い地・左に 4px のターコイズの線・本文の色。
-	 * 薄いターコイズは「メニューの今の項目と小さな印だけ」の決まりのまま使わない。基本のターコイズは border にだけ使う。
+	 * 複写のお知らせの 1 行（alert-info）：Bootstrap の標準の水色をやめて、白い地・本文の色・左に 4px の線（issue 019）。
+	 * issue 021 で、線をターコイズから案内と同じ補足の灰色（--hb-text-sub）に変えた。成功（ターコイズの線）に見えないようにするため。
+	 * 薄いターコイズは「メニューの今の項目と小さな印だけ」の決まりのまま使わない。
 	 */
 	@Test
-	void copyNoticeIsWhiteWithATealLeftLineAndBodyTextColor() throws Exception {
+	void copyNoticeIsWhiteWithAGrayLeftLineAndBodyTextColor() throws Exception {
 		String css = css("/css/style.css");
 		String rule = rule(css, ".alert-info");
 
-		assertThat(rule).contains("--bs-alert-bg: var(--hb-input-bg)", "--bs-alert-color: var(--hb-text)", "border-left: 4px solid var(--hb-teal)");
+		assertThat(rule).contains("--bs-alert-bg: var(--hb-input-bg)", "--bs-alert-color: var(--hb-text)", "border-left: 4px solid var(--hb-text-sub)");
+		assertThat(rule).as("成功のターコイズの線ではない").doesNotContain("var(--hb-teal)");
 		assertThat(rule).as("薄いターコイズは使わない").doesNotContain("--hb-teal-pale").doesNotContain("--hb-teal-text").doesNotContain("--hb-teal-button");
 		assertThat(rule).as("Bootstrap の標準の水色（#cff4fc など）を書かない").doesNotContainIgnoringCase("#cff4fc").doesNotContainIgnoringCase("#9eeaf9").doesNotContainIgnoringCase("#055160");
 		assertThat(css("/css/style.css")).as("白は入力欄の地と同じ変数（--hb-input-bg）").containsPattern("--hb-input-bg:\s*#FFFFFF");
+	}
+
+	/**
+	 * お知らせの枠（issue 021。設計書 2.3）：成功・失敗・案内は、複写のお知らせと同じ形（白い地、本文の色、左に 4px の線）。
+	 * 線は、成功＝ターコイズ（枠なので --hb-teal）、失敗＝エラーの赤（--hb-danger）、案内＝補足の灰色（--hb-text-sub）
+	 */
+	@Test
+	void successErrorAndGuideNoticesAreWhiteWithALeftLineOfTheirKind() throws Exception {
+		String css = css("/css/style.css");
+		Map<String, String> lines = Map.of(".alert-success", "var(--hb-teal)", ".alert-danger", "var(--hb-danger)",
+				".alert-warning", "var(--hb-text-sub)", ".alert-info", "var(--hb-text-sub)");
+
+		for (Map.Entry<String, String> e : lines.entrySet()) {
+			String rule = rule(css, e.getKey());
+			assertThat(rule).as(e.getKey()).contains("--bs-alert-bg: var(--hb-input-bg)", "--bs-alert-color: var(--hb-text)",
+					"--bs-alert-border-color: var(--hb-line)", "border-left: 4px solid " + e.getValue());
+			assertThat(rule).as(e.getKey() + "：意味の色（予算超え・使い残し・予算内）は使わない").doesNotContain("--hb-over", "--hb-low", "--hb-apricot");
+		}
+	}
+
+	/** お知らせの Bootstrap の標準の緑・赤・黄（地・枠・文字）の値は、style.css に書かない。Bootstrap の変数も読まない（issue 021） */
+	@Test
+	void noticesDoNotUseTheBootstrapGreenRedOrYellow() throws Exception {
+		String css = css("/css/style.css").replaceAll("(?s)/\\*.*?\\*/", "");
+
+		for (String hex : new String[] { "#D1E7DD", "#A3CFBB", "#0A3622", "#F8D7DA", "#F1AEB5", "#58151C", "#FFF3CD", "#FFE69C", "#664D03" }) {
+			assertThat(css).as(hex).doesNotContainIgnoringCase(hex);
+		}
+		assertThat(css).doesNotContain("-text-emphasis", "-bg-subtle", "-border-subtle");
+	}
+
+	/**
+	 * お知らせのアイコンの色（issue 021）：線と同じ色。成功だけは、文字のターコイズ（--hb-teal-text）。基本のターコイズは枠の線だけの決まりのため。
+	 * アイコンの四角は、文と並べる（縮まない）
+	 */
+	@Test
+	void theNoticeIconsHaveTheColorOfTheirLine() throws Exception {
+		String css = css("/css/style.css");
+
+		assertThat(rule(css, ".alert-success .alert-icon")).contains("color: var(--hb-teal-text)");
+		assertThat(rule(css, ".alert-danger .alert-icon")).contains("color: var(--hb-danger)");
+		assertThat(rule(css, ".alert-warning .alert-icon")).contains("color: var(--hb-text-sub)");
+		assertThat(rule(css, ".alert-info .alert-icon")).contains("color: var(--hb-text-sub)");
+		assertThat(rule(css, ".alert-icon")).contains("flex: none");
+	}
+
+	/** 一覧の「削除」ボタン（issue 021）：エラーの赤（--hb-danger）。予算超えの赤（--hb-over）は、意味の色なので使わない */
+	@Test
+	void theDeleteButtonsUseTheErrorRedNotTheOverBudgetRed() throws Exception {
+		String css = css("/css/style.css");
+
+		assertThat(rule(css, ".row-btn-danger")).contains("border-color: var(--hb-danger)", "color: var(--hb-danger)").doesNotContain("--hb-over");
+		assertThat(rule(css, ".row-btn-danger:hover")).contains("color: var(--hb-danger)").doesNotContain("--hb-over");
+	}
+
+	/** 予算超えの赤は、値（#C62828）を直接書かず、変数（var(--hb-over)）で書く（issue 021）。値を書くのは、変数の定義だけ */
+	@Test
+	void theOverBudgetRedIsWrittenOnlyAsTheVariable() throws Exception {
+		String css = css("/css/style.css").replaceAll("(?s)/\\*.*?\\*/", "").replaceAll("(?i)--hb-over:\\s*#C62828;", "");
+
+		assertThat(css).doesNotContainIgnoringCase("#c62828");
+		assertThat(css).contains("var(--hb-over)");
+	}
+
+	/** 予算設定の前の季節の予算が未設定のときの「—」（issue 021）：補足の文字の色（白の上で 4.5 対 1 以上）。変数でない灰色 #A7B0AE はやめた */
+	@Test
+	void theDashOfAnUnsetPreviousBudgetUsesTheSubTextColor() throws Exception {
+		String css = css("/css/style.css");
+
+		assertThat(rule(css, ".budget-dash")).contains("color: var(--hb-text-sub)");
+		assertThat(css).doesNotContainIgnoringCase("#A7B0AE");
+		assertThat(ratio(variable(css, "hb-text-sub"), "#FFFFFF")).isGreaterThanOrEqualTo(4.5);
 	}
 
 }
