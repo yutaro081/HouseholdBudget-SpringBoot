@@ -115,6 +115,20 @@ class TopServiceTest {
 
 	// ---- 週の予算・切り上げ・合計 ----
 
+	/** 今週の行は、その科目の ID を持つ（選んだ行と同じ科目を、名前や並びの番号ではなく ID で探せる。issue 027）。合計の行は null */
+	@Test
+	void eachWeekRowHasItsCategoryIdAndTheTotalRowHasNone() {
+		Owner a = createOwner("topweekid1");
+		Category food = category(a, "食費");
+		Category daily = category(a, "日用品");
+
+		TopView view = top(a, LocalDate.of(2026, 11, 11));
+
+		assertThat(view.rows()).extracting(WeekRow::categoryId).containsExactly(food.getId(), daily.getId());
+		assertThat(view.rows()).extracting(WeekRow::categoryName).containsExactly("食費", "日用品");
+		assertThat(view.total().categoryId()).isNull();
+	}
+
 	@Test
 	void weeklyBudgetsAreBudgetDividedBy13RoundedUpTo100AndTotalIsTheSum() {
 		Owner a = createOwner("toptest01");

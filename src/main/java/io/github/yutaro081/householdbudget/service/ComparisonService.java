@@ -100,7 +100,7 @@ public class ComparisonService {
 		for (Category category : categories) {
 			Long budget = budgetOf.containsKey(category.getId()) ? Long.valueOf(budgetOf.get(category.getId())) : null;
 			long actual = actualOf.getOrDefault(category.getId(), 0L);
-			rows.add(row(category.getName(), budget, actual));
+			rows.add(row(category.getId(), category.getName(), budget, actual));
 
 			totalActual += actual;
 			if (budget != null) {
@@ -108,7 +108,7 @@ public class ComparisonService {
 				anyBudget = true;
 			}
 		}
-		ComparisonRow total = row(null, anyBudget ? Long.valueOf(totalBudget) : null, totalActual);
+		ComparisonRow total = row(null, null, anyBudget ? Long.valueOf(totalBudget) : null, totalActual);
 
 		return new ComparisonResult(period, period.previous().orElse(null), period.next().orElse(null), rows, total);
 	}
@@ -163,12 +163,12 @@ public class ComparisonService {
 				countFrom.isAfter(period.startDate()) ? countFrom : null);
 	}
 
-	/** 予算（未設定なら null）と実績から、1行（科目の行も合計行も同じ）を作る。 */
-	private static ComparisonRow row(String name, Long budget, long actual) {
+	/** 予算（未設定なら null）と実績から、1行（科目の行も合計行も同じ）を作る。合計行は、科目の ID も名前も null。 */
+	private static ComparisonRow row(Long categoryId, String name, Long budget, long actual) {
 		Long difference = budget == null ? null : budget - actual;
 		BudgetColor color = BudgetColorJudge.judge(budget, actual);
 		boolean withinBudget = BudgetColorJudge.isWithinBudget(budget, actual);
-		return new ComparisonRow(name, budget, actual, difference, color, withinBudget);
+		return new ComparisonRow(categoryId, name, budget, actual, difference, color, withinBudget);
 	}
 
 }

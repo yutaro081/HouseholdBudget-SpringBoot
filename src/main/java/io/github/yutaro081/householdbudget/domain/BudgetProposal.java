@@ -25,13 +25,25 @@ public final class BudgetProposal {
 	private BudgetProposal() {
 	}
 
+	/** 当てはまったルール（上の①〜④。上から順に、最初に当てはまったもの）。 */
+	public enum Rule {
+		/** ① 過去の同じ季節の中央値 × 傾向 × 選んだ割合 */
+		MEDIAN,
+		/** ② 直前の季節のペース（終わった季節なら実績）× 選んだ割合 */
+		PACE,
+		/** ③ 直前の季節の予算 × 選んだ割合 */
+		PREVIOUS_BUDGET,
+		/** ④ 材料なし：今の値のまま（割合もかけない） */
+		KEEP_CURRENT
+	}
+
 	/**
 	 * 結果。
 	 *
-	 * @param rule   当てはまったルールの番号（1〜4）
+	 * @param rule   当てはまったルール
 	 * @param amount 案の額（円）
 	 */
-	public record Result(int rule, long amount) {
+	public record Result(Rule rule, long amount) {
 	}
 
 	/**
@@ -50,19 +62,19 @@ public final class BudgetProposal {
 		if (twiceMedian.isPresent() && twiceMedian.getAsLong() > 0) {
 			// 切り上げ（M2 × t × c ÷（2 × 100 × 100 × 1000））× 1000
 			long numerator = Math.multiplyExact(Math.multiplyExact(twiceMedian.getAsLong(), (long) trendPercent), c);
-			return new Result(1, roundedUp(numerator, 2L * 100 * 100 * UNIT));
+			return new Result(Rule.MEDIAN, roundedUp(numerator, 2L * 100 * 100 * UNIT));
 		}
 		if (previousActual > 0 && pace.isPresent()) {
 			// 切り上げ（分子 × c ÷（分母 × 100 × 1000））× 1000
 			long numerator = Math.multiplyExact(pace.get().numerator(), c);
 			long denominator = Math.multiplyExact(pace.get().denominator(), 100L * UNIT);
-			return new Result(2, roundedUp(numerator, denominator));
+			return new Result(Rule.PACE, roundedUp(numerator, denominator));
 		}
 		if (previousBudget != null && previousBudget > 0) {
 			// 切り上げ（予算 × c ÷（100 × 1000））× 1000
-			return new Result(3, roundedUp(Math.multiplyExact(previousBudget, c), 100L * UNIT));
+			return new Result(Rule.PREVIOUS_BUDGET, roundedUp(Math.multiplyExact(previousBudget, c), 100L * UNIT));
 		}
-		return new Result(4, currentValue);
+		return new Result(Rule.KEEP_CURRENT, currentValue);
 	}
 
 	/** 切り上げ（分子 ÷ 分母）× 1000 を、上限 3,000,000 円で止める。 */
