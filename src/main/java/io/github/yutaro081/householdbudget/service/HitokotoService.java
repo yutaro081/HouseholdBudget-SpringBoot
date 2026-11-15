@@ -42,7 +42,7 @@ public class HitokotoService {
 
 	/**
 	 * @param today       今日（日本時間）
-	 * @param rows        科目ごとの今週の数字（科目の登録順）。科目が0件なら空
+	 * @param rows        科目ごとの今週の数字と、先週の同じ曜日までの実績（科目の登録順。issue 028）。科目が0件なら空
 	 * @param totalBudget 週の予算の合計（設定済みの科目だけ）。全部未設定なら null
 	 * @param totalActual 今週の実績の合計（100円単位に切り上げた額の和）
 	 */
@@ -93,13 +93,23 @@ public class HitokotoService {
 	/** 型と部品から、messages.properties のキーと引数にする（文そのものは作らない）。 */
 	static GraphLine graphLine(GraphComment.Result result) {
 		return switch (result.type()) {
-			case TOP -> new GraphLine("hitokoto.graph.top", result.categoryName(), result.amount());
-			case UNUSED -> new GraphLine("hitokoto.graph.unused", result.categoryName(), null);
-			case REMAINING -> {
-				String base = result.over() ? "hitokoto.graph.over" : "hitokoto.graph.remaining";
-				yield new GraphLine(result.daysLeft() == 0 ? base + ".saturday" : base, result.amount(),
-						result.daysLeft());
+			case PER_DAY -> new GraphLine("hitokoto.graph.perday", result.amount(), result.number());
+			// 全部の科目が週の予算以下のとき（分子 ＝ 分母）だけ、「すべて」の文にする（「6 科目のうち 6 科目」と言わない）
+			case NOT_OVER -> result.number() == result.amount()
+					? new GraphLine("hitokoto.graph.notover.all", result.amount(), null)
+					: new GraphLine("hitokoto.graph.notover", result.amount(), result.number());
+			case ROOM -> new GraphLine("hitokoto.graph.room", result.categoryName(), result.number());
+			case LAST_WEEK -> {
+				long difference = result.amount();
+				if (difference == 0) {
+					yield new GraphLine("hitokoto.graph.lastweek.same", null, null);
+				}
+				yield new GraphLine(difference < 0 ? "hitokoto.graph.lastweek.less" : "hitokoto.graph.lastweek.more",
+						Math.abs(difference), null);
 			}
+			case COUNT -> new GraphLine("hitokoto.graph.count", result.amount(), null);
+			case UNUSED -> new GraphLine("hitokoto.graph.unused", result.categoryName(), null);
+			case WEEK_START -> new GraphLine("hitokoto.graph.weekstart", result.amount(), null);
 		};
 	}
 

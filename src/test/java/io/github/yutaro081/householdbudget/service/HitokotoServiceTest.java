@@ -164,37 +164,55 @@ class HitokotoServiceTest {
 
 	@Test
 	void theGraphCommentIsMadeFromTheWeeklyNumbers() {
-		List<Row> rows = List.of(new Row("食費", null, 4_500), new Row("交通費", null, 0));
+		// 予算なし・今週 3 件・先週 0 円 → 出せる型は「記録の件数」だけ
+		List<Row> rows = List.of(new Row("食費", null, 4_500, 3, 0), new Row("交通費", null, 0, 0, 0));
 
 		HitokotoView view = service.hitokoto(LocalDate.of(2026, 11, 8), rows, null, 4_500);
 
 		assertThat(view.graph()).isNotNull();
-		assertThat(view.graph().key()).isEqualTo("hitokoto.graph.top");
-		assertThat(view.graph().arg0()).isEqualTo("食費");
-		assertThat(view.graph().arg1()).isEqualTo(4_500L);
+		assertThat(view.graph().key()).isEqualTo("hitokoto.graph.count");
+		assertThat(view.graph().arg0()).isEqualTo(3L);
+		assertThat(view.graph().arg1()).isNull();
 	}
 
 	@Test
 	void noTypeAvailableGivesNoGraphComment() {
-		List<Row> rows = List.of(new Row("食費", null, 0));
+		List<Row> rows = List.of(new Row("食費", null, 0, 0, 0));
 
 		assertThat(service.hitokoto(LocalDate.of(2026, 11, 8), rows, null, 0).graph()).isNull();
 	}
 
 	@Test
 	void graphLineKeysAndArguments() {
-		assertThat(HitokotoService.graphLine(new GraphComment.Result(GraphComment.Type.REMAINING, null, 2_300, 2, false)))
-				.isEqualTo(new HitokotoView.GraphLine("hitokoto.graph.remaining", 2_300L, 2));
-		assertThat(HitokotoService.graphLine(new GraphComment.Result(GraphComment.Type.REMAINING, null, 2_300, 0, false)))
-				.isEqualTo(new HitokotoView.GraphLine("hitokoto.graph.remaining.saturday", 2_300L, 0));
-		assertThat(HitokotoService.graphLine(new GraphComment.Result(GraphComment.Type.REMAINING, null, 800, 2, true)))
-				.isEqualTo(new HitokotoView.GraphLine("hitokoto.graph.over", 800L, 2));
-		assertThat(HitokotoService.graphLine(new GraphComment.Result(GraphComment.Type.REMAINING, null, 800, 0, true)))
-				.isEqualTo(new HitokotoView.GraphLine("hitokoto.graph.over.saturday", 800L, 0));
-		assertThat(HitokotoService.graphLine(new GraphComment.Result(GraphComment.Type.UNUSED, "交際費", 0, 0, false)))
+		assertThat(HitokotoService.graphLine(new GraphComment.Result(GraphComment.Type.PER_DAY, null, 1_300, 4)))
+				.isEqualTo(new HitokotoView.GraphLine("hitokoto.graph.perday", 1_300L, 4));
+		assertThat(HitokotoService.graphLine(new GraphComment.Result(GraphComment.Type.NOT_OVER, null, 8, 5)))
+				.isEqualTo(new HitokotoView.GraphLine("hitokoto.graph.notover", 8L, 5));
+		assertThat(HitokotoService.graphLine(new GraphComment.Result(GraphComment.Type.ROOM, "交通費", 0, 7)))
+				.isEqualTo(new HitokotoView.GraphLine("hitokoto.graph.room", "交通費", 7));
+		assertThat(HitokotoService.graphLine(new GraphComment.Result(GraphComment.Type.LAST_WEEK, null, -1_200, 0)))
+				.isEqualTo(new HitokotoView.GraphLine("hitokoto.graph.lastweek.less", 1_200L, null));
+		assertThat(HitokotoService.graphLine(new GraphComment.Result(GraphComment.Type.LAST_WEEK, null, 1_200, 0)))
+				.isEqualTo(new HitokotoView.GraphLine("hitokoto.graph.lastweek.more", 1_200L, null));
+		assertThat(HitokotoService.graphLine(new GraphComment.Result(GraphComment.Type.LAST_WEEK, null, 0, 0)))
+				.isEqualTo(new HitokotoView.GraphLine("hitokoto.graph.lastweek.same", null, null));
+		assertThat(HitokotoService.graphLine(new GraphComment.Result(GraphComment.Type.COUNT, null, 12, 0)))
+				.isEqualTo(new HitokotoView.GraphLine("hitokoto.graph.count", 12L, null));
+		assertThat(HitokotoService.graphLine(new GraphComment.Result(GraphComment.Type.UNUSED, "交際費", 0, 0)))
 				.isEqualTo(new HitokotoView.GraphLine("hitokoto.graph.unused", "交際費", null));
-		assertThat(HitokotoService.graphLine(new GraphComment.Result(GraphComment.Type.TOP, "食費", 4_500, 0, false)))
-				.isEqualTo(new HitokotoView.GraphLine("hitokoto.graph.top", "食費", 4_500L));
+		assertThat(HitokotoService.graphLine(new GraphComment.Result(GraphComment.Type.WEEK_START, null, 13_800, 0)))
+				.isEqualTo(new HitokotoView.GraphLine("hitokoto.graph.weekstart", 13_800L, null));
+	}
+
+	/** 週の予算以下の数：全部の科目が週の予算以下のときだけ、「すべて」の文に分ける（6 のうち 6、1 のうち 1）。ひとつ足りなければ、今の文 */
+	@Test
+	void notOverUsesTheAllSentenceOnlyWhenEveryCategoryIsWithinItsBudget() {
+		assertThat(HitokotoService.graphLine(new GraphComment.Result(GraphComment.Type.NOT_OVER, null, 6, 6)))
+				.isEqualTo(new HitokotoView.GraphLine("hitokoto.graph.notover.all", 6L, null));
+		assertThat(HitokotoService.graphLine(new GraphComment.Result(GraphComment.Type.NOT_OVER, null, 6, 5)))
+				.isEqualTo(new HitokotoView.GraphLine("hitokoto.graph.notover", 6L, 5));
+		assertThat(HitokotoService.graphLine(new GraphComment.Result(GraphComment.Type.NOT_OVER, null, 1, 1)))
+				.isEqualTo(new HitokotoView.GraphLine("hitokoto.graph.notover.all", 1L, null));
 	}
 
 	// ---- issue 017：題の補足（「七十二候（立冬の初候）」の括弧の中） ----

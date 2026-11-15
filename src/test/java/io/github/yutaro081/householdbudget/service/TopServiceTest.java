@@ -202,6 +202,45 @@ class TopServiceTest {
 		assertThat(view.slices()).extracting(PieSlices.Slice::name).containsExactly("食費");
 	}
 
+	/**
+	 * issue 028：グラフへのひとことの「先週と比べる」には、先週の日曜から、今日と同じ曜日（今日 − 7 日）までだけを足す。
+	 * 科目ごとに 100 円単位で切り上げてから足す（今週の合計と同じ作り方）。今週は使っていない・予算なし → 出せる型はこれだけ
+	 */
+	@Test
+	void lastWeekIsAddedUpOnlyUntilTheSameDayOfTheWeekAndRoundedUpPerCategory() {
+		Owner a = createOwner("toptest29");
+		Category food = category(a, "食費");
+		Category daily = category(a, "日用品");
+		spend(a, food, LocalDate.of(2026, 10, 31), 7_000);   // 先週より前の土曜：入らない
+		spend(a, food, LocalDate.of(2026, 11, 1), 1_000);    // 先週の日曜：入る
+		spend(a, food, LocalDate.of(2026, 11, 4), 250);      // 先週の水曜（今日と同じ曜日）：入る → 食費 1,250 → 1,300
+		spend(a, daily, LocalDate.of(2026, 11, 3), 1);       // 先週の火曜：入る → 日用品 1 → 100
+		spend(a, food, LocalDate.of(2026, 11, 5), 5_000);    // 先週の木曜（今日より後の曜日）：入らない
+
+		TopView view = top(a, LocalDate.of(2026, 11, 11));   // 水曜
+
+		assertThat(view.hitokoto().graph().key()).isEqualTo("hitokoto.graph.lastweek.less");
+		assertThat(view.hitokoto().graph().arg0()).isEqualTo(1_400L);   // 今週 0 円 − 先週 1,400 円
+	}
+
+	/** issue 028：グラフへのひとことの「記録の件数」は、今週（日曜〜土曜）の取引の件数。先週・次の週の取引は数えない */
+	@Test
+	void theCountIsTheNumberOfTransactionsThisWeek() {
+		Owner a = createOwner("toptest30");
+		Category food = category(a, "食費");
+		Category daily = category(a, "日用品");
+		spend(a, food, LocalDate.of(2026, 11, 9), 100);
+		spend(a, food, LocalDate.of(2026, 11, 9), 200);      // 同じ日・同じ科目も 1 件ずつ
+		spend(a, daily, LocalDate.of(2026, 11, 14), 300);    // 土曜：入る
+		spend(a, food, LocalDate.of(2026, 11, 15), 400);     // 次の週の日曜：入らない
+		spend(a, food, LocalDate.of(2026, 11, 7), 500);      // 先週の土曜：入らない（今日より後の曜日なので、先週の分にも入らない）
+
+		TopView view = top(a, LocalDate.of(2026, 11, 11));   // 水曜。予算なし・先週の同じ曜日まで 0 円 → 出せる型は「記録の件数」だけ
+
+		assertThat(view.hitokoto().graph().key()).isEqualTo("hitokoto.graph.count");
+		assertThat(view.hitokoto().graph().arg0()).isEqualTo(3L);
+	}
+
 	@Test
 	void aWeekAcrossSeasonsCountsBothSeasonsButUsesTheBudgetOfTodaysSeason() {
 		Owner a = createOwner("toptest04");

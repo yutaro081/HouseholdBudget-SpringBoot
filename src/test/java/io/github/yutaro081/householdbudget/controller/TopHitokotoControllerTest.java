@@ -265,22 +265,50 @@ class TopHitokotoControllerTest {
 
 		String frame = frame(topBody(a));
 
-		// 出せる型は「最多」と「残り」。どちらが出るかは日付で決まる
-		boolean top = frame.contains("今週いちばん多いのは食費（1,300円）です。");
-		boolean remaining = frame.contains("週の予算の残りは1,100円、土曜まであと6日です。");
-		assertThat(top ^ remaining).as("どちらか1つだけ").isTrue();
+		// 出せる型は「1日あたり」「週の予算以下の数」「残りの割合」「記録の件数」（issue 028）。どれが出るかは日付で決まる
+		long shown = java.util.stream.Stream.of(
+				"今日を入れて あと 7 日。残りを日数で割ると、1 日あたり 約 100円 です。",
+				"今週は、週の予算がある 1 科目が、すべて週の予算以下です。",
+				"食費は、週の予算の 4 割がまだ残っています。",
+				"今週の記録は 1 件です。").filter(frame::contains).count();
+		assertThat(shown).as("どれか1つだけ").isEqualTo(1);
+		assertThat(frame).contains("hitokoto-graph");
 	}
 
 	@Test
-	void theTopCommentEscapesTheCategoryName() throws Exception {
+	void theUnusedCommentEscapesTheCategoryName() throws Exception {
 		Owner a = createOwner("hitokoto07");
-		Category evil = category(a, "<i>x</i>", null);      // 予算なし → 出せる型は「最多」だけ
-		spend(a, evil, LocalDate.of(2026, 11, 8), 500);
+		category(a, "<i>x</i>", 30_000);                    // 週の予算 2,400円。今週は使っていない
+		Category food = category(a, "食費", null);
+		spend(a, food, LocalDate.of(2026, 11, 8), 2_500);
+		// 出せる型は「週の予算以下の数」「記録の件数」「未使用」の 3 つ。2026-11-08 は「未使用」（通算日 ÷ 3 の余りが 2）
 
 		String frame = frame(topBody(a));
 
-		assertThat(frame).contains("今週いちばん多いのは&lt;i&gt;x&lt;/i&gt;（500円）です。");
+		assertThat(frame).contains("今週はまだ&lt;i&gt;x&lt;/i&gt;を使っていません。");
 		assertThat(frame).doesNotContain("<i>x</i>");
+	}
+
+	/**
+	 * なくした文（最多、残り、予算超え、土曜の文）は、日曜から土曜まで、どの日にも出ない（issue 028）。
+	 * 組にして、同じ枠に、今の文（記録の件数）が出ていることも見る。週の予算を超えた週（今までは「こえています」が出た）
+	 */
+	@Test
+	void theRemovedSentencesDoNotAppearOnAnyDayOfTheWeek() throws Exception {
+		Owner a = createOwner("hitokoto11");
+		Category food = category(a, "食費", 30_000);       // 週の予算 2,400円
+		spend(a, food, LocalDate.of(2026, 11, 8), 3_000);  // 予算超え → 出せる型は「記録の件数」だけ
+
+		for (int i = 0; i < 7; i++) {
+			LocalDate date = LocalDate.of(2026, 11, 8).plusDays(i);
+			clock.set(date);
+
+			String frame = frame(topBody(a));
+
+			assertThat(frame).as(date.toString()).contains("今週の記録は 1 件です。");
+			assertThat(frame).as(date.toString()).doesNotContain("今週いちばん多いのは", "週の予算の残りは", "こえています",
+					"今日は土曜です", "土曜まであと");
+		}
 	}
 
 	@Test
@@ -291,17 +319,18 @@ class TopHitokotoControllerTest {
 		String frame = frame(topBody(a));
 
 		assertThat(frame).contains("山茶始開");
-		assertThat(frame).doesNotContain("今週いちばん", "週の予算の", "を使っていません");
+		assertThat(frame).doesNotContain("hitokoto-graph");
 	}
 
 	@Test
-	void withNoTransactionThisWeekButABudgetOnlyTheRemainingTypeIsShown() throws Exception {
+	void onASundayWithNoTransactionAndABudgetOnlyTheWeekStartIsShown() throws Exception {
 		Owner a = createOwner("hitokoto09");
 		category(a, "食費", 30_000);
 
 		String frame = frame(topBody(a));
 
-		assertThat(frame).contains("週の予算の残りは2,400円、土曜まであと6日です。");
+		assertThat(frame).contains("新しい週です。週の予算の合計は 2,400円 です。");
+		assertThat(frame).doesNotContain("1 日あたり");
 	}
 
 	// ---- 科目が 0 件 ----
@@ -316,7 +345,7 @@ class TopHitokotoControllerTest {
 		assertThat(body.indexOf(HEADING)).isGreaterThan(body.indexOf("先に科目を追加してください"));
 		String frame = frame(body);
 		assertThat(frame).contains("山茶始開");
-		assertThat(frame).doesNotContain("今週いちばん", "週の予算の", "を使っていません");
+		assertThat(frame).doesNotContain("hitokoto-graph");
 	}
 
 	// ---- 安全・データの分離 ----

@@ -2,7 +2,7 @@
 
 全体の位置づけは [実行計画書](execution-plan.md) を見てください。この文書は、issue 028（トップの「きょうのひとこと」の、グラフへのひとことを増やす）を進めるための手順書です。もとの作りは [issue 016](issue-016-hitokoto.md)。
 
-> **状態（2026年11月16日）**：◐ **段階 1〔検索の置きかえ〕を行った。確認待ち**。Q028-1〜5 は決まった〔1 章〕。段階 2 には、まだ進まない。
+> **状態（2026年11月16日）**：◐ **段階 1〔検索の置きかえ〕はコミット済み。段階 2〔型と文の作り直し〕を行った。ブラウザでの確かめと、コミット〔本人〕が残っている**。`.\mvnw clean test` は 2,591 件成功。Q028-1〜5 は決まった〔1 章〕。
 
 - ブランチ：`feature/issue-028-chart-comments`。秘密情報：パスワード・接続先の値は、どこにも書かない。
 - 進め方：1 つの手順が終わったら止まって、確認を待つ。変更は、文書が先〔要件定義書 → 設計書 → この手順書〕、コードは後。**テストが先**〔失敗を確かめてから実装〕。コミットと push は本人。
@@ -31,6 +31,7 @@
 | Q028-2 | 文の終わりの決まり〔「です。」「ます。」「せん。」〕は変えない。記録の件数の文を「今週の記録は ○ 件です。」にする |
 | Q028-3 | 並べる順は、1 日あたり → 週の予算以下の数 → 残りの割合 → 先週と比べる → 記録の件数 → 未使用 |
 | Q028-4 | 週の予算以下の科目が 0 科目のときは、「週の予算以下の数」を出さない〔1 科目以上のときだけ〕 |
+| E | 「週の予算以下の数」は、全部の科目が週の予算以下のときだけ、文を「今週は、週の予算がある ○ 科目が、すべて週の予算以下です。」〔キー `notover.all`〕に分ける〔「6 科目のうち 6 科目」は不自然なため。Q028-4 と同じ考え〕。一部のときは今の文のまま。出す条件・型の数・並び順・選び方は変えない〔2026年11月16日・本人。ブラウザでの確かめのあと〕 |
 | Q028-5 | 名前は、検索 `sumByCategoryAndDate`、入れ物 `DailyActual`、テスト `TransactionRepositoryDailySumTest`、文のキー `perday`・`notover`・`room`・`lastweek.less`／`more`／`same`・`count`・`weekstart` |
 
 型の条件と文は、要件定義書 4.5 と、設計書 5.12 の表に書いた。ここには写さない。
@@ -57,14 +58,14 @@
 ### 2.2 段階 2：型と文を作り直す
 
 - **変えるもの**
-  - `GraphComment`：型を 7 つにする〔1 日あたり・週の予算以下の数・残りの割合・先週と比べる・記録の件数・未使用・週の始め〕。最多と残りをなくす。材料に、今週の取引の件数と、先週の同じ曜日までの合計を足す。週の始めが出せる日は、それだけを返す。
-  - `HitokotoService`：`hitokoto(…)` の引数に、件数と先週の合計を足す。`graphLine` を、新しい型のキーと引数にする〔引数は 2 つまで。`HitokotoView.GraphLine` の形は変えない〕。
-  - `TopService`：段階 1 の検索の結果から、今週の取引の件数と、先週の同じ曜日までの実績の合計を作り、`HitokotoService` に渡す。`TopServiceTest` に、この 2 つのテストを足す〔先週の今日と同じ曜日は入り、次の曜日は入らない、など〕。
+  - `GraphComment`：型を 7 つにする〔1 日あたり・週の予算以下の数・残りの割合・先週と比べる・記録の件数・未使用・週の始め〕。最多と残りをなくす。**`GraphComment.Row` に、今週の取引の件数と、先週の同じ曜日までの実績〔科目ごとに 100 円単位に切り上げた額〕を足す**。合計〔件数、先週の額〕は、`GraphComment` が行を足して出す。週の始めが出せる日は、それだけを返す。
+  - `HitokotoService`：**`hitokoto(…)` の引数は変えない**〔件数と先週の額は、行〔`Row`〕に入って届く〕。`graphLine` を、新しい型のキーと引数にする〔引数は 2 つまで。`HitokotoView.GraphLine` の形は変えない〕。
+  - `TopService`：段階 1 の検索の結果から、科目ごとに、今週の取引の件数と、先週の同じ曜日までの実績〔切り上げた額〕を作り、`GraphComment.Row` に入れて `HitokotoService` に渡す。`TopServiceTest` に、この 2 つのテストを足す〔先週の今日と同じ曜日は入り、次の曜日は入らない、など〕。
   - `messages.properties`：`hitokoto.graph.top`、`remaining`、`remaining.saturday`、`over`、`over.saturday` の 5 つを消し、`perday`、`notover`、`room`、`lastweek.less`、`lastweek.more`、`lastweek.same`、`count`、`weekstart` の 8 つを足す〔`unused` は残す〕。文は設計書 5.12。
   - `top/hitokoto.html`：見本の文字〔`th:text` で置きかわる、タグの中の文字〕だけを、新しい文に直す。作りは変えない。
 - **先に書くテスト**
   - `GraphCommentTest`〔今 23 件〕：**「あと ○ 日」は、日曜は あと 7 日、土曜は あと 1 日〔今日を含む。日曜〜土曜の 7 日を並べて、7・6・5・4・3・2・1 になることを確かめる〕**。型ごとの条件と境目〔1 日あたりの切り捨てと 0 円、残りが 0 円・マイナス、割の切り捨てと 0 割、同じ割合は先の科目、週の予算以下が 0 科目なら出さない、先週が 0 円、差が 0 円・プラス・マイナス、件数 0、週の始めは日曜だけ・取引 0 件だけ・予算 0 円では出ない、週の始めの日はそれだけ〕、並べる順、日付で選ぶこと〔同じ日は同じ型〕。最多と残りのテストは、なくす。
-  - `HitokotoServiceTest`〔今 18 件〕：グラフへのひとことの 3 件〔数字から作ること、出せる型がないとき、キーと引数〕を、新しい型に直す。暦のひとことのテストは、`hitokoto(…)` の引数が増える分だけ直す〔確かめる中身は変えない〕。
+  - `HitokotoServiceTest`〔今 18 件〕：グラフへのひとことの 3 件〔数字から作ること、出せる型がないとき、キーと引数〕を、新しい型に直す。**暦のひとことのテストは直さない**〔`hitokoto(…)` の引数を変えないため〕。
   - `HitokotoMessagesTest`〔今 9 件〕：キーの一覧、禁止の言葉、文の形〔数字の桁区切り〕を、新しい 9 つの文に直す。文の終わりの決まり〔61 行〕は変えない〔Q028-2〕。
   - `TopHitokotoControllerTest`〔今 16 件〕：文そのものを確かめている 6 か所だけを、新しい文に直す〔Q028-1〕。
 - **完了の条件**
@@ -72,7 +73,11 @@
   - `ScreenStatementCountTest` を 1 行も変えずに通る〔7 本〕。
   - 科目名の無害化〔`<i>x</i>` が `&lt;i&gt;…` で出る〕のテストが、新しい文〔科目名が入る「残りの割合」か「未使用」〕で残っている。弱めない。
   - `.\mvnw clean test` が全部成功。件数の前と後、増えた・減ったクラスと件数を報告する〔合計が合うこと〕。
-  - ブラウザで、本人が確かめる：トップのひとことが出る。日付を変えたデータで、型が変わる〔確かめ方は、段階 2 のときに相談〕。
+  - ブラウザで、本人が確かめる〔今日の日付のまま〕：
+    - トップに、グラフへのひとことが 1 文だけ出る。
+    - その文の数字が、同じ画面の数字と合う〔例：1 日あたりなら、「今週の進み具合」の合計の行の、週の予算の合計 − 今週の実績の合計 を、今日を入れた日数で割り、100 円単位で切り捨てた額〕。
+    - なくした文〔「今週いちばん多いのは」、「週の予算の残りは○円」、「こえています」、「今日は土曜です」〕が出ない。
+    - ほかの曜日・ほかの型の文は、ブラウザでは確かめない。日付を固定した自動テストで確かめる〔アプリに日付を変える入口は作らない。issue 016 の決まり。[issue-016-hitokoto.md](issue-016-hitokoto.md) の手順 6〕。
 - 段階 2 のあとで直す文書：`docs/testing.md`〔件数〕、README〔テストの件数があれば〕。
 
 ## 3. 影響するファイルの数〔見込み〕
@@ -91,3 +96,15 @@
 
 - 2026年11月16日：調べものと案を報告。決めてほしいこと 1〜10 は、すべておすすめどおりに決まった。A〜D が足された。要件定義書 4.5、設計書〔4.5 の `TopService`・`HitokotoService`・`GraphComment`、4.6 の `TransactionRepository`、4.7 の `DailyActual`、5.11 の図、5.12〕、`features.md` を直し、この手順書を作った。実行計画書と `testing.md` は、今は直す所なし〔`testing.md` の件数は、段階 2 のあと〕。
 - 2026年11月16日：Q028-1〜5 が決まった〔Q028-2 は文を「今週の記録は ○ 件です。」に、Q028-4 は 0 科目なら出さない〕。要件定義書・設計書・この手順書を直した。**段階 1 を行った**：先に `TransactionRepositoryDailySumTest`〔6 件〕と `TopServiceTest.lastWeeksTransactionsAreNotMixedIntoThisWeek` を書いた。前者は `DailyActual`・`sumByCategoryAndDate` がなくてコンパイルできないことを確かめた。後者は今の動きを守るテストで、TopService を変える前から通る。検索から `user_id` の条件をわざと外すと、6 件すべてが失敗することを確かめて、戻した。既存のテストは 1 行も変えていない。
+- 2026年11月16日：段階 1 のあとの確認。`TopService` の「今週の日付の分だけを足す」条件をわざと外すと、`TopServiceTest` の 3 件〔足した `lastWeeksTransactionsAreNotMixedIntoThisWeek` と、前からある 2 件〕が失敗することを確かめて、戻した。`TransactionRepositoryDailySumTest.otherUsersTransactionsAreNotCounted` は、ほかの人の取引をテストの中で作っている〔開発用の DB のデータに頼らない〕。
+- 2026年11月16日：**段階 2 を行った**。
+  - 先にテストを書いて、62 件の失敗を確かめた：`GraphCommentTest` 43 件、`HitokotoServiceTest` 3 件〔どちらも、新しい型・`Row`・`Result` がなくてコンパイルできない〕、`HitokotoMessagesTest` 11 件〔新しいキーがない・なくすキーがある〕、`TopHitokotoControllerTest` 3 件、`TopServiceTest` 2 件。科目名の無害化のテスト〔`theUnusedCommentEscapesTheCategoryName`〕は、今のコードでも同じ日に「未使用」が選ばれるので、実装の前から通った。
+  - 作りは、手順書の初めの案〔`hitokoto(…)` の引数を増やす〕ではなく、`GraphComment.Row` に件数と先週の額を足す形にした〔引数を増やすと、暦のひとことのテストの呼び出しまで直すことになるため。本人の確認を受けて、手順書を直した〕。
+  - わざと壊して確かめた〔どちらも戻した〕：先週の「同じ曜日まで」の絞り込みを外すと、`TopServiceTest` の 2 件が失敗〔`expected: 1400L but was: 6400L` など〕。週の始めの「この文だけを出す」をやめると、`GraphCommentTest` と `TopHitokotoControllerTest` の `onASunday…` の 2 件が失敗。
+  - 既存のテストで直したもの：`TopHitokotoControllerTest` の文を確かめている 6 か所〔2 つのテストの名前も変えた〕、`HitokotoMessagesTest` のキーの一覧と文、`HitokotoServiceTest` のグラフへのひとことの 3 件、`GraphCommentTest`〔書き直し〕。**決まりの外まで直したテスト**〔本人の確認済み〕：`Row` の作り方が変わったため、`GraphCommentTest` の「未使用」と「選び方」のテスト、`HitokotoServiceTest.noTypeAvailableGivesNoGraphComment` も直した〔確かめる中身は変えていない〕。
+  - `.\mvnw clean test`：2,564 件 → 2,591 件〔`GraphCommentTest` +20、`HitokotoMessagesTest` +4、`TopServiceTest` +2、`TopHitokotoControllerTest` +1〕、失敗 0 件。`ScreenStatementCountTest` は 1 行も変えずに通った〔トップ 7 本〕。`docs/testing.md` と README の件数を直した。
+- 2026年11月16日：本人がブラウザで確かめた〔今日の文は「今週は、週の予算がある 6 科目のうち 6 科目が、週の予算以下です。」。数字は画面と合っていた〕。「6 科目のうち 6 科目」が不自然なので、全部のときだけ文を分けることにした〔1 章の E〕。要件定義書 4.5、設計書 5.12 を直した。先にテストを書き、5 件の失敗を確かめた〔`HitokotoServiceTest.notOverUsesTheAllSentenceOnlyWhenEveryCategoryIsWithinItsBudget`、`HitokotoMessagesTest` の 3 件〔新しいキーがない〕、`TopHitokotoControllerTest.showsOneGraphCommentMadeFromTheWeeklyNumbers`〕。`HitokotoService.graphLine` と `messages.properties`〔`hitokoto.graph.notover.all` を足した〕を直した。既存のテストで直したのは、`showsOne…` の候補の文 1 つ〔「1 科目のうち 1 科目が」→「1 科目が、すべて」〕だけ。`.\mvnw clean test`：2,591 件 → 2,593 件〔`HitokotoServiceTest` +1、`HitokotoMessagesTest` +1〕、失敗 0 件。
+
+## 6. 後回しの候補
+
+- `GraphComment.Row` は、数字の引数〔今週の実績、件数、先週の実績〕が 3 つ並んでいて、入れ違えてもコンパイルで気づけない〔今回は直さない〕。

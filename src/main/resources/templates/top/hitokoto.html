@@ -29,7 +29,7 @@
         <div class="hitokoto-row hitokoto-graph" th:if="${h.graph != null}">
             <span class="hitokoto-icon"><th:block th:replace="~{fragments/icons :: icon('pie', 20, 2)}"></th:block></span>
             <div class="hitokoto-body">
-                <p class="hitokoto-graph-text" th:text="#{${h.graph.key}(${h.graph.arg0}, ${h.graph.arg1})}">今週いちばん多いのは食費（4,500円）です。</p>
+                <p class="hitokoto-graph-text" th:text="#{${h.graph.key}(${h.graph.arg0}, ${h.graph.arg1})}">今週の記録は 12 件です。</p>
             </div>
         </div>
     </section>

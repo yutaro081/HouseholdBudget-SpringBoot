@@ -83,12 +83,19 @@ public class TopService {
 		}
 
 		// 今週の実績：日曜から次の日曜の前日まで。季節をまたいでも、そのまま入れる。
-		// issue 028：先週の日曜から今週の土曜までを、科目・日付ごとに 1 回で取り（検索の本数は増やさない）、今週の日付の分だけを科目ごとに足す
+		// issue 028：先週の日曜から今週の土曜までを、科目・日付ごとに 1 回で取り（検索の本数は増やさない）、
+		// 今週の日付の分は、今週の実績と件数に、先週の日曜から今日と同じ曜日（今日 − 7 日）までの分は、先週の実績に、科目ごとに足す
 		Map<Long, Long> weekActualOf = new HashMap<>();
+		Map<Long, Long> weekCountOf = new HashMap<>();
+		Map<Long, Long> lastWeekActualOf = new HashMap<>();
+		LocalDate sameDayLastWeek = today.minusDays(WeekPeriod.DAYS);
 		for (DailyActual daily : transactionRepository.sumByCategoryAndDate(userId,
 				week.start().minusDays(WeekPeriod.DAYS), week.endDateExclusive())) {
 			if (!daily.date().isBefore(week.start())) {
 				weekActualOf.merge(daily.categoryId(), daily.total(), Long::sum);
+				weekCountOf.merge(daily.categoryId(), daily.count(), Long::sum);
+			} else if (!daily.date().isAfter(sameDayLastWeek)) {
+				lastWeekActualOf.merge(daily.categoryId(), daily.total(), Long::sum);
 			}
 		}
 
@@ -107,7 +114,10 @@ public class TopService {
 			rows.add(weekRow);
 			// 円グラフの一覧には、判定を出さない（issue 024）。判定は、「今週の進み具合」の行（weekRow）のチップだけ
 			pieEntries.add(new PieSlices.Entry(category.getName(), actual));
-			commentRows.add(new GraphComment.Row(category.getName(), weeklyBudget, actual));
+			// グラフへのひとこと（issue 028）：先週の実績も、今週と同じように科目ごとに100円単位で切り上げる
+			commentRows.add(new GraphComment.Row(category.getName(), weeklyBudget, actual,
+					weekCountOf.getOrDefault(category.getId(), 0L),
+					WeeklyAmount.roundUpActual(lastWeekActualOf.getOrDefault(category.getId(), 0L))));
 
 			totalActual += actual;
 			if (weeklyBudget != null) {
