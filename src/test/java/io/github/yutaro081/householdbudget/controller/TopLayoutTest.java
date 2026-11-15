@@ -334,27 +334,33 @@ class TopLayoutTest {
 		assertThat(right).contains("1,300円", "2,400円", "合計");
 	}
 
-	/** 各行の科目名の横に、状態のチップ（予算超え・使い残し・予算内）。予算超えは金額つき（「予算超え ＋100円」）。予算が未設定の科目は、チップなしで「予算なし」の文字。行の色・背景のクラスと、💮 はない（issue 024） */
+	/**
+	 * 各行の科目名の横に、状態のチップ（予算超え・使い残し・予算内）。予算超えは金額つき（「予算超え ＋100円」）。行の色・背景のクラスと、💮 はない（issue 024）。
+	 * 予算が未設定の科目は、チップなし。金額の所の「/ 未設定」だけで、「予算なし」の文字は出さない（issue 021。同じことを 2 回言わない）
+	 */
 	@Test
 	void eachRowShowsAChipNextToItsNameAndNoRowColorOrMark() throws Exception {
 		Owner a = createOwner("toplay13");
 		Category over = category(a, "超過", 30_000);
 		category(a, "少なめ", 30_000);
 		Category within = category(a, "予算内科目", 30_000);
-		category(a, "未設定", null);
+		category(a, "設定なし", null);
 		spend(a, over, SUNDAY, 2_401);       // 2,500 > 2,400 → 100 円超え
 		spend(a, within, SUNDAY, 2_000);
 
 		String right = rightColumn(topBody(a));
 
-		assertThat(right).contains("<span class=\"chip chip-over\">予算超え ＋100円</span>", "<span class=\"chip chip-low\">使い残し</span>", "chip chip-within", "予算なし");
+		assertThat(right).contains("<span class=\"chip chip-over\">予算超え ＋100円</span>", "<span class=\"chip chip-low\">使い残し</span>", "chip chip-within");
 		assertThat(right).doesNotContain("week-over", "week-low", "week-within", "💮", "visually-hidden", "赤：", "青：", "オーバー", "予算を超えています");
 		int row = right.indexOf(">超過<");
 		assertThat(row).isGreaterThanOrEqualTo(0);
 		assertThat(row).as("科目名の横（名前のあと）").isLessThan(right.indexOf("chip-over", row));
 		assertThat(right.indexOf("chip-over", row)).as("金額（実績 / 週の予算）より前").isLessThan(right.indexOf("2,500円", row));
-		int unset = right.indexOf(">未設定<");
-		assertThat(right.substring(unset, right.indexOf("</li>", unset))).as("予算が未設定の科目は、チップなしで「予算なし」の文字").contains("予算なし").doesNotContain("chip-");
+		int unset = right.indexOf(">設定なし<");
+		assertThat(unset).isGreaterThanOrEqualTo(0);
+		assertThat(right.substring(unset, right.indexOf("</li>", unset))).as("予算が未設定の科目は、チップなし。金額の所の「/ 未設定」だけ")
+				.containsPattern("円</span>\\s*/\\s*<span>未設定</span>").doesNotContain("予算なし", "chip-");
+		assertThat(right).as("「予算なし」の文字は、どの行にも出ない").doesNotContain("予算なし");
 	}
 
 	/** 合計の行も、同じチップ（予算超えは金額つき）。注記は、チップの言葉に変わった */
@@ -367,8 +373,21 @@ class TopLayoutTest {
 		String total = right.substring(right.indexOf("top-week-total"), right.indexOf("top-week-separator"));
 
 		assertThat(total).contains("<span class=\"chip chip-over\">予算超え ＋600円</span>");
-		assertThat(right).contains("チップ：予算超え（赤）／使い残し（青。週の予算の1/3以下）／予算内（1/3を超え、予算以下）／点線：今日／実線：予算");
+		assertThat(right).contains("チップ：予算超え（赤）／使い残し（青。週の予算の1/3以下）／予算内（週の予算の1/3を超え、週の予算以下）／点線：今日／実線：予算");
 		assertThat(right).doesNotContain("赤：週の予算を超過", "💮");
+	}
+
+	/** issue 021：どの科目にも週の予算がないときは、合計の行も、チップなしで「/ 未設定」だけ。「予算なし」の文字は出さない */
+	@Test
+	void theTotalRowWithoutAnyWeeklyBudgetShowsOnlyUnset() throws Exception {
+		Owner a = createOwner("toplay40");
+		spend(a, category(a, "食費", null), SUNDAY, 1_000);
+
+		String right = rightColumn(topBody(a));
+		String total = right.substring(right.indexOf("top-week-total"), right.indexOf("top-week-separator"));
+
+		assertThat(total).containsPattern("1,000円</span>\\s*/\\s*<span>未設定</span>").doesNotContain("予算なし", "chip-");
+		assertThat(right).doesNotContain("予算なし");
 	}
 
 	// ---- 科目が 0 件 ----

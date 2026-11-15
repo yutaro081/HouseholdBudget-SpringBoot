@@ -2,7 +2,7 @@
 
 全体の位置づけは [実行計画書](execution-plan.md) を見てください。この文書は [issue 021](../issues/021-お知らせの色をそろえる.md) を進めるための手順書です。
 
-> **状態（2026年11月16日）**：◐ **段階 1〔色〕を行った。ブラウザでの確かめと、コミット〔本人〕が残っている**。`.\mvnw clean test` は 2,605 件成功。段階 2〔言葉〕・3〔円グラフ〕の文書は、その段階で直す。
+> **状態（2026年11月16日）**：◐ **段階 1〔色〕はコミット済み。段階 2〔言葉〕・3〔円グラフ〕を行った。ブラウザでの確かめと、コミット〔本人〕が残っている**。`.\mvnw clean test` は 2,607 件成功。段階 2〔言葉〕・3〔円グラフ〕の文書は、その段階で直す。
 
 - ブランチ：`feature/issue-021-words-colors`。秘密情報：パスワード・接続先の値は、どこにも書かない。
 - 進め方：1 つの段階が終わったら止まって、確認を待つ。変更は、文書が先〔要件定義書 → 設計書 → この手順書〕、コードは後。**テストが先**〔失敗を確かめてから実装〕。コミットと push は本人。
@@ -58,3 +58,12 @@ issue 021 の文書の「決めたこと」1〜7 のとおり。段階 1 に関�
   - 赤を見張るテスト〔`HitokotoStyleSheetTest`、`LayoutStyleSheetTest`、`AuthAndListStyleSheetTest`〕を、`#c62828`〔大文字・小文字を問わない〕と `var(--hb-over)`〔青の `--hb-low` も〕を見つけるようにした。わざと 3 つの規則に赤を入れる〔`.hitokoto-frame` と `.auth-card` に `var(--hb-over)`、`.top-season-pace` に大文字の `#C62828`。どれも、前のテストでは見落とす書き方〕と、3 つとも失敗することを確かめて、戻した。
   - `.\mvnw clean test`：2,593 件 → 2,605 件〔`ColorSchemeStyleSheetTest` +6、`NoticeMarkupTest` +5、`IconsFragmentTest` +1〕、失敗 0 件。`docs/testing.md` と README の件数を直した。
   - 段階 2 で直す、と残したもの：`budgets/form.html` の古いコメント「（この季節は未設定）」〔言葉 3〕。
+- 2026年11月16日：段階 1 のコミット〔`63800f5`〕が `main` に入っていたので、本人がブランチを直した〔`feature/issue-021-words-colors` に移し、`main` を `origin/main` に戻した〕。Claude Code は、段階 1 のあいだ、ブランチを切りかえる git の操作をしていない〔使ったのは `git branch --show-current` と `git status --short` だけ〕。
+- 2026年11月16日：**段階 2〔言葉〕と段階 3〔円グラフ〕を行った**。作業の最初と最後の `git branch --show-current` は、どちらも `feature/issue-021-words-colors`。
+  - 言葉 1：トップの今週の進み具合の「予算なし」をなくし、「/ 未設定」だけにした〔合計の行と科目の行〕。要件定義書 4.5、設計書 2.3・5.11 を直した。
+  - 言葉 2：トップの凡例を「予算内（週の予算の1/3を超え、週の予算以下）」にした。
+  - 言葉 3：設計書の古い説明を、今の画面に合わせた〔ログイン・登録の説明文、合計行の上の線、`diff-low`・`row-within`。指示の 3 か所のほかに、4.4.2 の「テストが確かめるクラス」の一覧にも `row-within`・`diff-low` が残っていたので直した〕。`budgets/form.html` のコメントを「未保存」のチップに直した。
+  - `style.css` のお知らせのコメントの「issue 019」は正しかった〔根拠：`git log -S".alert-info {"` で、`.alert-info` の規則を足したのは `1bccfce issue 019：複写のお知らせの色をそろえ、issue 021 を記録`。手順書 issue-019-auto-budget.md の実施の記録〔2026年11月11日〕にも同じことが書いてある〕。
+  - 円グラフ 1：一覧の色の四角〔`.top-chip`〕に、1px の枠〔`--hb-input-border`〕を付けた。設計書 2.3 の円グラフの行に書いた。
+  - 先にテストを書いて、4 件の失敗を確かめた：`TopLayoutTest` 3 件〔「予算なし」が出ている 2 件、凡例 1 件〕、`TopStyleSheetTest` 1 件〔枠がない〕。
+  - `.\mvnw clean test`：2,605 件 → 2,607 件〔`TopLayoutTest` +1、`TopStyleSheetTest` +1〕、失敗 0 件。`docs/testing.md` と README の件数を直した。

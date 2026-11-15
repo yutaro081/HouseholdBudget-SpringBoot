@@ -106,7 +106,7 @@
         <div class="top-col-right">
 
             <!--/* 今週の進み具合：いちばん上に合計の行、そのあと科目の登録順に全科目。1科目が2行（1行目：科目名・状態の短い文・実績 / 週の予算、2行目：棒と「今日」の線）。
-                 状態は、予実比較と同じ決まり（週の予算と切り上げた実績で判定済み）のチップ（予算超え・使い残し・予算内）で、科目名の横に出す（issue 024）。予算超えは金額つき。週の予算が未設定の科目は、チップなしで「予算なし」の文字。行の色・背景はない。 */-->
+                 状態は、予実比較と同じ決まり（週の予算と切り上げた実績で判定済み）のチップ（予算超え・使い残し・予算内）で、科目名の横に出す（issue 024）。予算超えは金額つき。週の予算が未設定の科目は、チップなしで、金額の所に「未設定」だけ（issue 021 で「予算なし」の文字をなくした）。行の色・背景はない。 */-->
             <section class="top-section top-weeks-section">
                 <div class="top-weeks-head">
                     <h2>今週の進み具合</h2>
@@ -124,7 +124,7 @@
                     <li class="top-week-row top-week-total">
                         <div class="top-week-line">
                             <span class="top-week-name">合計</span>
-                            <span class="top-week-status" th:if="${top.total.budget != null}"><th:block th:replace="~{fragments/chip :: statusWithAmount(${top.total.color.name()}, ${top.total.withinBudget}, ${top.total.overAmount})}"></th:block></span><span class="top-week-status" th:if="${top.total.budget == null}">予算なし</span>
+                            <span class="top-week-status" th:if="${top.total.budget != null}"><th:block th:replace="~{fragments/chip :: statusWithAmount(${top.total.color.name()}, ${top.total.withinBudget}, ${top.total.overAmount})}"></th:block></span>
                             <span class="top-week-amounts">
                                 <span th:text="|${#numbers.formatInteger(top.total.actual, 1, 'COMMA')}円|">200円</span>
                                 /
@@ -137,7 +137,7 @@
                     <li class="top-week-row" th:each="row : ${top.rows}">
                         <div class="top-week-line">
                             <span class="top-week-name" th:text="${row.categoryName}">食費</span>
-                            <span class="top-week-status" th:if="${row.budget != null}"><th:block th:replace="~{fragments/chip :: statusWithAmount(${row.color.name()}, ${row.withinBudget}, ${row.overAmount})}"></th:block></span><span class="top-week-status" th:if="${row.budget == null}">予算なし</span>
+                            <span class="top-week-status" th:if="${row.budget != null}"><th:block th:replace="~{fragments/chip :: statusWithAmount(${row.color.name()}, ${row.withinBudget}, ${row.overAmount})}"></th:block></span>
                             <span class="top-week-amounts">
                                 <span th:text="|${#numbers.formatInteger(row.actual, 1, 'COMMA')}円|">1,300円</span>
                                 /
@@ -147,7 +147,7 @@
                         <th:block th:if="${row.budget != null}"><th:block th:replace="~{fragments/meter :: meter(${row.meter}, false, null)}"></th:block></th:block>
                     </li>
                 </ul>
-                <p class="legend">チップ：予算超え（赤）／使い残し（青。週の予算の1/3以下）／予算内（1/3を超え、予算以下）／点線：今日／実線：予算</p>
+                <p class="legend">チップ：予算超え（赤）／使い残し（青。週の予算の1/3以下）／予算内（週の予算の1/3を超え、週の予算以下）／点線：今日／実線：予算</p>
             </section>
 
         </div>

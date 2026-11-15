@@ -125,4 +125,17 @@ class TopStyleSheetTest {
 		assertThat(css()).contains("--hb-chart-1:", "--hb-chart-6:");
 	}
 
+	/**
+	 * issue 021 の段階 3：円グラフの一覧の色の四角に、細い枠（入力欄の枠の色 --hb-input-border）。薄い 4・5 番の四角も、白の上で見える。
+	 * 新しい色は増やさない（今ある変数を使う）。円そのものには枠を付けない（切れ目の線も入れない）
+	 */
+	@Test
+	void theColorSquaresOfThePieListHaveAThinBorderOfTheInputBorderColor() throws Exception {
+		String css = css();
+
+		assertThat(rule(css, ".top-chip")).contains("border: 1px solid var(--hb-input-border)");
+		assertThat(rule(css, ".top-pie")).doesNotContain("border:", "border-color");
+		assertThat(css).as("入力欄の枠の色は、白との比 3 対 1 以上の値のまま").contains("--hb-input-border: #849290");
+	}
+
 }

@@ -1248,10 +1248,12 @@ table.list th.num {
     margin: var(--hb-space-3) 0 0;
 }
 
+/* 一覧の色の四角：細い枠（入力欄の枠の色。issue 021）。薄い 3〜5 番の四角も、白の上で形が見える。新しい色は増やさない */
 .top-chip {
     display: inline-block;
     width: 0.875rem;
     height: 0.875rem;
+    border: 1px solid var(--hb-input-border);
     border-radius: 3px;
 }
 
