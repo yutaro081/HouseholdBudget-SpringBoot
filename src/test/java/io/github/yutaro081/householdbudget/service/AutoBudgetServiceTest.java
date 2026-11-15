@@ -280,9 +280,7 @@ class AutoBudgetServiceTest {
 
 		AutoBudgetView view = proposeOk(a, p(2026, Season.SPRING), NOV_11_2026);
 
-		assertThat(view.screenSeason()).isEqualTo(Season.SPRING);
 		assertThat(rowOf(view, food).years()).containsExactly(2025);
-		assertThat(proposeOk(a, WINTER_2026, NOV_11_2026).screenSeason()).isEqualTo(Season.WINTER);
 	}
 
 	/** 冬の 1 月・2 月は前の年の冬。3 月 1 日は春。年は取引の日付ではなく、季節の年で数える */
@@ -1052,7 +1050,6 @@ class AutoBudgetServiceTest {
 		assertThat(view.previousActualTotal()).isEqualTo(80_400L);
 		assertThat(view.previousContainsToday()).isTrue();
 		assertThat(view.previousPaceTotal()).isEqualTo(101_700L);            // 80,400 × 91 ÷ 72 ＝ 101,616.6… → 101,700
-		assertThat(view.screenSeason()).isEqualTo(Season.WINTER);
 		assertThat(view.hasRecordYears()).isTrue();
 		assertThat(view.trendPercent()).isEqualTo(110);
 		assertThat(view.trendKind()).isEqualTo(TrendKind.UP);

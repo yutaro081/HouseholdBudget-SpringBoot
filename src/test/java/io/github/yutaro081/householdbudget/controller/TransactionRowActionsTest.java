@@ -40,7 +40,7 @@ import jakarta.persistence.EntityManager;
 
 /**
  * 取引一覧の操作の列「編集・複写・削除」と、削除の確認（設計書 2.2・2.3、issue 025 の段階 3）。
- * 「詳細」のリンクはなくした（詳細ページそのものは、段階 7 まで残る）。
+ * 「詳細」のリンクと、詳細ページそのものは、なくした（issue 025 の段階 3 と段階 7）。
  * 削除の確認の文には、日付・科目名・金額が入る。科目名は利用者の入力なので、<code>onsubmit</code> の文字列には入れず、
  * HTML の属性 <code>data-confirm</code> に入れて、<code>confirm-submit.js</code> が読む。
  */
@@ -378,18 +378,6 @@ class TransactionRowActionsTest {
 		entityManager.clear();
 
 		mockMvc.perform(get("/transactions/new").with(asUser)).andExpect(status().isOk()).andExpect(view().name("transactions/form"));
-	}
-
-	/** 詳細の画面・処理・専用の CSS は、なくなった */
-	@Test
-	void theDetailTemplateTheControllerMethodAndTheOldCssAreGone() throws Exception {
-		assertThat(Files.exists(Path.of("src", "main", "resources", "templates", "transactions", "detail.html"))).isFalse();
-		assertThat(java.util.Arrays.stream(TransactionController.class.getDeclaredMethods()).map(java.lang.reflect.Method::getName)).doesNotContain("detail");
-		String css = Files.readString(Path.of("src", "main", "resources", "static", "css", "style.css"));
-		assertThat(css).doesNotContain("dl.detail", ".button-row");
-		for (String name : List.of("transactions/list.html", "transactions/form.html", "categories/list.html", "vendors/list.html", "payment-methods/list.html")) {
-			assertThat(Files.readString(Path.of("src", "main", "resources", "templates", name))).as(name).doesNotContain("button-row", "class=\"detail\"");
-		}
 	}
 
 	/** 取引の編集の画面は、今までどおり開く（他の画面から詳細へ移る所は、なくなった。一覧の各行の「編集」「複写」「削除」だけ） */

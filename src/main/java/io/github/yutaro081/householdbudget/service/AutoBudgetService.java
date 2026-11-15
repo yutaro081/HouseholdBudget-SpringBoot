@@ -129,7 +129,7 @@ public class AutoBudgetService {
 		boolean noMaterial = rows.stream().allMatch(r -> r.rule() == 4);
 
 		return new AutoBudgetView(choice, previous.orElse(null), previousBudgetTotal, previousActualTotal,
-				previousContainsToday, today, previousPaceTotal, period.season(), hasRecordYears,
+				previousContainsToday, today, previousPaceTotal, hasRecordYears,
 				trend.percent(), trendKindOf(trend), trend.capped(), noMaterial, rows);
 	}
 

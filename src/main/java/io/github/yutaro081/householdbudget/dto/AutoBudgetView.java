@@ -4,13 +4,11 @@ import java.time.LocalDate;
 import java.util.List;
 
 import io.github.yutaro081.householdbudget.domain.ProposalChoice;
-import io.github.yutaro081.householdbudget.domain.Season;
 import io.github.yutaro081.householdbudget.domain.SeasonPeriod;
 
 /**
  * 自動予算の表示データ（設計書 4.7、5.14、issue 019）。画面が読む値は、すべてこの中に入れて渡す（open-in-view=false）。
- * <p>
- * <b>【仮の形】形（フィールド）はテストのために決めた。AutoBudgetService はまだ中身が空で、正しい値を作らない。</b>
+ * 値は AutoBudgetService.propose が作る。
  *
  * @param choice              選んだ割合
  * @param previousSeason      直前の季節（画面の季節の 1 つ前）。範囲の外（2000 年 春を開いたとき）は null
@@ -20,7 +18,6 @@ import io.github.yutaro081.householdbudget.domain.SeasonPeriod;
  * @param today               今日
  * @param previousPaceTotal   実績の合計の「このペースなら」（100 円切り上げ）。直前の季節が今日を含み、過ぎた日数が 14 日以上で、
  *                            実績の合計が 0 円より大きいときだけ。ないときは null
- * @param screenSeason        画面の季節の名前（文の「過去の○」に使う）
  * @param hasRecordYears      記録のある年が 1 つ以上あるか
  * @param trendPercent        案にかけた傾向の %（計算しなかったときは 100）
  * @param trendKind           傾向の種類（文の書き分け）
@@ -36,7 +33,6 @@ public record AutoBudgetView(
 		boolean previousContainsToday,
 		LocalDate today,
 		Long previousPaceTotal,
-		Season screenSeason,
 		boolean hasRecordYears,
 		int trendPercent,
 		TrendKind trendKind,

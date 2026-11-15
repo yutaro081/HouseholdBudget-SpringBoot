@@ -46,7 +46,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 	@EntityGraph(attributePaths = { "category", "vendor", "paymentMethod" })
 	List<Transaction> findByUserIdOrderByTransactionDateDescIdDesc(Long userId);
 
-	/** ID と user_id の両方で1件探す。他人のものや、存在しない ID は見つからない。詳細・編集・更新・削除に使う。 */
+	/** ID と user_id の両方で1件探す。他人のものや、存在しない ID は見つからない。編集・複写・更新・削除に使う。 */
 	@EntityGraph(attributePaths = { "category", "vendor", "paymentMethod" })
 	Optional<Transaction> findByIdAndUserId(Long id, Long userId);
 

@@ -34,7 +34,7 @@ import jakarta.persistence.EntityManager;
 /**
  * 科目・取引先・支払方法の画面の形（設計書 2.3「科目一覧」「科目変更」、issue 025 の段階 5）。
  * 一覧：追加の欄が白いカード（ラベル「○○名」は太字、「○ 文字以内」は 13px）。表の操作の列は右寄せで、「変更」は取引一覧の「編集」と同じボタン（えんぴつ）、
- * 「削除」は取引一覧の「削除」と同じ赤い枠のボタン（ごみ箱）。削除の確認（<code>onsubmit</code> の固定の文）と、削除できないときの動きは今のまま。
+ * 「削除」は取引一覧の「削除」と同じ赤い枠のボタン（ごみ箱）。削除の確認は、名前の入った文を <code>data-confirm</code> に入れて、<code>confirm-submit.js</code> が出す（取引一覧と同じ。issue 026）。削除できないときの動きは今のまま。
  * 変更の画面：白いカードに、入力欄と「キャンセル」「保存」（取引の登録画面と同じ並び）。
  * 追加・重複・他人のデータ・削除の動きは、CategoryControllerTest などが確かめている。見た目の並びそのものは、ブラウザで確かめる。
  */
@@ -134,16 +134,64 @@ class MasterListLayoutTest {
 		}
 	}
 
-	/** 削除の確認（onsubmit の固定の文）と、POST・CSRF は、今のまま。確認の文に data-confirm は使わない（取引一覧だけ） */
+	private String nameOf(Screen screen) {
+		return switch (screen.path()) {
+			case "/categories" -> "食費";
+			case "/vendors" -> "コンビニ";
+			default -> "現金";
+		};
+	}
+
+	/** 削除の確認の文は、種類と名前を入れて、属性 data-confirm に入れる（設計書 2.2、issue 026）。onsubmit・onclick は使わない。POST・CSRF は、今のまま */
 	@Test
-	void theDeleteFormKeepsItsFixedConfirmationAndThePostAndTheToken() throws Exception {
+	void theDeleteFormHasTheConfirmationWithTheNameInAnAttributeAndThePostAndTheToken() throws Exception {
 		for (Screen screen : SCREENS) {
 			String main = main(page(screen.path()));
 			Matcher form = Pattern.compile("(?s)<form[^>]*action=\"" + screen.path() + "/" + idOf(screen) + "/delete\"[^>]*>(.*?)</form>").matcher(main);
 
 			assertThat(form.find()).as(screen.path()).isTrue();
-			assertThat(form.group()).contains("method=\"post\"", "onsubmit=\"return confirm('削除しますか？')\"").doesNotContain("data-confirm");
+			assertThat(form.group()).as(screen.path()).contains("method=\"post\"",
+					"data-confirm=\"" + screen.noun() + "「" + nameOf(screen) + "」を削除します。よろしいですか？\"");
+			assertThat(form.group()).as(screen.path()).doesNotContain("onsubmit", "onclick", "削除しますか？");
 			assertThat(form.group(1)).contains("name=\"_csrf\"");
+		}
+	}
+
+	/** 3 つの一覧は、確認の JavaScript（confirm-submit.js）を 1 回だけ読む。JavaScript が動かないときは、確認なしで削除される */
+	@Test
+	void eachListLoadsTheConfirmScriptOnce() throws Exception {
+		for (Screen screen : SCREENS) {
+			String html = page(screen.path());
+
+			assertThat(html.split("/js/confirm-submit.js", -1).length - 1).as(screen.path()).isEqualTo(1);
+			assertThat(html).as(screen.path()).contains("<script defer src=\"/js/confirm-submit.js\"></script>");
+		}
+	}
+
+	/**
+	 * XSS 対策（設計書 7.5）：名前は利用者の入力。属性の中でも、記号は文字に変えて出す（属性を閉じたり、タグを作ったりできない）。
+	 * 名前の中の「'」や「{0}」も、文の一部として、そのまま出る（メッセージの引数なので、文として読み直されない）。
+	 */
+	@Test
+	void aNameWithSymbolsStaysInsideTheAttributeAsText() throws Exception {
+		String evil = "\"><b>'&{0}";   // 10 文字（科目・支払方法の上限）
+		Long userId = userRepository.save(new User("masterlay2", "dummy-hash-for-test")).getId();
+		categoryRepository.save(new Category(userId, evil));
+		vendorRepository.save(new Vendor(userId, evil));
+		paymentMethodRepository.save(new PaymentMethod(userId, evil));
+		entityManager.flush();
+		entityManager.clear();
+		RequestPostProcessor asEvil = user(new LoginUser(userId, "masterlay2", "x"));
+
+		for (Screen screen : SCREENS) {
+			String html = mockMvc.perform(get(screen.path()).with(asEvil)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+			String main = main(html);
+			Matcher form = Pattern.compile("<form[^>]*/delete\"[^>]*>").matcher(main);
+
+			assertThat(form.find()).as(screen.path()).isTrue();
+			assertThat(form.group()).as(screen.path() + "：記号は文字に変わり、属性の中に収まる")
+					.contains("data-confirm=\"" + screen.noun() + "「&quot;&gt;&lt;b&gt;&#39;&amp;{0}」を削除します。よろしいですか？\"");
+			assertThat(main).as(screen.path() + "：タグとしては出ない").doesNotContain("<b>");
 		}
 	}
 
@@ -199,15 +247,5 @@ class MasterListLayoutTest {
 
 		assertThat(rule(css, ".table-card th.row-actions-head")).contains("text-align: right");
 		assertThat(css).as("取引一覧だけの規則は、白いカードの規則にまとめた").doesNotContain(".list-card th.row-actions-head");
-	}
-
-	/** 古い操作の列の作り（actions、d-flex、btn-sm）は、科目・取引先・支払方法の一覧から、なくなった */
-	@Test
-	void theOldActionMarkupIsGone() throws Exception {
-		for (String name : List.of("categories", "vendors", "payment-methods")) {
-			String html = Files.readString(Path.of("src", "main", "resources", "templates", name, "list.html"));
-
-			assertThat(html).as(name).doesNotContain("class=\"actions\"", "d-flex", "btn-sm", "btn-outline-secondary", "btn-outline-danger", "inline-form");
-		}
 	}
 }

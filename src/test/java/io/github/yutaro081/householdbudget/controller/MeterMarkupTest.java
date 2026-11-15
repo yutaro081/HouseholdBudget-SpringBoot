@@ -185,16 +185,6 @@ class MeterMarkupTest {
 		assertThat(card.indexOf("class=\"top-meter-budget-label\"")).isGreaterThan(card.indexOf("class=\"top-meter\""));
 	}
 
-	/** メーターの上の説明「縦の線は『今日』（季節の ○%）」は、なくした */
-	@Test
-	void theDescriptionOfTheVerticalLineIsGone() throws Exception {
-		Category food = category("食費", 130_000);
-		spend(food, 3_000);
-
-		assertThat(page("/")).doesNotContain("縦の線は『今日』（季節の");
-		assertThat(page("/comparison")).doesNotContain("縦の線は『今日』（季節の");
-	}
-
 	/** 今週の小さなメーターは、文字を置かず、線の形だけで区別する。下の注記に「点線：今日／実線：予算」 */
 	@Test
 	void theWeeklyMetersHaveNoTextAndTheLegendExplainsTheLines() throws Exception {

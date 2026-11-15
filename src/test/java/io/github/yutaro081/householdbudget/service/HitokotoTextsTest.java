@@ -118,11 +118,12 @@ class HitokotoTextsTest {
 	void theTableHas2025To2027OnlyAndNothingFrom2028() {
 		SolarTermCalendar calendar = TEXTS.calendar();
 
-		assertThat(calendar.hasYear(2025)).isTrue();
-		assertThat(calendar.hasYear(2026)).isTrue();
-		assertThat(calendar.hasYear(2027)).isTrue();
-		assertThat(calendar.hasYear(2024)).isFalse();
-		assertThat(calendar.hasYear(2028)).isFalse();
+		// 表にある年の日は「表の日付」（approximate が false）、表にない年の日は「ごろ」の月日で代わりに求める（true）
+		assertThat(calendar.positionOn(LocalDate.of(2025, 6, 15)).approximate()).isFalse();
+		assertThat(calendar.positionOn(LocalDate.of(2026, 6, 15)).approximate()).isFalse();
+		assertThat(calendar.positionOn(LocalDate.of(2027, 6, 15)).approximate()).isFalse();
+		assertThat(calendar.positionOn(LocalDate.of(2024, 6, 15)).approximate()).isTrue();
+		assertThat(calendar.positionOn(LocalDate.of(2028, 6, 15)).approximate()).isTrue();
 	}
 
 	/** 暦要項から取得した日付の写し（2025〜2027年の72件）と一致する（写し間違いを見つける） */

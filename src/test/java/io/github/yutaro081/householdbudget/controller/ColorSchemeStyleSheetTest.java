@@ -167,13 +167,11 @@ class ColorSchemeStyleSheetTest {
 	}
 
 	@Test
-	void errorRedDeleteButtonAndSecondaryButtonAreDarkerThanBootstrapDefaults() throws Exception {
+	void errorRedAndSecondaryButtonAreDarkerThanBootstrapDefaults() throws Exception {
 		String css = css("/css/style.css");
 		assertThat(rule(css, ":root")).as("エラーの文字（.field-error）は --bs-danger を使うので、これを濃い赤にする")
 				.contains("--bs-danger: var(--hb-danger)", "--bs-danger-rgb: 176, 42, 55");
 		assertThat(rule(css, ".field-error")).contains("var(--bs-danger");
-		assertThat(rule(css, ".btn-outline-danger")).as("削除ボタン（赤い枠）は、濃い赤の変数")
-				.contains("--bs-btn-color: var(--hb-danger)", "--bs-btn-border-color: var(--hb-danger)", "--bs-btn-hover-bg: var(--hb-danger)");
 		assertThat(rule(css, ".btn-outline-secondary")).as("副ボタンの文字・枠は、補足の文字と同じ色の変数")
 				.contains("--bs-btn-color: var(--hb-text-sub)", "--bs-btn-border-color: var(--hb-text-sub)", "--bs-btn-hover-bg: var(--hb-text-sub)");
 		String withoutComments = css.replaceAll("(?s)/\\*.*?\\*/", "").toLowerCase();

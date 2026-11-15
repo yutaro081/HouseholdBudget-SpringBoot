@@ -19,7 +19,7 @@ import io.github.yutaro081.householdbudget.form.TransactionForm;
 import io.github.yutaro081.householdbudget.repository.TransactionRepository;
 
 /**
- * 取引の一覧・詳細・登録・更新・削除（設計書 4.5、1.4 の例1、3.9、5.5）。
+ * 取引の一覧・1件の取得（編集・複写の元）・登録・更新・削除（設計書 4.5、1.4 の例1、3.9、5.5）。
  * <p>
  * 【決まり】すべてのメソッドの最初の引数は userId（ログイン中のユーザーのID。Controller が LoginUser から取り出して渡す）。
  * ID で探すときは、必ず「ID と user_id」の両方で絞る。見つからなければ NotFoundException

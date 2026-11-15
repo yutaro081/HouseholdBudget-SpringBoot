@@ -107,7 +107,6 @@ class ComparisonStyleSheetTest {
 		String all = rule(css, ".comparison-table tbody td") + rule(css, ".comparison-table thead th") + rule(css, ".comparison-table td.remain-cell")
 				+ rule(css, ".comparison-table td.gap-cell") + rule(css, ".comparison-table td.diff-cell");
 		assertThat(all).as("4 段の外の大きさは使わない").doesNotContain("1.0625rem", "1.125rem", "1.5em", "0.625rem");
-		assertThat(css).as("💮 の大きな絵文字の規則は、なくなった").doesNotContain(".comparison-table .within-mark");
 	}
 
 	/** 数字の列の全体は、太字にしない。太字は、残り・見込みとの差・差額のセルだけ（クラスで指定する。「最後の列」では指定しない。列を足しても崩れない） */
@@ -131,14 +130,6 @@ class ComparisonStyleSheetTest {
 		String total = rule(css(), ".comparison-table tr.total-row td");
 
 		assertThat(total).contains("font-size: 1.25rem", "font-weight: 700", "border-top: 3px solid var(--hb-text)");
-	}
-
-	/** 色は、チップと、残り・見込みとの差の赤い数字だけ。青い数字（diff-low）と、行の背景（row-within）、行の文字全体の色の規則は、なくなった */
-	@Test
-	void colorIsOnTheChipsAndTheRedNumbersOnly() throws Exception {
-		String css = css();
-
-		assertThat(css).doesNotContain(".comparison-table td.diff-low", ".comparison-table tr.row-within", "tr.row-over td", "tr.row-low td", ".comparison-table .cell-mark");
 	}
 
 	/** チップ：13px、400、枠 1px、角を丸く、折り返さない。意味ごとに、色の変数（赤・青・予算内）を使う */

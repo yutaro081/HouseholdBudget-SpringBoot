@@ -39,8 +39,10 @@
             <td><div class="row-actions">
                 <a class="row-btn" title="この取引先を直す" th:href="@{/vendors/{id}/edit(id=${vendor.id})}"><th:block th:replace="~{fragments/icons :: icon('pencil', 14, 2)}"></th:block>変更</a>
                 <!--/* 削除ボタン。使用中のものにも出す（押したあと、削除できない理由を表示する）。
-                     確認ダイアログの文言は固定。利用者の入力は埋め込まない（設計書 7.5）。th:action でトークンが入る（7.6） */-->
-                <form th:action="@{/vendors/{id}/delete(id=${vendor.id})}" method="post" onsubmit="return confirm('削除しますか？')">
+                     確認の文は、種類と名前を入れて、HTML の属性 data-confirm に入れる（名前は利用者の入力。th:attr が HTML として無害化する。設計書 2.2、7.5）。
+                     確認は confirm-submit.js が出す（取引一覧と同じ。issue 026）。onsubmit などは使わない。th:action でトークンが入る（7.6） */-->
+                <form th:action="@{/vendors/{id}/delete(id=${vendor.id})}" method="post"
+                      th:attr="data-confirm=#{vendor.delete.confirm(${vendor.name})}">
                     <button type="submit" class="row-btn row-btn-danger" title="この取引先を削除する"><th:block th:replace="~{fragments/icons :: icon('trash', 14, 2)}"></th:block>削除</button>
                 </form>
             </div></td>
@@ -49,5 +51,6 @@
     </table>
     </div>
 </main>
+<script defer th:src="@{/js/confirm-submit.js}"></script>
 </body>
 </html>

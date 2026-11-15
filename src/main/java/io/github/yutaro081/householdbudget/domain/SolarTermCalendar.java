@@ -87,10 +87,6 @@ public final class SolarTermCalendar {
 		this.approx = Map.copyOf(approx);
 	}
 
-	public boolean hasYear(int year) {
-		return table.containsKey(year);
-	}
-
 	/** その年の節気の日。表にない年は「ごろ」の月日。 */
 	public LocalDate dateOf(int year, int sekkiIndex) {
 		Map<String, LocalDate> dates = table.get(year);
