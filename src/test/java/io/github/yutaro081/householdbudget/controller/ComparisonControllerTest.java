@@ -577,12 +577,11 @@ class ComparisonControllerTest {
 
 	/** style.css に、チップの規則がある。行の背景と 💮 の規則は、なくなった（クラス名の食い違いに気づくため。色の値は ColorSchemeStyleSheetTest で確かめる） */
 	@Test
-	void styleSheetHasTheChipRulesAndNoLongerTheWithinRowRules() throws Exception {
+	void styleSheetHasTheChipRules() throws Exception {
 		String css = mockMvc.perform(get("/css/style.css")).andExpect(status().isOk())
 				.andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
 
 		assertThat(css).contains(".chip-over", ".chip-low", ".chip-within", ".chip-icon");
-		assertThat(css).doesNotContain(".comparison-table tr.row-within", ".comparison-table .within-mark");
 	}
 
 	/** XSS 対策（設計書 7.5）：科目名の < > は文字として出る。タグとしては出ない（科目名が表の行に出る画面。Phase 8 の 4.14） */

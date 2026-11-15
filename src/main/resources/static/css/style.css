@@ -30,7 +30,7 @@
  * 色は、ここの変数（--hb-…）にまとめる。Bootstrap の変数は、このファイルで上書きする（bootstrap.min.css は書き換えない）。
  * --hb-teal（#0E9594）は、枠の線（border）だけに使う。今の画面では、取引の登録・編集画面の金額の欄の枠だけ。トップの棒・円は別の変数（--hb-chart-…）。
  * --hb-teal-pale は、今開いている画面のメニュー項目と、小さな印（チップなど）だけに使う。大きな面の背景には使わない。
- * 赤（#c62828）・青（#1565c0）・💮 の行の背景（--hb-apricot）は、予実比較の意味の色。飾りに使わない。
+ * 赤（#c62828）・青（#1565c0）・「予算内」のチップの背景（--hb-apricot）は、予実比較の意味の色。飾りに使わない。
  * --hb-input-border（入力欄の枠）は、入力欄の地が白（--hb-input-bg）であることを前提に決めた値。地を変えるときは、枠も測り直す。
  */
 :root {
@@ -62,7 +62,7 @@
 
     /* トップの円グラフ・棒の色（設計書 2.3「色の決まり」、issue 010 の Q010-9）。ターコイズの濃淡 5 段と灰色。
        基本のターコイズ（--hb-teal）は枠だけに使う決まりなので、ここは別の変数にした。値は案で、実装のあとに測り直す（手順書 issue-010-top.md）。
-       赤・青・💮 の色は円グラフに使わない。棒は --hb-chart-2 */
+       赤・青・「予算内」のチップの色は円グラフに使わない。棒は --hb-chart-2 */
     --hb-chart-1: #0B6E6B;
     --hb-chart-2: #0F8F8E;
     --hb-chart-3: #3FAAA9;
@@ -152,19 +152,6 @@ th {
     --bs-btn-disabled-bg: var(--hb-teal-button);
     --bs-btn-disabled-border-color: var(--hb-teal-button);
     --bs-btn-focus-shadow-rgb: 11, 127, 126;
-}
-
-/* 削除ボタン（赤い枠）：赤は #B02A37（背景 #F6F8F8 の上で 6.09 対 1）。マウスを載せたとき・押したときは、地がこの赤で、白い文字 */
-.btn-outline-danger {
-    --bs-btn-color: var(--hb-danger);
-    --bs-btn-border-color: var(--hb-danger);
-    --bs-btn-hover-bg: var(--hb-danger);
-    --bs-btn-hover-border-color: var(--hb-danger);
-    --bs-btn-active-bg: var(--hb-danger);
-    --bs-btn-active-border-color: var(--hb-danger);
-    --bs-btn-disabled-color: var(--hb-danger);
-    --bs-btn-disabled-border-color: var(--hb-danger);
-    --bs-btn-focus-shadow-rgb: 176, 42, 55;
 }
 
 /* 副ボタン（灰色の枠）：文字と枠は補足の文字と同じ #56625F（背景 #F6F8F8 の上で 5.96 対 1。Bootstrap の標準 #6C757D は 4.40 対 1 だった） */
@@ -487,12 +474,6 @@ main.form-wide {
     color: var(--bs-danger, #c00);
     font-size: var(--hb-font-size-small);
     margin-top: 0.25rem;
-}
-
-/* ボタンだけのフォームや、横に並べるフォーム */
-.inline-form {
-    display: inline-block;
-    margin: 0;
 }
 
 /* 科目・取引先・支払方法の追加フォーム（issue 024。設計書 2.3）：名前の入力欄と「追加」ボタンを同じ行に並べる。エラーの文は行の下に出るので、ボタンは上にそろえる */
@@ -906,7 +887,7 @@ table.list th.num {
 /*
  * トップ（設計書 2.3、5.11、issue 010）：季節のメーター、今週の円グラフ、今週の科目ごとのメーター。HTML と CSS だけで描く。
  * 円の角度・棒の長さ・「今日」の線の位置は、テンプレートが style 属性に入れる（数字だけ。設計書 7.5）。
- * 色：棒と円は --hb-chart-…（ターコイズの濃淡と灰色）。今週の科目ごとの行の赤・青・💮 の背景は、予実比較と同じ値（意味の色）。
+ * 色：棒と円は --hb-chart-…（ターコイズの濃淡と灰色）。今週の科目ごとの行のチップ（予算超え・使い残し・予算内）は、予実比較と同じ部品・同じ色（意味の色）。
  * 予実比較の規則（.comparison-table …）は流用せず、別のクラス（.top-weeks、week-…）で作る。
  */
 .top-head {

@@ -42,3 +42,6 @@ application-local.properties
 
 # AI レビュー用の差分（毎回作るファイル）
 review-code.diff
+
+# 全体の見直しの報告（issue 026。手もとに置くだけ）
+review-026.md

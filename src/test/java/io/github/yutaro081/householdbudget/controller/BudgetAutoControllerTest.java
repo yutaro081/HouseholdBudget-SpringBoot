@@ -696,14 +696,6 @@ class BudgetAutoControllerTest {
 		assertThat(headerCells(winter(null))).as("ふだんの画面は 2 列のまま").containsExactly("科目", "予算額（円）");
 	}
 
-	/** issue 020：参考の列を灰色にしていた印（budget-ref）は、なくした。本文と同じ濃さで読める */
-	@Test
-	void theReferenceColumnsHaveNoMutedClassAnyMore() throws Exception {
-		designExample();
-
-		assertThat(winter("1")).doesNotContain("budget-ref");
-	}
-
 	// ---- issue 020、024：案のもとにした数字に、薄いターコイズの背景と太字の目印（auto-source。issue 024 で、下線から変えた）。どの数字かは Service が決める ----
 
 	/** ① 中央値の行：根拠の列の数字だけ（印は 1 か所） */
@@ -1806,13 +1798,5 @@ class BudgetAutoControllerTest {
 		try (var files = java.nio.file.Files.list(java.nio.file.Path.of("src", "main", "resources", "static", "js"))) {
 			assertThat(files.map(f -> f.getFileName().toString()).toList()).as("新しいファイルは作らない").doesNotContain("budget-save.js", "save-confirm.js");
 		}
-	}
-
-	/** 「下線」の言葉が、画面の文に残っていない */
-	@Test
-	void noUnderlineWordOnTheScreen() throws Exception {
-		designExample();
-
-		assertThat(winter("1")).doesNotContain("下線");
 	}
 }

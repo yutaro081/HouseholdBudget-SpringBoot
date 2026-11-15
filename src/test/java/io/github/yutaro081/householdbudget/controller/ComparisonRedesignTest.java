@@ -333,13 +333,6 @@ class ComparisonRedesignTest {
 	}
 
 	@Test
-	void theOldOneLineSentenceIsGone() throws Exception {
-		fourCategories();
-
-		assertThat(page("/comparison")).doesNotContain("このペースだと、季節の終わりには、合計で");
-	}
-
-	@Test
 	void theVerdictIsTheLessSentenceAndNotRedWhenTheTotalForecastIsWithinTheBudget() throws Exception {
 		Category food = category("食費", 100_000, Season.AUTUMN, 2026);
 		recordingStartedLongAgo(food);

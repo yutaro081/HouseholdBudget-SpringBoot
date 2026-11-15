@@ -172,7 +172,8 @@ class PaymentMethodControllerTest {
 		assertThat(body).contains("action=\"/payment-methods\"");                                          // 追加フォーム
 		assertThat(body).contains("href=\"/payment-methods/" + item.getId() + "/edit\"");                  // 変更リンク
 		assertThat(body).contains("action=\"/payment-methods/" + item.getId() + "/delete\"");              // 削除フォーム
-		assertThat(body).contains("onsubmit=\"return confirm('削除しますか？')\"");                 // 確認ダイアログ（固定の文言）
+		assertThat(body).contains("data-confirm=\"支払方法「現金」を削除します。よろしいですか？\"");   // 確認ダイアログの文（名前入り。confirm-submit.js が読む）
+		assertThat(body).doesNotContain("onsubmit");
 		assertThat(body).contains("name=\"_csrf\"");                                             // CSRF のトークン
 	}
 

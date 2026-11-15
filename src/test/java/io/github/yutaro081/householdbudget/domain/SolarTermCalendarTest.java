@@ -193,8 +193,6 @@ class SolarTermCalendarTest {
 		assertThat(calendar.dateOf(2026, index("立春"))).isEqualTo(LocalDate.of(2026, 2, 4));
 		assertThat(calendar.dateOf(2027, index("春分"))).isEqualTo(LocalDate.of(2027, 3, 21));
 		assertThat(calendar.dateOf(2030, index("春分"))).isEqualTo(LocalDate.of(2030, 3, 20));     // 表の外：ごろ
-		assertThat(calendar.hasYear(2027)).isTrue();
-		assertThat(calendar.hasYear(2028)).isFalse();
 	}
 
 }

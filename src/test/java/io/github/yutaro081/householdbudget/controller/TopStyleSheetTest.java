@@ -76,14 +76,6 @@ class TopStyleSheetTest {
 		assertThat(withoutComments(css)).as("行の背景（薄いアプリコット）は付けない").doesNotContainPattern("\\.top-pie[^{]*\\{[^}]*apricot");
 	}
 
-	/** 今週の進み具合の行に、色・背景の規則はない（状態は、チップで示す。issue 024） */
-	@Test
-	void weekRowsHaveNoRowColorOrBackgroundRules() throws Exception {
-		String css = withoutComments(css());
-
-		assertThat(css).doesNotContain(".top-weeks li.week-over", ".top-weeks li.week-low", ".top-weeks li.week-within");
-	}
-
 	/** トップの文字の大きさは 4 段だけ：4 段の外（17px・18px・10px・文字の 1.5 倍）は、トップの規則に使わない。今日の矢印は 13px、今週のひとことは 16px */
 	@Test
 	void theTopRulesUseOnlyTheFourFontSizes() throws Exception {

@@ -58,12 +58,6 @@ class BudgetTableStyleSheetTest {
 		assertThat(rule(css, ".comparison-table tbody td")).as("予実比較の表と同じ大きさ").contains("font-size: var(--hb-font-size-body)");
 	}
 
-	/** 参考の列を灰色にする規則（.budget-ref）は、なくした */
-	@Test
-	void noRuleMakesTheReferenceColumnsGray() throws Exception {
-		assertThat(css()).doesNotContain(".budget-ref");
-	}
-
 	/** 「ペース 約 …」の補足だけは、小さな灰色のまま */
 	@Test
 	void onlyThePaceNoteStaysSmallAndGray() throws Exception {

@@ -172,7 +172,8 @@ class VendorControllerTest {
 		assertThat(body).contains("action=\"/vendors\"");                                          // 追加フォーム
 		assertThat(body).contains("href=\"/vendors/" + item.getId() + "/edit\"");                  // 変更リンク
 		assertThat(body).contains("action=\"/vendors/" + item.getId() + "/delete\"");              // 削除フォーム
-		assertThat(body).contains("onsubmit=\"return confirm('削除しますか？')\"");                 // 確認ダイアログ（固定の文言）
+		assertThat(body).contains("data-confirm=\"取引先「コンビニ」を削除します。よろしいですか？\"");   // 確認ダイアログの文（名前入り。confirm-submit.js が読む）
+		assertThat(body).doesNotContain("onsubmit");
 		assertThat(body).contains("name=\"_csrf\"");                                             // CSRF のトークン
 	}
 

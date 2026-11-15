@@ -174,14 +174,6 @@ class LayoutStyleSheetTest {
 		assertThat(rule(css, ".top-weeks .top-meter")).contains("height: 10px");
 	}
 
-	/** 今週の進み具合の行は、背景なし（issue 024：薄いアプリコットの行の背景は、なくした。状態は、チップ） */
-	@Test
-	void progressRowsHaveNoBackgroundOrMeaningColorOfTheirOwn() throws Exception {
-		String css = css();
-
-		assertThat(css).doesNotContain(".top-weeks li.week-within", ".top-weeks li.week-over", ".top-weeks li.week-low");
-	}
-
 	// ---- 色・文字の決まりを破っていない ----
 
 	@Test
