@@ -1,12 +1,25 @@
 package io.github.yutaro081.householdbudget.security;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.security.web.access.AccessDeniedHandlerImpl;
+import org.springframework.security.web.access.RequestMatcherDelegatingAccessDeniedHandler;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+import org.springframework.security.web.authentication.DelegatingAuthenticationEntryPoint;
+import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
+import org.springframework.security.web.session.InvalidSessionAccessDeniedHandler;
+import org.springframework.security.web.session.SimpleRedirectInvalidSessionStrategy;
+import org.springframework.security.web.util.matcher.RequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcherEntry;
 import org.springframework.web.servlet.FlashMap;
 import org.springframework.web.servlet.support.SessionFlashMapManager;
 
@@ -19,6 +32,9 @@ import org.springframework.web.servlet.support.SessionFlashMapManager;
  * ・ログイン後にセッションIDを新しくする標準の動きも、無効にしない（7.10）。
  * ・全 URL を許可する仮の設定は作らない。
  * ・セッション Cookie の設定（S1）は application.properties に書く（Phase 3 の 4.11）。
+ * ・ログインが切れたあと（古いセッションID で来たとき）は、画面を開く（GET）もボタンを押す（POST）も、
+ *   /login?expired へ移す（7.10、S10、issue 030）。標準の部品を組み合わせ、自分で書くのは「古いセッションID か」の判定だけ。
+ *   invalidSessionUrl は使わない（セッションID を持たないトークンなしの POST まで、403 でなくなるため）。
  */
 @Configuration
 public class SecurityConfig {
@@ -28,6 +44,16 @@ public class SecurityConfig {
 	public PasswordEncoder passwordEncoder() {
 		return new BCryptPasswordEncoder();
 	}
+
+	/** ログインが切れたあとに移る先（ログイン画面が「ログインが切れました。もう一度ログインしてください。」を出す） */
+	private static final String EXPIRED_LOGIN_URL = "/login?expired";
+
+	/**
+	 * 古いセッションID で来たか（7.10）。ブラウザがセッションID（JSESSIONID）を送ってきたのに、サーバーにはもうない
+	 * （30 分操作がなくて切れた、アプリを再起動した）とき true。セッションID を持たずに来たときは false。
+	 */
+	static final RequestMatcher OLD_SESSION = request -> request.getRequestedSessionId() != null
+			&& !request.isRequestedSessionIdValid();
 
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -50,8 +76,32 @@ public class SecurityConfig {
 						// POST /logout（CSRF のトークンが要る、7.6）。セッションを捨てて、ログイン画面へ
 						.logoutUrl("/logout")
 						.logoutSuccessUrl("/login?logout")
-						.permitAll());
+						.permitAll())
+				.exceptionHandling(exceptions -> exceptions
+						// 画面を開く（GET）でログインが要るとき：古いセッションID なら /login?expired、それ以外は今までどおり /login
+						.authenticationEntryPoint(loginEntryPoint())
+						// ボタンを押す（POST）で CSRF のトークンが合わないとき：古いセッションID なら /login?expired（保存しない）、
+						// それ以外は今までどおり 403（7.6）。CSRF の確認（CsrfFilter）も、この部品を使う
+						.accessDeniedHandler(accessDeniedHandler()));
 		return http.build();
+	}
+
+	/** 未ログインで、ログインが要る画面を開いたときの移動先（7.3、7.10） */
+	private static AuthenticationEntryPoint loginEntryPoint() {
+		return new DelegatingAuthenticationEntryPoint(
+				new LoginUrlAuthenticationEntryPoint("/login"),
+				// 可変長の引数ではなく List で渡す（総称型の配列の警告が出ないため）
+				List.of(new RequestMatcherEntry<AuthenticationEntryPoint>(OLD_SESSION, new LoginUrlAuthenticationEntryPoint(EXPIRED_LOGIN_URL))));
+	}
+
+	/**
+	 * 拒否したとき（今の設定では、CSRF のトークンが合わない POST だけ。7.6、7.10）。
+	 * ログインが切れたあとは、サーバーにトークンが残っていないので、POST はここに来る。そのときは /login?expired へ移す。
+	 */
+	private static AccessDeniedHandler accessDeniedHandler() {
+		LinkedHashMap<RequestMatcher, AccessDeniedHandler> handlers = new LinkedHashMap<>();
+		handlers.put(OLD_SESSION, new InvalidSessionAccessDeniedHandler(new SimpleRedirectInvalidSessionStrategy(EXPIRED_LOGIN_URL)));
+		return new RequestMatcherDelegatingAccessDeniedHandler(handlers, new AccessDeniedHandlerImpl());
 	}
 
 	/**

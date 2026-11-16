@@ -74,7 +74,8 @@ class MessagesTest {
 			"error.duplicate.user|このユーザー名はすでに使われています",
 			"error.login.failed|ユーザー名またはパスワードが違います",
 			"success.accountRegistered|登録しました。ログインしてください",
-			"success.logout|ログアウトしました"
+			"success.logout|ログアウトしました",
+			"info.loginExpired|ログインが切れました。もう一度ログインしてください。"
 	})
 	void messageText(String key, String expected) {
 		assertThat(messageSource.getMessage(key, null, Locale.JAPAN)).isEqualTo(expected);

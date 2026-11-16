@@ -60,11 +60,13 @@
 <th:block th:fragment="brand"><a class="brand" th:href="@{/}"><span class="brand-logo"><th:block th:replace="~{fragments/icons :: icon('logo', 18, 2)}"></th:block></span><span class="brand-name">家計・予実管理</span></a></th:block>
 
 <!--/* 成功メッセージ・エラーメッセージの表示場所（画面の上部、2.3）。
-     Controller が、messages.properties のキーを successMessageKey / errorMessageKey で渡す。
-     お知らせの枠（issue 021）：文の左にアイコン（成功＝check、失敗＝alert）。アイコンは飾りなので aria-hidden（fragments/icons）。文は th:text */-->
+     Controller が、messages.properties のキーを successMessageKey / errorMessageKey / infoMessageKey で渡す。
+     お知らせの枠（issue 021）：文の左にアイコン（成功＝check、失敗＝alert、案内＝info）。アイコンは飾りなので aria-hidden（fragments/icons）。文は th:text。
+     案内（infoMessageKey）は、ログインが切れたときのログイン画面の文（issue 030）。利用者のまちがいではないので、失敗の形にしない */-->
 <div th:fragment="messages">
     <div class="message success alert alert-success" th:if="${successMessageKey}"><span class="alert-icon"><th:block th:replace="~{fragments/icons :: icon('check', 18, 2)}"></th:block></span><span th:text="${#messages.msg(successMessageKey)}">成功メッセージ</span></div>
     <div class="message error alert alert-danger" th:if="${errorMessageKey}"><span class="alert-icon"><th:block th:replace="~{fragments/icons :: icon('alert', 18, 2)}"></th:block></span><span th:text="${#messages.msg(errorMessageKey)}">エラーメッセージ</span></div>
+    <div class="message info alert alert-info" th:if="${infoMessageKey}"><span class="alert-icon"><th:block th:replace="~{fragments/icons :: icon('info', 18, 2)}"></th:block></span><span th:text="${#messages.msg(infoMessageKey)}">案内メッセージ</span></div>
 </div>
 
 </body>

@@ -58,7 +58,7 @@ class CacheControlHeaderTest {
 
 	/** ログインなしで開く画面 */
 	@ParameterizedTest(name = "ログイン前の {0} に no-store が付く")
-	@ValueSource(strings = { "/login", "/register", "/login?error", "/login?logout" })
+	@ValueSource(strings = { "/login", "/register", "/login?error", "/login?logout", "/login?expired" })
 	void publicScreensAreNotStored(String path) throws Exception {
 		assertNoStore(mockMvc.perform(get(path)).andReturn().getResponse(), path);
 	}

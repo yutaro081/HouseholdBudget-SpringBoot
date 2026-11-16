@@ -31,6 +31,7 @@ public class AuthController {
 
 	/**
 	 * ログイン画面。?error は失敗のあと、?logout はログアウトのあと（Spring Security が付ける）。
+	 * ?expired はログインが切れたあと（SecurityConfig が付ける。issue 030、設計書 7.10）。案内の形で出す。
 	 * 登録成功のあとの「登録しました」は、リダイレクト前に渡された値（フラッシュ属性）で表示される。
 	 */
 	@GetMapping("/login")
@@ -41,6 +42,9 @@ public class AuthController {
 		}
 		if (params.containsKey("logout")) {
 			model.addAttribute("successMessageKey", "success.logout");
+		}
+		if (params.containsKey("expired")) {
+			model.addAttribute("infoMessageKey", "info.loginExpired");
 		}
 		return "login";
 	}
