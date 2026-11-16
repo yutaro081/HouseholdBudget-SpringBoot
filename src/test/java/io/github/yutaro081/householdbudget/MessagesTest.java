@@ -73,7 +73,7 @@ class MessagesTest {
 			"Size.registerForm.password|パスワードは8文字以上30文字以内で入力してください",
 			"error.duplicate.user|このユーザー名はすでに使われています",
 			"error.login.failed|ユーザー名またはパスワードが違います",
-			"success.accountRegistered|登録しました。ログインしてください",
+			"success.accountRegistered|登録しました。ログインしてください。",
 			"success.logout|ログアウトしました",
 			"info.loginExpired|ログインが切れました。もう一度ログインしてください。"
 	})

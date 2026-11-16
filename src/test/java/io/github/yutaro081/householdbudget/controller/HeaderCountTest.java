@@ -98,7 +98,7 @@ class HeaderCountTest {
 		}
 	}
 
-	/** 404 の画面は、ログイン前でも出せる作り（設計書 2.5、7.7）なので、ヘッダーを出さない。2 つ出ないことだけ確かめる */
+	/** 404 の画面は、ログイン前でも出せる作り（設計書 2.5、7.7）なので、ロゴだけのヘッダー（issue 030）。2 つ出ないことを確かめる */
 	@Test
 	void theNotFoundScreenHasNoMoreThanOneHeader() throws Exception {
 		String body = loggedIn("/transactions/999999999/edit");   // 存在しない取引の編集（詳細の画面は、issue 025 でなくした）

@@ -2,7 +2,7 @@
 
 全体の位置づけは [実行計画書](execution-plan.md) を見てください。この文書は、[issue 030](../issues/030-エラーの画面とログイン切れ.md)（ログインが切れたときにログイン画面へ案内する、エラーの画面の見た目をそろえる）を進めるための手順書です。
 
-> **状態（2026年11月16日）**：◐ **段階 1〔ログインが切れたら、ログイン画面へ案内する〕を行った**〔確認待ち。ブラウザでの確かめと、コミット〔本人〕が残っている〕。`.\mvnw clean test` は 2,662 件成功。段階 2 はまだ。
+> **状態（2026年11月17日）**：◐ **段階 1 はコミット済み。段階 2〔エラーの画面の形と文〕を行った**〔確認待ち。ブラウザでの確かめと、コミット〔本人〕が残っている〕。`.\mvnw clean test` は 2,697 件成功。
 
 - ブランチ：`feature/issue-030-error-page`。秘密情報：パスワード・接続先の値は、どこにも書かない。
 - 進め方：1 つの段階が終わったら止まって、確認を待つ。変更は、文書が先〔要件定義書 → 設計書 → この手順書〕、コードは後。**テストが先**〔失敗を確かめてから実装〕。コミットと push は本人。
@@ -196,3 +196,8 @@ RequestMatcher expired = req -> req.getRequestedSessionId() != null && !req.isRe
   - コード：`SecurityConfig`〔`exceptionHandling` に `DelegatingAuthenticationEntryPoint` と `RequestMatcherDelegatingAccessDeniedHandler`。判定は `OLD_SESSION` の 1 か所〕、`AuthController`〔`?expired`〕、`messages.properties`、`fragments/common.html`〔案内の形〕。
   - **わざと壊して確かめた**：`OLD_SESSION` を常に `false` にすると、`SessionExpiredTest` の 18 件〔GET 6、POST 10、保存されない 2〕が失敗した。手で戻した。
   - `.\mvnw clean test`：2,629 件 → 2,662 件〔+33〕、失敗 0。`docs/testing.md`〔セキュリティ 66 → 98、そのほか 82 → 83〕と README の件数を直した。
+- 2026年11月17日：**段階 2 を行った**。
+  - コード：`error/404.html`・`403.html`・`4xx.html`・`5xx.html` を同じ形に〔ロゴだけのヘッダー `public-header`、h1、`alert alert-danger` と `alert` のアイコン、主ボタン「トップへ」〔`/`〕。幅 420px のまま〕。`messages.properties`：`error.page.*` を見出しと `.message`〔お知らせの文〕に分け、`error.page.backToTransactions` を `error.page.toTop` に置きかえ、`success.accountRegistered` の終わりに「。」。`style.css` は変えていない〔新しい色も規則もなし〕。
+  - テスト：新しい `ErrorScreensTest`〔35 件：見出しと文 6、お知らせの形 4、「トップへ」4、「取引一覧へ戻る」がない 4、ロゴだけのヘッダー 4、ユーザー名・メニュー・ログアウトがない 4、文の「。」9〕。5xx の画面の文〔500・503〕を含む。作る前に、34 件が失敗した〔見出しの短さの 1 件〔404〕だけ通った〕。直した既存のテスト：`BudgetControllerTest` の `the400PageHasALinkBack` → `the400PageHasAButtonBackToTop`〔前：`href="/transactions"` がある。後：「トップへ」の主ボタンがあり、`/transactions` のリンクはない〕、`MessagesTest`〔登録の文に「。」〕、`SecurityBehaviorTest`〔`CLIENT_ERROR_MESSAGE` を見出しだけに〕、`HeaderCountTest`〔コメントだけ〕。
+  - **わざと壊して確かめた**：`403.html` からお知らせを消すと、`ErrorScreensTest` の 2 件〔見出しと文、お知らせの形〕が失敗した。手で戻した。
+  - `.\mvnw clean test`：2,662 件 → 2,697 件〔+35〕、失敗 0。`docs/testing.md`〔画面 1011 → 1046〕と README の件数を直した。

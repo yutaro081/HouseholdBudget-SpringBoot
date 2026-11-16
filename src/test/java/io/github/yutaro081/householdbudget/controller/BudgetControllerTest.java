@@ -828,13 +828,14 @@ class BudgetControllerTest {
 		assertThat(seasonOf(a, 2026, Season.WINTER)).isEmpty();
 	}
 
-	/** 400 の画面は、ログイン前でなくても出せる作り（error/4xx）で、取引一覧へのリンクがある */
+	/** 400 の画面は、ログイン前でなくても出せる作り（error/4xx）で、トップへ戻るボタンがある（issue 030。取引一覧へのリンクはない） */
 	@Test
-	void the400PageHasALinkBack() throws Exception {
+	void the400PageHasAButtonBackToTop() throws Exception {
 		String body = body(mockMvc.perform(save("2026", "winter", a.food().getId(), 100).with(asA).param("rows[-1].categoryId", "1"))
 				.andExpect(status().isBadRequest()).andReturn());
 
-		assertThat(body).contains("href=\"/transactions\"");
+		assertThat(body).containsPattern("<a [^>]*class=\"btn btn-primary\"[^>]*href=\"/\"[^>]*>トップへ</a>");
+		assertThat(body).doesNotContain("href=\"/transactions\"");
 	}
 
 }

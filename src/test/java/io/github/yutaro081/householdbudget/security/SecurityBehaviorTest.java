@@ -194,7 +194,7 @@ class SecurityBehaviorTest {
 
 	// ---- エラー画面の文言（設計書 7.7。Phase 8 の 4.14）----
 
-	private static final String CLIENT_ERROR_MESSAGE = "操作を完了できませんでした。もう一度やり直してください";
+	private static final String CLIENT_ERROR_MESSAGE = "操作を完了できませんでした";   // 見出し。お知らせの文は ErrorScreensTest が確かめる（issue 030）
 
 	/**
 	 * 403（CSRF のトークンなしなど）と 405（許されない方法）の画面。MockMvc は /error への転送をしないので、

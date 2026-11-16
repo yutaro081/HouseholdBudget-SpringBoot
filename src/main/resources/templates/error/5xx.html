@@ -3,14 +3,17 @@
 <head th:replace="~{fragments/common :: head('エラーが発生しました')}"></head>
 <body>
 <!--/*
-  500 番台（5xx）の予期しないエラーの専用画面（設計書 7.7、S3、S9）。Spring Boot が、状態コードが 500 番台のとき（404 などの専用の画面がないもの）に自動で使う。
-  ・エラーの詳しい中身（スタックトレース、例外の名前・メッセージ、SQL、ファイルのパス、DB の情報）は、一切出さない。
-    詳しい中身は、サーバーのログ（開発中はコンソール）にだけ出る。
-  ・ログイン前でも表示できる。そのため、ログイン中のユーザー名は出さない。
+  500 番台（5xx）の予期しないエラーの専用画面（設計書 7.7、S3、S9）。Spring Boot が、状態コードが 500 番台のとき（専用の画面がないもの）に自動で使う。
+  ・詳しい中身は、サーバーのログ（開発中はコンソール）にだけ出る。
+  4 つのエラーの画面は、同じ形（設計書 2.5、7.7、issue 030）：ロゴだけのヘッダー、1 行の見出し、失敗のお知らせ（alert-danger と alert のアイコン）、主ボタン「トップへ」。
+  ・エラーの詳しい中身（例外・スタックトレース・SQL・ファイルのパス・DB の情報）は、一切出さない。
+  ・ログイン前でも表示できる（/error はログインなしで開ける、7.3）。そのため、ヘッダーはロゴだけで、ログイン中のユーザー名・メニュー・ログアウトは出さない。
 */-->
+<header th:replace="~{fragments/public-header :: publicHeader}"></header>
 <main class="container narrow">
-    <h1 th:text="#{error.page.serverError}">エラーが発生しました。しばらくしてからもう一度お試しください</h1>
-    <p><a th:href="@{/transactions}" th:text="#{error.page.backToTransactions}">取引一覧へ戻る</a></p>
+    <h1 th:text="#{error.page.serverError}">見出し</h1>
+    <div class="alert alert-danger"><span class="alert-icon"><th:block th:replace="~{fragments/icons :: icon('alert', 18, 2)}"></th:block></span><span th:text="#{error.page.serverError.message}">お知らせの文</span></div>
+    <p><a class="btn btn-primary" th:href="@{/}" th:text="#{error.page.toTop}">トップへ</a></p>
 </main>
 </body>
 </html>
