@@ -7,14 +7,11 @@
     <!--/* 成功メッセージの表示場所（画面の上部、設計書 2.3） */-->
     <div th:replace="~{fragments/common :: messages}"></div>
 
-    <!--/* 見出しの行（設計書 2.3、issue 017 の 2 回目）：左に見出しと件数の文、右に「＋ 取引を登録」。件数は、画面に渡した取引の数（全件表示なので全件数。Q017-13）。0 件のときは件数の文を出さない */-->
+    <!--/* 見出しの行（設計書 2.3、issue 017 の 2 回目）：見出しと件数の文。「＋ 取引を登録」は、全画面のヘッダーに移した（issue 029）。件数は、画面に渡した取引の数（全件表示なので全件数。Q017-13）。0 件のときは件数の文を出さない */-->
     <div class="page-head">
         <div>
             <h1>取引一覧</h1>
             <p class="page-sub" th:unless="${#lists.isEmpty(months)}" th:text="|日付の新しい順に、${#numbers.formatInteger(transactionCount, 1, 'COMMA')} 件を表示しています。|">日付の新しい順に、23 件を表示しています。</p>
-        </div>
-        <div class="page-head-actions">
-            <a class="btn btn-primary" th:href="@{/transactions/new}"><th:block th:replace="~{fragments/icons :: icon('plus', 18, 2.4)}"></th:block>取引を登録</a>
         </div>
     </div>
 

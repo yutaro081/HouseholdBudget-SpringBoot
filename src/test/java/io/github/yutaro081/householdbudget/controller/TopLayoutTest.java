@@ -201,16 +201,17 @@ class TopLayoutTest {
 		assertThat(body).contains("今日は 2月28日（季節の終わりまで、あと 1 日）");
 	}
 
+	/** 見出しの右は、アイコンのない「予実比較を見る」だけ。「取引を登録」は本文に置かず、ヘッダーに置く（issue 029。HeaderRegisterButtonTest） */
 	@Test
-	void theRegisterButtonHasAPlusIconAndTheComparisonButtonDoesNot() throws Exception {
+	void theHeadingRowHasOnlyTheComparisonButtonWithoutAnIcon() throws Exception {
 		Owner a = createOwner("toplay04");
 		category(a, "食費", 30_000);
 
 		String body = topBody(a);
+		String main = body.substring(body.indexOf("<main"), body.indexOf("</main>"));
 
-		assertThat(body).containsPattern(Pattern.compile(
-				"<a class=\"btn btn-primary\" href=\"/transactions/new\"><svg[^>]*>.*?</svg>取引を登録</a>", Pattern.DOTALL));
-		assertThat(body).containsPattern("<a class=\"btn btn-outline-secondary\" href=\"/comparison\">予実比較を見る</a>");
+		assertThat(main).doesNotContain("btn-primary", "取引を登録", "href=\"/transactions/new\"");
+		assertThat(main).containsPattern("<a class=\"btn btn-outline-secondary\" href=\"/comparison\">予実比較を見る</a>");
 	}
 
 	// ---- 季節のメーター ----

@@ -89,20 +89,19 @@ class TransactionListLayoutTest {
 
 	// ---- 見出しの行と件数 ----
 
+	/** 見出しの行は、見出しと件数の文。「取引を登録」は本文に置かず、ヘッダーに置く（issue 029。HeaderRegisterButtonTest） */
 	@Test
-	void theHeadingRowHasTheTitleTheCountAndTheRegisterButtonWithAPlus() throws Exception {
+	void theHeadingRowHasTheTitleAndTheCountButNoRegisterButton() throws Exception {
 		save(100, "a");
 		save(200, "b");
 		String main = list();
 
 		assertThat(main).startsWith("<main class=\"container list-wide\">");
 		assertThat(main).contains("<h1>取引一覧</h1>", "日付の新しい順に、2 件を表示しています。");
-		assertThat(main).containsPattern(Pattern.compile(
-				"<a [^>]*href=\"/transactions/new\"[^>]*><svg[^>]*stroke-width=\"2.4\"[^>]*>.*?</svg>取引を登録</a>", Pattern.DOTALL));
+		assertThat(main).doesNotContain("取引を登録", "href=\"/transactions/new\"");
 		assertThat(main).contains("class=\"page-head\"", "class=\"page-sub\"");
 		assertThat(main.indexOf("<h1>")).isLessThan(main.indexOf("日付の新しい順に"));
-		assertThat(main.indexOf("日付の新しい順に")).isLessThan(main.indexOf("取引を登録</a>"));
-		assertThat(main.indexOf("取引を登録</a>")).as("ボタンは表より前").isLessThan(main.indexOf("<table"));
+		assertThat(main.indexOf("日付の新しい順に")).as("件数の文は表より前").isLessThan(main.indexOf("<table"));
 	}
 
 	@Test
@@ -130,11 +129,12 @@ class TransactionListLayoutTest {
 	}
 
 	@Test
-	void withNoTransactionsThereIsNoCountSentenceNoTableNoCardButTheButton() throws Exception {
+	void withNoTransactionsThereIsNoCountSentenceNoTableNoCardAndNoButton() throws Exception {
 		String main = list();
 
-		assertThat(main).contains("取引はまだありません", "href=\"/transactions/new\"");
-		assertThat(main).doesNotContain("を表示しています", "<table", "list-card", "0 件");
+		// 「取引を登録」は、0 件のときも本文には出さない（全画面のヘッダーにある。issue 029。HeaderRegisterButtonTest）
+		assertThat(main).contains("取引はまだありません");
+		assertThat(main).doesNotContain("を表示しています", "<table", "list-card", "0 件", "href=\"/transactions/new\"");
 	}
 
 	// ---- カードの中の表 ----

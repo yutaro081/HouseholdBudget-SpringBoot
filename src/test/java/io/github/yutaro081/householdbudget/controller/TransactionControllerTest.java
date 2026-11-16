@@ -226,7 +226,8 @@ class TransactionControllerTest {
 		String body = body(mockMvc.perform(get("/transactions").with(asA)).andReturn());
 
 		assertThat(body).contains("取引はまだありません");
-		assertThat(body).contains("href=\"/transactions/new\"");   // 「取引を登録」は0件のときも出る
+		// 「取引を登録」は、本文には出さない（0 件のときも。ヘッダーにある。issue 029）
+		assertThat(body.substring(body.indexOf("<main"), body.indexOf("</main>"))).doesNotContain("href=\"/transactions/new\"");
 	}
 
 	@Test
@@ -258,7 +259,8 @@ class TransactionControllerTest {
 		assertThat(body).contains("href=\"/transactions/new?copyFrom=" + t.getId() + "\"");               // 複写
 		assertThat(body).contains("action=\"/transactions/" + t.getId() + "/delete\"");                   // 削除
 		assertThat(body).doesNotContain("href=\"/transactions/" + t.getId() + "\"");                      // 「詳細」のリンクはなくした
-		assertThat(body).contains("href=\"/transactions/new\"");                                  // 取引を登録
+		assertThat(body.substring(body.indexOf("<main"), body.indexOf("</main>")))
+				.doesNotContain("href=\"/transactions/new\"");                                     // 取引を登録は、本文にはない（ヘッダーにある。issue 029）
 		assertThat(body).contains(a.username());                                                  // ヘッダーのユーザー名
 		assertThat(body).doesNotContain("【仮】");                                                 // 仮の画面ではない
 		assertThat(body).doesNotContain(">null<");                                                // 摘要がなくても null と出ない

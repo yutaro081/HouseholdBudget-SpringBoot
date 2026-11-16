@@ -116,6 +116,11 @@ class TopControllerTest {
 				.andReturn().getResponse().getContentAsString();
 	}
 
+	/** 本文（main）だけ。ヘッダーの「取引を登録」（issue 029）を含めないため */
+	private static String main(String body) {
+		return body.substring(body.indexOf("<main"), body.indexOf("</main>"));
+	}
+
 	private static List<String> styleValues(String body) {
 		List<String> values = new ArrayList<>();
 		Matcher m = STYLE_ATTRIBUTE.matcher(body);
@@ -164,14 +169,15 @@ class TopControllerTest {
 	}
 
 	@Test
-	void hasTheTwoButtonsAtTheTop() throws Exception {
+	void hasOnlyTheComparisonButtonAtTheTop() throws Exception {
 		Owner a = createOwner("topctl03");
 		category(a, "食費", 30_000);
 
-		String body = topBody(a);
+		String main = main(topBody(a));
 
-		assertThat(body).containsPattern("<a [^>]*href=\"/comparison\"[^>]*>予実比較を見る</a>");
-		assertThat(body).containsPattern(java.util.regex.Pattern.compile("<a [^>]*href=\"/transactions/new\"[^>]*><svg[^>]*>.*?</svg>取引を登録</a>", java.util.regex.Pattern.DOTALL));
+		assertThat(main).containsPattern("<a [^>]*href=\"/comparison\"[^>]*>予実比較を見る</a>");
+		// 「取引を登録」は、本文には置かない（全画面のヘッダーに置く。issue 029）
+		assertThat(main).doesNotContain("取引を登録", "href=\"/transactions/new\"");
 	}
 
 	@Test
@@ -211,7 +217,9 @@ class TopControllerTest {
 
 		assertThat(body).contains("先に科目を追加してください").contains("href=\"/categories\"");
 		assertThat(body).doesNotContain("conic-gradient(").doesNotContain("今週の進み具合").doesNotContain("今週 何に使ったか");
-		assertThat(body).contains("予実比較を見る", "取引を登録");
+		// 本文には「予実比較を見る」が残る。「取引を登録」は本文にはなく、ヘッダーにある（issue 029）
+		assertThat(main(body)).contains("予実比較を見る").doesNotContain("取引を登録");
+		assertThat(body.substring(body.indexOf("<header"), body.indexOf("</header>"))).contains("取引を登録</a>");
 	}
 
 	@Test

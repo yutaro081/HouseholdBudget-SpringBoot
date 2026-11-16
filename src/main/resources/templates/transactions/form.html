@@ -2,7 +2,8 @@
 <html lang="ja" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/common :: head(${pageTitle})}"></head>
 <body>
-<header th:replace="~{fragments/common :: header('transactions')}"></header>
+<!--/* 登録（transactionId がない。新規・複写・入力エラーで出し直したとき）は 'transactions-new'：ヘッダーの「取引を登録」に今の印。編集は 'transactions'：「取引一覧」に今の印（issue 029） */-->
+<header th:replace="~{fragments/common :: header(${transactionId == null} ? 'transactions-new' : 'transactions')}"></header>
 <main class="container form-wide">
     <div th:replace="~{fragments/common :: messages}"></div>
 

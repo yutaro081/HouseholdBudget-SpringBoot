@@ -18,7 +18,7 @@
 
 <!--/* ヘッダー（ログイン後の全画面）：ロゴ、アイコンつきのメニュー、ログイン中のユーザー名（＋「さん」）、ログアウトボタン（2.3、issue 017）。
      メニューは、作った画面の分だけ出す（Q3-4）。今開いている画面の項目には、aria-current="page" を付ける（クラスは付けない。issue 015）。
-     どの項目かは、各画面が header('transactions') のように、決まった文字で渡す（利用者の入力は使わない）。ログアウトは POST のフォーム。th:action で CSRF のトークンが自動で入る（7.6） */-->
+     どの項目かは、各画面が header('transactions') のように、決まった文字で渡す（利用者の入力は使わない）。'transactions-new'（取引の登録画面）のときは、メニューではなく「取引を登録」に印を付ける（issue 029）。ログアウトは POST のフォーム。th:action で CSRF のトークンが自動で入る（7.6） */-->
 <header th:fragment="header(current)" class="app-header bg-body-tertiary border-bottom">
     <div class="app-header-inner">
         <!--/* ロゴ：角丸の四角に白い線のアイコン（地は主ボタンの地の色）＋アプリの名前。押すとトップへ */-->
@@ -32,7 +32,11 @@
             <a th:href="@{/budgets}" th:attr="aria-current=${current == 'budgets'} ? 'page'"><th:block th:replace="~{fragments/icons :: icon('budgets', 18, 2)}"></th:block>予算設定</a>
             <a th:href="@{/comparison}" th:attr="aria-current=${current == 'comparison'} ? 'page'"><th:block th:replace="~{fragments/icons :: icon('comparison', 18, 2)}"></th:block>予実比較</a>
         </nav>
+        <!--/* 右のまとまり：「取引を登録」（issue 029）→ ユーザー名 → ログアウト。1 つの div に入れるので、幅がせまいときも 3 つが一緒に折り返す。
+             「取引を登録」は主ボタンの見た目のリンク（＋のアイコン）。<nav> の外に置く（メニューの項目ではなく、画面を開く操作）。
+             取引の登録画面（新規・複写・入力エラーで出し直したとき）は、form.html が header('transactions-new') を渡すので、このボタンに aria-current="page" を付ける（メニューには付けない） */-->
         <div class="user-area d-flex align-items-center gap-2">
+            <a class="btn btn-primary header-register" th:href="@{/transactions/new}" th:attr="aria-current=${current == 'transactions-new'} ? 'page'"><th:block th:replace="~{fragments/icons :: icon('plus', 18, 2.4)}"></th:block>取引を登録</a>
             <span class="user-name"><span sec:authentication="name">ユーザー名</span><span class="user-honorific">さん</span></span>
             <form th:action="@{/logout}" method="post" class="logout-form">
                 <button type="submit" class="btn btn-outline-secondary btn-sm">ログアウト</button>

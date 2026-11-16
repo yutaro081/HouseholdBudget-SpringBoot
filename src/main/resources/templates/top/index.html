@@ -12,7 +12,7 @@
   ・言葉は「今週」「週の予算」（予実比較と混ざらないように。要件定義書 4.5）。一言（ペースの説明）は出さない（Q010-3）。
 */-->
 <main class="container top-wide top-page">
-    <!--/* 見出しの行（issue 017）：左に「今日は ○月○日（季節の終わりまで、あと ○ 日）」と季節の見出し、右に 2 つのボタン */-->
+    <!--/* 見出しの行（issue 017）：左に「今日は ○月○日（季節の終わりまで、あと ○ 日）」と季節の見出し、右に「予実比較を見る」。「取引を登録」は、全画面のヘッダーに移した（issue 029） */-->
     <div class="top-head">
         <div class="top-head-title">
             <p class="top-today" th:text="|今日は ${top.today.monthValue}月${top.today.dayOfMonth}日（季節の終わりまで、あと ${top.seasonDaysLeft} 日）|">今日は 11月8日（季節の終わりまで、あと 23 日）</p>
@@ -20,7 +20,6 @@
         </div>
         <div class="top-actions">
             <a class="btn btn-outline-secondary" th:href="@{/comparison}">予実比較を見る</a>
-            <a class="btn btn-primary" th:href="@{/transactions/new}"><th:block th:replace="~{fragments/icons :: icon('plus', 18, 2.4)}"></th:block>取引を登録</a>
         </div>
     </div>
 

@@ -120,7 +120,10 @@ class ButtonWordsTest {
 	@Test
 	void linksThatOpenAScreenKeepTheirWords() throws Exception {
 		assertThat(page("/categories")).contains("/categories/" + category.getId() + "/edit\">").contains("変更</a>");   // issue 025：えんぴつのアイコンが前に入る
-		assertThat(page("/transactions")).contains("取引を登録</a>", ">編集</a>", ">複写</a>").doesNotContain(">詳細</a>");   // issue 025：一覧の「詳細」は、「編集」「複写」に変えた
+		String list = page("/transactions");
+		assertThat(list.substring(list.indexOf("<main"), list.indexOf("</main>")))
+				.contains(">編集</a>", ">複写</a>").doesNotContain(">詳細</a>");   // issue 025：一覧の「詳細」は、「編集」「複写」に変えた
+		assertThat(list.substring(list.indexOf("<header"), list.indexOf("</header>"))).contains("取引を登録</a>");   // issue 029：ヘッダーに移した
 		assertThat(submitWords("/transactions")).as("一覧の各行の「削除」（issue 025。詳細の画面はなくした）").isEqualTo("[削除]");
 	}
 

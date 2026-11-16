@@ -117,7 +117,7 @@ class HeaderMarkupTest {
 		String header = header(body("/", "hdrmark1"));
 
 		List<String> icons = svgs(header);
-		assertThat(icons).as("ロゴ 1 + メニュー 7").hasSize(8);
+		assertThat(icons).as("ロゴ 1 + メニュー 7 + 「取引を登録」の＋ 1（issue 029）").hasSize(9);
 		for (String svg : icons) {
 			assertThat(svg).contains("aria-hidden=\"true\"", "viewBox=\"0 0 24 24\"", "stroke=\"currentColor\"", "fill=\"none\"");
 			assertThat(svg).doesNotContain("<script", "<use", "<image", "xmlns", "style=", "http", "onclick", "href");
@@ -150,7 +150,7 @@ class HeaderMarkupTest {
 		for (String path : PAGES) {
 			String header = header(body(path, "hdrmark1"));
 			assertThat(header).as(path).contains("class=\"brand\"", "家計・予実管理", "class=\"app-header-inner\"", "さん", "ログアウト");
-			assertThat(svgs(header)).as(path).hasSize(8);
+			assertThat(svgs(header)).as(path + "：ロゴ 1 + メニュー 7 + 「取引を登録」の＋ 1（issue 029）").hasSize(9);
 		}
 	}
 

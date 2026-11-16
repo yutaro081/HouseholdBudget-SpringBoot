@@ -2,7 +2,7 @@
 
 全体の位置づけは [実行計画書](execution-plan.md) を見てください。この文書は、[issue 029](../issues/029-使い勝手の直し.md)（金額をクリアのボタン、ヘッダーの「取引を登録」、メニューをまとめる、選択肢の並び）を進めるための手順書です。
 
-> **状態（2026年11月16日）**：◐ **段階 ①〔金額をクリア〕はコミット済み。段階 ②〔選択肢の並び〕を行った。ブラウザでの確かめと、コミット〔本人〕が残っている**。`.\mvnw clean test` は 2,616 件成功。要件定義書 4.2・4.5 は、決まったことに合わせて直した〔4.5 の「取引を登録」を置かない文は、段階 ③ の前に先に直した。トップの画面は、段階 ③ まで今のまま〕。
+> **状態（2026年11月16日）**：◐ **段階 ①・②はコミット済み。段階 ③〔ヘッダーの「取引を登録」〕を行った。ブラウザでの確かめと、コミット〔本人〕が残っている**。`.\mvnw clean test` は 2,622 件成功。要件定義書 4.2・4.5 は、決まったことに合わせて直した〔4.5 の「取引を登録」を置かない文は、段階 ③ の前に先に直した。トップの画面は、段階 ③ まで今のまま〕。
 
 - ブランチ：`feature/issue-029-usability`。秘密情報：パスワード・接続先の値は、どこにも書かない。
 - 進め方：1 つの段階が終わったら止まって、確認を待つ。変更は、文書が先〔要件定義書 → 設計書 → この手順書〕、コードは後。**テストが先**〔失敗を確かめてから実装〕。コミットと push は本人。
@@ -74,3 +74,9 @@
   - テスト：新しい `TransactionFormChoiceOrderTest`〔7 件〕、`ScreenStatementCountTest` に 2 件〔登録画面 3 本、編集画面 4 本。2 個ずつと 8 個ずつで同じ〕。既存のテストは 1 行も変えていない。
   - **例外**：テストのコンパイルのため、先に `listForChoices` の空の形〔中身は今の `list()` と同じ id の順〕を作った。その状態で、並びのテスト 6 件が失敗した〔一覧の画面のテストは、作る前から通る〕。本数のテストは、作る前も 3 本・4 本で通る〔増やさないことを見張るテスト〕。
   - **わざと壊して確かめた**〔戻すときは git を使わず、手で戻した〕：件数を数える所から `user_id` を外すと、`otherUsersTransactionsAreNotCounted` が失敗した〔取引先・支払方法の両方で 1 回ずつ〕。DB の外部キーは `vendor_id → vendors.id` だけなので、ほかの人の取引が自分の取引先を指す行は、テストでは作れた。並びを id の順に戻すと、並びのテスト 6 件が失敗した。
+- 2026年11月16日：設計書 756・1170 行〔初めのデータの並び〕を、一覧とプルダウンを分けた書き方に直した〔本人の判断〕。
+- 2026年11月16日：**段階 ③ を行った**。
+  - 文書：要件定義書 4.5 は段階 ① で直してあり、決まりと合っていることを確かめた。設計書 2.3〔ヘッダー 238 行、取引一覧 340・342 行、トップ 454 行〕、4.4〔882 行〕を直した。
+  - コード：`fragments/common.html` の右のまとまり〔`user-area`〕の先頭に「取引を登録」〔`btn btn-primary header-register`、`plus` のアイコン〕。`transactions/form.html` は、登録のとき `header('transactions-new')`、編集のとき `header('transactions')` を渡す。`top/index.html`・`transactions/list.html` のボタンをなくした〔取引一覧の `page-head-actions` の入れ物と、その CSS もなくした〕。`style.css` に `.header-register`。
+  - テスト：新しい `HeaderRegisterButtonTest`〔6 件〕。既存の 8 クラス 11 件を直した〔`HeaderMarkupTest` 2、`MenuCurrentItemTest` 1、`TopControllerTest` 2、`TopLayoutTest` 1、`TransactionListLayoutTest` 2、`TransactionControllerTest` 2、`ButtonWordsTest` 1〕。ヘッダーのリンクで通ってしまうものは、本文〔`main`〕だけを見る形にした〔決まったこと 11〕。
+  - **わざと壊して確かめた**：ボタンの印の条件を外すと、`theRegisterScreensMarkTheButtonAndNotTheListItem` が失敗した。トップの本文にボタンを戻すと、4 件〔`HeaderRegisterButtonTest` 1、`TopControllerTest` 2、`TopLayoutTest` 1〕が失敗した。どちらも手で戻した。

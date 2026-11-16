@@ -81,7 +81,7 @@ class MenuCurrentItemTest {
 		pageToMenuHref = new LinkedHashMap<>();
 		pageToMenuHref.put("/", "/");   // トップ（issue 010）。メニューの先頭の「トップ」が今の項目
 		pageToMenuHref.put("/transactions", "/transactions");
-		pageToMenuHref.put("/transactions/new", "/transactions");
+		pageToMenuHref.put("/transactions/new", null);   // 取引の登録画面：メニューには印を付けない（ヘッダーの「取引を登録」に付ける。issue 029。HeaderRegisterButtonTest）
 		pageToMenuHref.put("/transactions/" + transaction.getId() + "/edit", "/transactions");
 		pageToMenuHref.put("/categories", "/categories");
 		pageToMenuHref.put("/categories/" + category.getId() + "/edit", "/categories");
@@ -108,6 +108,10 @@ class MenuCurrentItemTest {
 	void onlyTheItemOfTheOpenScreenIsMarkedAsCurrent() throws Exception {
 		for (Map.Entry<String, String> entry : pageToMenuHref.entrySet()) {
 			String nav = nav(body(entry.getKey(), true));
+			if (entry.getValue() == null) {
+				assertThat(nav).as(entry.getKey() + "：メニューには印を付けない").doesNotContain("aria-current");
+				continue;
+			}
 			assertThat(nav.split("aria-current", -1)).as(entry.getKey() + "：印は 1 つだけ").hasSize(2);
 			assertThat(nav).as(entry.getKey() + "：「" + entry.getValue() + "」の項目に印が付く")
 					.contains("<a href=\"" + entry.getValue() + "\" aria-current=\"page\">");
