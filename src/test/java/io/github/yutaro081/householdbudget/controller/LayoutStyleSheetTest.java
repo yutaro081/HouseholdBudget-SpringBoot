@@ -214,4 +214,21 @@ class LayoutStyleSheetTest {
 		assertThat(rule(css, ".top-season-budget")).as("/ 予算 ○円").contains("font-size: var(--hb-font-size-h2)");
 		assertThat(rule(css, ".top-season-remaining")).as("残り ○円").contains("font-size: var(--hb-font-size-h2)");
 	}
+
+	// ---- スクロールバーの場所（issue 031。設計書 2.3「スクロールバーの場所」）----
+
+	/** あるべきもの：html に scrollbar-gutter: stable がある（縦のスクロールバーの有無で、本文とヘッダーが左右にずれないように） */
+	@Test
+	void htmlReservesTheScrollbarSpace() throws Exception {
+		assertThat(rule(css(), "html")).contains("scrollbar-gutter: stable");
+	}
+
+	/** あってはいけないもの：html と body に overflow-y: scroll（同じ目的の別の書き方）がない */
+	@Test
+	void htmlAndBodyDoNotForceTheScrollbarWithOverflow() throws Exception {
+		Matcher m = Pattern.compile("(?m)^(?:html|body)\\b[^{]*\\{([^}]*)\\}").matcher(css());
+		while (m.find()) {
+			assertThat(m.group(1)).doesNotContainPattern("overflow(-y)?:\\s*scroll");
+		}
+	}
 }

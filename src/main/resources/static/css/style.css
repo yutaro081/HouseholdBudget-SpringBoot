@@ -181,6 +181,11 @@ th {
     box-shadow: 0 0 0 0.25rem rgba(11, 127, 126, 0.25);
 }
 
+/* スクロールバーの場所（issue 031。設計書 2.3「スクロールバーの場所」）：縦のスクロールバーが出る画面と出ない画面で、中央そろえの本文とヘッダーが左右にずれないようにする */
+html {
+    scrollbar-gutter: stable;
+}
+
 /* 本体の幅。ログイン・登録・入力画面は狭くする（Bootstrap の .container を上書き） */
 main.container {
     max-width: 960px;
@@ -2025,4 +2030,16 @@ main.list-wide {
 
 .alert-info .alert-icon {
     color: var(--hb-text-sub);
+}
+
+/* 画面の切りかえ（issue 031。設計書 2.3「画面の切りかえ」）：ヘッダーは動かさない。切りかえの指定（@view-transition）は、common.html の head の <style> にある */
+@media (prefers-reduced-motion: no-preference) {
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+        animation-duration: 0.12s;
+    }
+}
+
+.app-header {
+    view-transition-name: app-header;
 }

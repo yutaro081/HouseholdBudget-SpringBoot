@@ -10,6 +10,8 @@
     <title th:text="${title}">タイトル</title>
     <!--/* Bootstrap の CSS（アプリの中に置く。CDN は使わない。JavaScript は入れない。設計書 1.2）を先に、自作の CSS を後に読む */-->
     <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}">
+    <!--/* 画面の切りかえの指定（設計書 2.3「画面の切りかえ」、issue 031）。インライン CSS は、ここ 1 つだけの例外（中身はこの指定だけ）。style.css に置くと、取引一覧へ移るときだけ切りかえが取りやめになったため、head に直接置く。CSP を入れるときは、この中身を許す指定が要る（設計書 7.5） */-->
+    <style>@media (prefers-reduced-motion: no-preference) { @view-transition { navigation: auto; } }</style>
     <link rel="stylesheet" th:href="@{/css/style.css}">
     <!--/* 「戻る」で覚えていた画面が出たとき、開き直す短い JavaScript（別ファイル。設計書 7.10）。ログイン前の画面でも読むので /js/** は誰でも開ける（7.3） */-->
     <script defer th:src="@{/js/back-reload.js}"></script>
