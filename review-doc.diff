@@ -1,0 +1,19 @@
+diff --git a/docs/reviews/design.md b/docs/reviews/design.md
+index cf6c36b..a4c8885 100644
+--- a/docs/reviews/design.md
++++ b/docs/reviews/design.md
+@@ -309,6 +309,14 @@ sequenceDiagram
+ - `style.css` の変数（`--hb-space-…`、`--hb-radius-…`）にまとめる。Bootstrap の `--bs-border-radius` を `style.css` の `:root` で 10px に上書きし、**全画面の入力欄・ボタン・メッセージの帯に当てる**（`bootstrap.min.css` は書き換えない）。
+ - カード（白。背景 `#F6F8F8` の上に置く。枠 `#E2E8E8`）にするのは、**取引の登録・編集画面のフォーム、トップのカード（issue 017 の 1 回目）、ログイン・登録のカード、取引一覧の表（2 回目）、表のあるすべての画面の表（`.table-card`。issue 024）**。ほかの画面のカード化と、今の余白（目盛りに合わない `6px` や `4px 10px`）の統一は、この回でもしない。**影は付けない**（issue 017 の Q017-15）。余白の変数を使うのは、この画面の新しい規則だけ。
+ 
++**画面の切りかえ**（issue 031。手順書 [issue-031-view-transitions.md](../plans/issue-031-view-transitions.md)）
++
++- 画面を移るときの切りかえを、CSS の `@view-transition`（`navigation: auto`）でなめらかにする。**書く場所は `style.css` だけ**（末尾の 1 つのまとまり）。秒数などの値は、ここには書かず、`style.css` を見る（値を 2 か所に書かない）。**JavaScript は使わない**（`startViewTransition` などを書かない。HTML にも `<meta>` の書き方を足さない）。
++- 「動きを減らす」設定のとき（`prefers-reduced-motion`）は、切りかえを始めない（`@view-transition` を、`prefers-reduced-motion: no-preference` の条件の中に入れる）。動きを消す書き方（`animation: none`）は使わない。
++- ヘッダーは、一緒に動かさない。`.app-header` に `view-transition-name: app-header` を付ける。**`view-transition-name` の名前は `app-header` の 1 つだけ**（ほかの要素に付けない。同じ名前が 2 つあると、切りかえそのものが取りやめになる）。ヘッダーは 1 画面に 1 つだけ（上の「ヘッダー」）。
++- 対応していないブラウザ（Firefox など）では、規則が無視されて、ふつうに移動する。困ることはない。
++- 実機で見てよくならなければ、外す（手順書 1 章の決まったこと 3）。
++
+ **ログイン `/login`**
+ 
+ | 種類 | 項目 |
