@@ -26,17 +26,26 @@
         <nav class="menu d-flex flex-wrap">
             <a th:href="@{/}" th:attr="aria-current=${current == 'top'} ? 'page'"><th:block th:replace="~{fragments/icons :: icon('top', 18, 2)}"></th:block>トップ</a>
             <a th:href="@{/transactions}" th:attr="aria-current=${current == 'transactions'} ? 'page'"><th:block th:replace="~{fragments/icons :: icon('transactions', 18, 2)}"></th:block>取引一覧</a>
-            <a th:href="@{/categories}" th:attr="aria-current=${current == 'categories'} ? 'page'"><th:block th:replace="~{fragments/icons :: icon('categories', 18, 2)}"></th:block>科目</a>
-            <a th:href="@{/vendors}" th:attr="aria-current=${current == 'vendors'} ? 'page'"><th:block th:replace="~{fragments/icons :: icon('vendors', 18, 2)}"></th:block>取引先</a>
-            <a th:href="@{/payment-methods}" th:attr="aria-current=${current == 'payment-methods'} ? 'page'"><th:block th:replace="~{fragments/icons :: icon('payment-methods', 18, 2)}"></th:block>支払方法</a>
-            <a th:href="@{/budgets}" th:attr="aria-current=${current == 'budgets'} ? 'page'"><th:block th:replace="~{fragments/icons :: icon('budgets', 18, 2)}"></th:block>予算設定</a>
+            <!--/* 「予算」：予算設定の画面へ。変えたのはメニューの文字だけ（画面の見出し・タブの名前は「予算設定」のまま。issue 029） */-->
+            <a th:href="@{/budgets}" th:attr="aria-current=${current == 'budgets'} ? 'page'"><th:block th:replace="~{fragments/icons :: icon('budgets', 18, 2)}"></th:block>予算</a>
             <a th:href="@{/comparison}" th:attr="aria-current=${current == 'comparison'} ? 'page'"><th:block th:replace="~{fragments/icons :: icon('comparison', 18, 2)}"></th:block>予実比較</a>
+            <!--/* 「設定」（issue 029）：いちばん右に置く（∨ の印が付くのはここだけ。毎日は使わない項目）。科目・取引先・支払方法の 3 つを、<details> にまとめる（JavaScript は使わない。開いた中身は CSS で下に重ねる）。閉じた形で出す（open は付けない）。
+                 3 つのどれかの画面では、「設定」（summary）に aria-current="true"、中のその画面の項目に aria-current="page"。各画面が渡す文字（current）は変えない */-->
+            <details class="menu-group">
+                <summary th:attr="aria-current=${current == 'categories' or current == 'vendors' or current == 'payment-methods'} ? 'true'"><th:block th:replace="~{fragments/icons :: icon('settings', 18, 2)}"></th:block>設定</summary>
+                <div class="menu-group-items">
+                    <a th:href="@{/categories}" th:attr="aria-current=${current == 'categories'} ? 'page'"><th:block th:replace="~{fragments/icons :: icon('categories', 18, 2)}"></th:block>科目</a>
+                    <a th:href="@{/vendors}" th:attr="aria-current=${current == 'vendors'} ? 'page'"><th:block th:replace="~{fragments/icons :: icon('vendors', 18, 2)}"></th:block>取引先</a>
+                    <a th:href="@{/payment-methods}" th:attr="aria-current=${current == 'payment-methods'} ? 'page'"><th:block th:replace="~{fragments/icons :: icon('payment-methods', 18, 2)}"></th:block>支払方法</a>
+                </div>
+            </details>
         </nav>
-        <!--/* 右のまとまり：「取引を登録」（issue 029）→ ユーザー名 → ログアウト。1 つの div に入れるので、幅がせまいときも 3 つが一緒に折り返す。
-             「取引を登録」は主ボタンの見た目のリンク（＋のアイコン）。<nav> の外に置く（メニューの項目ではなく、画面を開く操作）。
+        <!--/* 「取引を登録」（issue 029）：主ボタンの見た目のリンク（＋のアイコン）。<nav> の外（メニューの項目ではなく、画面を開く操作）。
+             メニューのすぐあと、ユーザー名・ログアウトのまとまり（user-area）の前に置く（2026年11月16日に、ユーザー名のそばから移した）。
              取引の登録画面（新規・複写・入力エラーで出し直したとき）は、form.html が header('transactions-new') を渡すので、このボタンに aria-current="page" を付ける（メニューには付けない） */-->
+        <a class="btn btn-primary header-register" th:href="@{/transactions/new}" th:attr="aria-current=${current == 'transactions-new'} ? 'page'"><th:block th:replace="~{fragments/icons :: icon('plus', 18, 2.4)}"></th:block>取引を登録</a>
+        <!--/* 右端：ユーザー名とログアウト（アカウントの情報）。margin-left: auto で右に寄せる */-->
         <div class="user-area d-flex align-items-center gap-2">
-            <a class="btn btn-primary header-register" th:href="@{/transactions/new}" th:attr="aria-current=${current == 'transactions-new'} ? 'page'"><th:block th:replace="~{fragments/icons :: icon('plus', 18, 2.4)}"></th:block>取引を登録</a>
             <span class="user-name"><span sec:authentication="name">ユーザー名</span><span class="user-honorific">さん</span></span>
             <form th:action="@{/logout}" method="post" class="logout-form">
                 <button type="submit" class="btn btn-outline-secondary btn-sm">ログアウト</button>

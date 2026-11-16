@@ -95,19 +95,21 @@ class HeaderMarkupTest {
 		assertThat(nav.find()).isTrue();
 		String items = nav.group(1);
 
-		for (String label : List.of("トップ", "取引一覧", "科目", "取引先", "支払方法", "予算設定", "予実比較")) {
+		// 「予算設定」のメニューの文字は「予算」。科目・取引先・支払方法は「設定」の中（issue 029）
+		for (String label : List.of("トップ", "取引一覧", "科目", "取引先", "支払方法", "予算", "予実比較")) {
 			assertThat(items).as(label).containsPattern(Pattern.compile("<a [^>]*><svg[^>]*>.*?</svg>" + label + "</a>", Pattern.DOTALL));
 		}
-		assertThat(svgs(items)).as("メニューのアイコンは 7 つ").hasSize(7);
+		assertThat(items).as("設定").containsPattern(Pattern.compile("<summary[^>]*><svg[^>]*>.*?</svg>設定</summary>", Pattern.DOTALL));
+		assertThat(svgs(items)).as("メニューのアイコンは 8 つ（5 つの項目 ＋「設定」の中の 3 つ）").hasSize(8);
 	}
 
 	@Test
-	void theSevenMenuIconsAreAllDifferent() throws Exception {
+	void theEightMenuIconsAreAllDifferent() throws Exception {
 		String body = body("/transactions", "hdrmark1");
 		Matcher nav = Pattern.compile("<nav class=\"menu[^>]*>(.*?)</nav>", Pattern.DOTALL).matcher(body);
 		assertThat(nav.find()).isTrue();
 
-		assertThat(svgs(nav.group(1)).stream().distinct().count()).isEqualTo(7);
+		assertThat(svgs(nav.group(1)).stream().distinct().count()).isEqualTo(8);
 	}
 
 	// ---- アイコンの安全 ----
@@ -117,7 +119,7 @@ class HeaderMarkupTest {
 		String header = header(body("/", "hdrmark1"));
 
 		List<String> icons = svgs(header);
-		assertThat(icons).as("ロゴ 1 + メニュー 7 + 「取引を登録」の＋ 1（issue 029）").hasSize(9);
+		assertThat(icons).as("ロゴ 1 + メニュー 8（「設定」の中の 3 つを含む）+ 「取引を登録」の＋ 1（issue 029）").hasSize(10);
 		for (String svg : icons) {
 			assertThat(svg).contains("aria-hidden=\"true\"", "viewBox=\"0 0 24 24\"", "stroke=\"currentColor\"", "fill=\"none\"");
 			assertThat(svg).doesNotContain("<script", "<use", "<image", "xmlns", "style=", "http", "onclick", "href");
@@ -150,7 +152,7 @@ class HeaderMarkupTest {
 		for (String path : PAGES) {
 			String header = header(body(path, "hdrmark1"));
 			assertThat(header).as(path).contains("class=\"brand\"", "家計・予実管理", "class=\"app-header-inner\"", "さん", "ログアウト");
-			assertThat(svgs(header)).as(path + "：ロゴ 1 + メニュー 7 + 「取引を登録」の＋ 1（issue 029）").hasSize(9);
+			assertThat(svgs(header)).as(path + "：ロゴ 1 + メニュー 8（「設定」の中の 3 つを含む）+ 「取引を登録」の＋ 1（issue 029）").hasSize(10);
 		}
 	}
 

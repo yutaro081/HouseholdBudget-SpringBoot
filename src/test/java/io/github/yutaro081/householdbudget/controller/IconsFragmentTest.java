@@ -22,8 +22,8 @@ import org.thymeleaf.spring6.SpringTemplateEngine;
 @SpringBootTest
 class IconsFragmentTest {
 
-	/** 設計書 2.3「アイコン」の 19 個（issue 017 の 2 回目で check、issue 019 で sparkle、issue 024 で flower、issue 025 で pencil・copy・trash、issue 021 で alert・info を足した） */
-	private static final List<String> NAMES = List.of("logo", "top", "transactions", "categories", "vendors",
+	/** 設計書 2.3「アイコン」の 20 個（issue 017 の 2 回目で check、issue 019 で sparkle、issue 024 で flower、issue 025 で pencil・copy・trash、issue 021 で alert・info、issue 029 で settings を足した） */
+	private static final List<String> NAMES = List.of("logo", "top", "transactions", "settings", "categories", "vendors",
 			"payment-methods", "budgets", "comparison", "plus", "sun", "pie", "check", "sparkle", "flower", "pencil", "copy", "trash", "alert", "info");
 
 	private static final Pattern SVG = Pattern.compile("<svg.*?</svg>", Pattern.DOTALL);
@@ -49,7 +49,7 @@ class IconsFragmentTest {
 	}
 
 	@Test
-	void eachOfTheNineteenNamesGivesOneSvg() {
+	void eachOfTheTwentyNamesGivesOneSvg() {
 		for (String name : NAMES) {
 			List<String> svgs = svgs(render(List.of(name), 18, 2));
 			assertThat(svgs).as(name).hasSize(1);
@@ -57,14 +57,14 @@ class IconsFragmentTest {
 	}
 
 	@Test
-	void theNineteenIconsAreAllDifferent() {
+	void theTwentyIconsAreAllDifferent() {
 		Set<String> shapes = new HashSet<>();
 		for (String name : NAMES) {
 			String svg = svgs(render(List.of(name), 18, 2)).get(0);
 			// 形（中身）だけを比べる
 			shapes.add(svg.substring(svg.indexOf('>') + 1));
 		}
-		assertThat(shapes).hasSize(19);
+		assertThat(shapes).hasSize(20);
 	}
 
 	@Test
@@ -88,7 +88,7 @@ class IconsFragmentTest {
 	@Test
 	void noIconContainsAnythingUnsafeOrExternal() {
 		String all = String.join(" ", svgs(render(NAMES, 18, 2)));
-		assertThat(svgs(all)).hasSize(19);
+		assertThat(svgs(all)).hasSize(20);
 
 		assertThat(all).doesNotContain("<script", "<use", "<image", "xmlns", "style=", "http", "onclick", "onload", "href", "url(");
 	}

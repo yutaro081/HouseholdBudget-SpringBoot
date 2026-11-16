@@ -437,6 +437,82 @@ main.form-wide {
     border-radius: 10px;
 }
 
+/*
+ * メニューの「設定」（issue 029）：<details> の summary を、メニューの項目（.menu a）と同じ形にする。三角の印は、ブラウザの印を消して、線で描く（新しい色は使わない）。
+ * 開いた中身（.menu-group-items）は、summary のすぐ下に重ねる。白い地、枠は区切り線の色。JavaScript は使わない（外を押しても閉じない。別の画面へ移ると閉じた形に戻る）
+ */
+.menu-group {
+    position: relative;
+}
+
+.menu-group summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 0 8px;
+    border-radius: 10px;
+    color: var(--hb-text-sub);
+    list-style: none;
+    cursor: pointer;
+}
+
+.menu-group summary::-webkit-details-marker {
+    display: none;
+}
+
+.menu-group summary::after {
+    content: "";
+    width: 6px;
+    height: 6px;
+    margin: -3px 0 0 2px;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    transform: rotate(45deg);
+}
+
+.menu-group[open] summary::after {
+    margin-top: 3px;
+    transform: rotate(-135deg);
+}
+
+.menu-group summary svg {
+    flex: none;
+}
+
+.menu-group summary:hover {
+    color: var(--hb-teal-text);
+}
+
+.menu-group summary:focus-visible {
+    outline: 2px solid var(--hb-teal-button);
+    outline-offset: -2px;
+}
+
+/* 科目・取引先・支払方法の画面では「設定」に印（aria-current="true"）。見た目は、今開いている項目（.menu a[aria-current="page"]）と同じ */
+.menu-group summary[aria-current="true"] {
+    background-color: var(--hb-teal-pale);
+    color: var(--hb-teal-text);
+    font-weight: 700;
+}
+
+.menu-group-items {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 100%;
+    margin-top: 4px;
+    padding: 4px;
+    background-color: var(--hb-input-bg);
+    border: 1px solid var(--hb-line);
+    border-radius: 10px;
+    white-space: nowrap;
+}
+
 /* ヘッダーの帯は白にして、ページの背景（#F6F8F8）と区切る。下の線の色は --bs-border-color（#E2E8E8） */
 .app-header {
     --bs-tertiary-bg-rgb: 255, 255, 255;
@@ -451,10 +527,12 @@ main.form-wide {
 }
 
 /* ヘッダーの「取引を登録」（issue 029）：主ボタンの見た目。＋のアイコンと文字の間は 8px（前に取引一覧の見出しの行で使っていた形と同じ）。文字は折り返さない */
+/* メニューのすぐ右に置く。左に 24px（--hb-space-5）。ヘッダーの中の間 12px と合わせて、「設定」との間を 36px にする（2026年11月16日に、24px から広げた）（メニューの項目の間 2px よりはっきり広く、メニューの 6 つ目に見えないように。issue 029） */
 .header-register {
     display: inline-flex;
     align-items: center;
     gap: var(--hb-space-2);
+    margin-left: var(--hb-space-5);
     white-space: nowrap;
 }
 

@@ -158,6 +158,19 @@ class LayoutStyleSheetTest {
 		assertThat(current).contains("background-color: var(--hb-teal-pale)", "color: var(--hb-teal-text)", "font-weight: 700");
 	}
 
+	/**
+	 * ヘッダーの「取引を登録」（issue 029）：メニューの「設定」との間は、ヘッダーの中の 12px に、左の 24px（--hb-space-5）を足して 36px（2026年11月16日に、24px から広げた）。
+	 * メニューの項目の間（2px）よりはっきり広くして、メニューの 6 つ目に見えないようにする。右の余白（前の --hb-space-4）は付けない
+	 */
+	@Test
+	void theRegisterButtonIs36pxAwayFromTheMenu() throws Exception {
+		String button = rule(css(), ".header-register");
+
+		assertThat(button).contains("margin-left: var(--hb-space-5)").doesNotContain("margin-right");
+		assertThat(rule(css(), ".app-header-inner")).contains("gap: 8px 12px");
+		assertThat(rule(css(), ".menu")).contains("gap: 2px");
+	}
+
 	@Test
 	void theUserNameAreaStaysOnTheRightAndTheButtonsKeepTheirWeight() throws Exception {
 		assertThat(rule(css(), ".user-area")).contains("margin-left: auto");

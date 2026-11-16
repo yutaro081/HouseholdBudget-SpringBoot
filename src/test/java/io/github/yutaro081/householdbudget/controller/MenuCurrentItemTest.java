@@ -112,7 +112,10 @@ class MenuCurrentItemTest {
 				assertThat(nav).as(entry.getKey() + "：メニューには印を付けない").doesNotContain("aria-current");
 				continue;
 			}
-			assertThat(nav.split("aria-current", -1)).as(entry.getKey() + "：印は 1 つだけ").hasSize(2);
+			assertThat(nav.split("aria-current=\"page\"", -1)).as(entry.getKey() + "：page の印は 1 つだけ").hasSize(2);
+			// 科目・取引先・支払方法の画面は、「設定」にも true の印（issue 029。HeaderSettingsMenuTest）。ほかの画面は印が 1 つだけ
+			boolean inSettings = List.of("/categories", "/vendors", "/payment-methods").contains(entry.getValue());
+			assertThat(nav.split("aria-current", -1)).as(entry.getKey() + "：印の数").hasSize(inSettings ? 3 : 2);
 			assertThat(nav).as(entry.getKey() + "：「" + entry.getValue() + "」の項目に印が付く")
 					.contains("<a href=\"" + entry.getValue() + "\" aria-current=\"page\">");
 		}
@@ -125,9 +128,13 @@ class MenuCurrentItemTest {
 		}
 	}
 
-	/** メニューは 7 項目で、先頭が「トップ」（issue 010）。そのあと、取引一覧から予実比較まで、今までの順 */
+	/**
+	 * メニューのリンクは 7 つで、先頭が「トップ」（issue 010）。
+	 * issue 029 で、科目・取引先・支払方法は「設定」（details）の中に入れて、いちばん右に置き、「予算設定」のメニューの文字は「予算」にした。
+	 * そのため、リンクの並びは、トップ・取引一覧・予算・予実比較のあとに、「設定」の中の科目・取引先・支払方法。項目の数（5 つ）は HeaderSettingsMenuTest
+	 */
 	@Test
-	void menuHasAllSevenItemsInOrderAndTopIsFirst() throws Exception {
+	void menuHasAllSevenLinksInOrderAndTopIsFirst() throws Exception {
 		String nav = nav(body("/transactions", true));
 
 		// 各項目は「アイコン（<svg>…</svg>）＋文字」。文字だけを取るため、<svg> を除いてから探す（issue 017）
@@ -140,11 +147,11 @@ class MenuCurrentItemTest {
 			labels.add(links.group(2));
 		}
 
-		assertThat(labels).as("メニューの項目（<a>）は、ちょうど 7 個")
-				.containsExactly("トップ", "取引一覧", "科目", "取引先", "支払方法", "予算設定", "予実比較");
-		assertThat(nav.split("<svg", -1)).as("各項目にアイコンが 1 つずつ").hasSize(8);
-		assertThat(hrefs).containsExactly("/", "/transactions", "/categories", "/vendors", "/payment-methods",
-				"/budgets", "/comparison");
+		assertThat(labels).as("メニューのリンク（<a>）は、ちょうど 7 個")
+				.containsExactly("トップ", "取引一覧", "予算", "予実比較", "科目", "取引先", "支払方法");
+		assertThat(nav.split("<svg", -1)).as("各リンクと「設定」に、アイコンが 1 つずつ（8 つ）").hasSize(9);
+		assertThat(hrefs).containsExactly("/", "/transactions", "/budgets", "/comparison",
+				"/categories", "/vendors", "/payment-methods");
 	}
 
 	@Test

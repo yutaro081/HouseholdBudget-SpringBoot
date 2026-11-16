@@ -153,6 +153,24 @@ class HeaderRegisterButtonTest {
 		}
 	}
 
+	/**
+	 * 「取引を登録」は、メニュー（nav）のすぐあと、ユーザー名・ログアウトのまとまり（user-area）の前。user-area の中には入れない
+	 * （2026年11月16日に、ユーザー名のそばから、メニューの「設定」の近くへ移した）
+	 */
+	@Test
+	void theRegisterButtonComesRightAfterTheMenuAndOutsideTheUserArea() throws Exception {
+		for (String path : List.of("/", "/transactions", "/categories")) {
+			String header = header(body(get(path)));
+			String button = button(header);
+			int userArea = header.indexOf("<div class=\"user-area");
+
+			assertThat(header).as(path + "：メニューのすぐあと").containsPattern("</nav>\\s*<a class=\"btn btn-primary header-register\"");
+			assertThat(userArea).as(path + "：user-area がある").isPositive();
+			assertThat(header.indexOf(button) + button.length()).as(path + "：user-area の前（中には入れない）").isLessThan(userArea);
+			assertThat(header.substring(userArea)).as(path + "：user-area はユーザー名とログアウトだけ").doesNotContain("header-register", "/transactions/new");
+		}
+	}
+
 	// ---- 本文には置かない ----
 
 	@Test
