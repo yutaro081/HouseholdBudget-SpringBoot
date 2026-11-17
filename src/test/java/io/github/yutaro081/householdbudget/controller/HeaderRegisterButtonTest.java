@@ -191,7 +191,7 @@ class HeaderRegisterButtonTest {
 		assertTheButtonIsCurrent(body(get("/transactions/new")), "新規");
 		assertTheButtonIsCurrent(body(get("/transactions/new").param("copyFrom", String.valueOf(transaction.getId()))), "複写");
 		String error = body(post("/transactions/new").with(csrf())
-				.param("transactionDate", "2026-10-20").param("amount", "1200").param("categoryId", "")
+				.param("transactionDate", "2026-10-20").param("lines[0].amount", "1200").param("lines[0].categoryId", "")
 				.param("vendorId", String.valueOf(vendor.getId())).param("paymentMethodId", String.valueOf(payment.getId())));
 		assertThat(error).as("入力エラーで出し直した画面").contains("field-error");
 		assertTheButtonIsCurrent(error, "新規の入力エラー");
@@ -201,7 +201,7 @@ class HeaderRegisterButtonTest {
 	void theEditScreenMarksTheListItemAndNotTheButton() throws Exception {
 		assertTheListItemIsCurrent(body(get("/transactions/" + transaction.getId() + "/edit")), "編集");
 		String error = body(post("/transactions/" + transaction.getId() + "/edit").with(csrf())
-				.param("transactionDate", "2026-10-20").param("amount", "abc").param("categoryId", String.valueOf(category.getId()))
+				.param("transactionDate", "2026-10-20").param("lines[0].amount", "abc").param("lines[0].categoryId", String.valueOf(category.getId()))
 				.param("vendorId", String.valueOf(vendor.getId())).param("paymentMethodId", String.valueOf(payment.getId())));
 		assertThat(error).as("入力エラーで出し直した画面").contains("field-error");
 		assertTheListItemIsCurrent(error, "編集の入力エラー");

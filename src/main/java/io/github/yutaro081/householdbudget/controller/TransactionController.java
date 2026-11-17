@@ -20,8 +20,9 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import io.github.yutaro081.householdbudget.dto.TransactionMonth;
 import io.github.yutaro081.householdbudget.entity.Transaction;
-import io.github.yutaro081.householdbudget.form.StrictIntegerEditor;
+import io.github.yutaro081.householdbudget.exception.BadRequestException;
 import io.github.yutaro081.householdbudget.form.TransactionForm;
+import io.github.yutaro081.householdbudget.form.TransactionFormBinding;
 import io.github.yutaro081.householdbudget.security.LoginUser;
 import io.github.yutaro081.householdbudget.service.CategoryService;
 import io.github.yutaro081.householdbudget.service.PaymentMethodService;
@@ -62,12 +63,16 @@ public class TransactionController {
 	}
 
 	/**
-	 * 金額の項目にだけ、厳しい変換を付ける（設計書 6.5、Q5-1 の C）。
-	 * 全角の数字は半角に直して受け付ける（R13）。途中の空白・16進・カンマ・小数などは、型変換のエラーになる。科目ID など、他の整数の項目には付けない。
+	 * transactionForm という名前のフォームだけの設定（ほかのフォームには効かない。issue 032。設計書 6.2、6.5）。
+	 * <ul>
+	 * <li>明細の行の金額にだけ、厳しい変換を付ける（lines.amount。Q5-1 の C、R13）。科目ID など、他の整数の項目には付けない。</li>
+	 * <li>明細の行は 5 行まで（6 行目以降は 400）。</li>
+	 * <li>空の行の扱いの Validator を「足す」（addValidators）。注釈の入力チェック（@Valid）は、そのまま動く。</li>
+	 * </ul>
 	 */
 	@InitBinder("transactionForm")
 	void initBinder(WebDataBinder binder) {
-		binder.registerCustomEditor(Integer.class, "amount", new StrictIntegerEditor());
+		TransactionFormBinding.configure(binder);
 	}
 
 	/** 取引の一覧（日付の新しい順、同じ日は登録の新しい順）。 */
@@ -84,8 +89,9 @@ public class TransactionController {
 	/**
 	 * 登録フォーム。日付の最初の値は今日（U7）。
 	 * <p>
-	 * {@code copyFrom}（写す元の取引のID）があるときは、その取引の科目・取引先・支払方法・金額・摘要を入れた状態で表示する
-	 * （取引の複写、issue 012、U8）。日付だけは今日。GET なので、データベースには何も書かない。
+	 * 明細の行は、空の 5 行（issue 032）。
+	 * {@code copyFrom}（写す元の取引のID）があるときは、その取引の取引先・支払方法と、明細の 1 行目に科目・金額・摘要を入れた状態で表示する
+	 * （取引の複写、issue 012、U8。2〜5 行目は空）。日付だけは今日。GET なので、データベースには何も書かない。
 	 * 写す元は、ID とログイン中のユーザーの両方で探す（既存の get。他人・存在しない取引は NotFoundException で 404）。
 	 * 数字でない・範囲外の値は型変換のエラーになり、GlobalExceptionHandler が 404 にする。空（{@code ?copyFrom=}）は「指定なし」。
 	 */
@@ -95,9 +101,9 @@ public class TransactionController {
 			Model model) {
 		TransactionForm form;
 		if (copyFrom == null) {
-			form = new TransactionForm();
+			form = TransactionForm.forNew();
 		} else {
-			form = new TransactionForm(transactionService.get(loginUser.getUserId(), copyFrom));
+			form = TransactionForm.copyOf(transactionService.get(loginUser.getUserId(), copyFrom));
 			model.addAttribute("copied", true);
 		}
 		form.setTransactionDate(LocalDate.now(clock));
@@ -107,8 +113,8 @@ public class TransactionController {
 	}
 
 	/**
-	 * 取引の登録。入力エラーのときは、リダイレクトせずにフォームを表示し直す
-	 * （入力値を残し、プルダウンの選択肢を取り直して、選んでいた値を残す、設計書 6.7、6.9）。
+	 * 取引の登録。空でない明細の行ごとに 1 件の取引にする（issue 032）。入力エラーのときは、リダイレクトせずにフォームを表示し直す
+	 * （入力値を残し、明細は 5 行にそろえ、プルダウンの選択肢を取り直して、選んでいた値を残す、設計書 6.7、6.9）。
 	 */
 	@PostMapping("/new")
 	public String register(@AuthenticationPrincipal LoginUser loginUser,
@@ -118,6 +124,7 @@ public class TransactionController {
 			RedirectAttributes redirectAttributes) {
 		Long userId = loginUser.getUserId();
 		if (bindingResult.hasErrors()) {
+			transactionForm.fillLinesUpTo(TransactionForm.MAX_LINES);
 			addFormModel(model, userId, null);
 			return "transactions/form";
 		}
@@ -126,12 +133,12 @@ public class TransactionController {
 		return "redirect:/transactions";
 	}
 
-	/** 編集画面。登録済みの値の入ったフォームを表示する。 */
+	/** 編集画面。登録済みの値の入ったフォームを表示する（明細は 1 行。issue 032 の段階 2）。 */
 	@GetMapping("/{id}/edit")
 	public String showEdit(@AuthenticationPrincipal LoginUser loginUser, @PathVariable Long id, Model model) {
 		Long userId = loginUser.getUserId();
 		Transaction transaction = transactionService.get(userId, id);
-		model.addAttribute("transactionForm", new TransactionForm(transaction));
+		model.addAttribute("transactionForm", TransactionForm.forEdit(transaction));
 		addFormModel(model, userId, transaction.getId());
 		return "transactions/form";
 	}
@@ -140,6 +147,7 @@ public class TransactionController {
 	 * 取引の更新。入力エラーのときは、編集画面を表示し直す（入力値を残す）。
 	 * 入力エラーのときでも、先に ID と user_id で探して、存在しない・他人の取引なら 404 にする
 	 * （入力が正しいときと間違っているときで、他人のデータの有無が分かる差を作らないため、設計書 7.8）。
+	 * 編集は 1 つの取引ずつ（明細は 1 行。issue 032 の段階 2）。2 行以上が送られたら、ID を確かめたあとで 400（BadRequestException）。
 	 */
 	@PostMapping("/{id}/edit")
 	public String update(@AuthenticationPrincipal LoginUser loginUser,
@@ -150,8 +158,12 @@ public class TransactionController {
 			RedirectAttributes redirectAttributes) {
 		Long userId = loginUser.getUserId();
 		transactionService.get(userId, id);
+		if (transactionForm.getLines().size() > 1) {
+			throw new BadRequestException();
+		}
 
 		if (bindingResult.hasErrors()) {
+			transactionForm.fillLinesUpTo(1);
 			addFormModel(model, userId, id);
 			return "transactions/form";
 		}

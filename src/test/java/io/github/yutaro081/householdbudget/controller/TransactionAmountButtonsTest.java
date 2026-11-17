@@ -86,7 +86,7 @@ class TransactionAmountButtonsTest {
 
 	/** ボタンの部品がそろっていること（登録・編集・エラーで表示し直した画面で共通） */
 	private void assertButtonsArePresent(String body) {
-		assertThat(body).contains("data-amount-buttons", "data-amount-target=\"amount\"");
+		assertThat(body).contains("data-amount-buttons", "data-amount-target=\"lines0.amount\"");
 		for (String step : new String[] { "1", "10", "100", "1000", "10000" }) {
 			assertThat(body).contains("data-amount-add=\"" + step + "\"");
 		}
@@ -107,7 +107,7 @@ class TransactionAmountButtonsTest {
 		assertThat(body).as("クリアのボタンも、送信しない").containsPattern("type=\"button\"[^>]*data-amount-clear");
 		assertThat(body).as("ボタンは送信しない").contains("type=\"button\"");
 		assertThat(body).as("固定の文が、HTML に書いてある").contains(NOTE);
-		assertThat(body).as("税率が混ざるレシートの案内").contains("税率ごとに取引を分けて登録してください");
+		assertThat(body).as("税率が混ざるレシートの案内（issue 032：明細の行を分ける）").contains("税率ごとに明細の行を分けて登録してください").doesNotContain("税率ごとに取引を分けて");
 		assertThat(body).as("この画面だけで JavaScript を読む").contains("src=\"/js/amount-buttons.js\"");
 	}
 
@@ -131,13 +131,13 @@ class TransactionAmountButtonsTest {
 	@Test
 	void formRedisplayedAfterAnInputErrorStillShowsTheButtonsAndKeepsTheValue() throws Exception {
 		String body = mockMvc.perform(post("/transactions/new").with(asUser).with(csrf())
-				.param("transactionDate", "2026-10-20").param("amount", "abc")
-				.param("categoryId", String.valueOf(category.getId())).param("description", "昼食")
+				.param("transactionDate", "2026-10-20").param("lines[0].amount", "abc")
+				.param("lines[0].categoryId", String.valueOf(category.getId())).param("lines[0].description", "昼食")
 				.param("vendorId", String.valueOf(vendor.getId()))
 				.param("paymentMethodId", String.valueOf(payment.getId())))
 				.andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
 		assertButtonsArePresent(body);
-		assertThat(body).as("入力値が残る（欄の th:field は変えていない）。値が入っているので、JavaScript が税込を押せない状態で始める（Q009-18）").contains("value=\"abc\"").doesNotContain("data-tax-locked");
+		assertThat(body).as("入力値が残る（欄の th:field は変えていない）。値が入っているので、JavaScript が税込を押せない状態で始める（Q009-18）").contains("name=\"lines[0].amount\" value=\"abc\"").doesNotContain("data-tax-locked");
 		assertThat(body).contains("金額は整数で入力してください");
 	}
 
@@ -167,10 +167,10 @@ class TransactionAmountButtonsTest {
 
 	// ---- issue 025 の段階 4：金額ボタンを 2 つのまとまりに（「足す」「税込にする」）。動きは変えない ----
 
-	/** ボタンの入れ物（data-amount-buttons）から、フォームの下の操作の行（form-actions）の前まで */
+	/** 1 行目のボタンの入れ物（data-amount-buttons）から、1 行目の摘要のラベルの前まで（issue 032：ボタンは行ごとにある） */
 	private static String boxOf(String body) {
 		int start = body.lastIndexOf("<div", body.indexOf("data-amount-buttons"));
-		int end = body.indexOf("form-actions", start);
+		int end = body.indexOf("for=\"lines0.description\"", start);
 		assertThat(start).isPositive();
 		assertThat(end).isGreaterThan(start);
 		return body.substring(start, end);
@@ -213,16 +213,27 @@ class TransactionAmountButtonsTest {
 		assertThat(count(box, "data-amount-clear")).isEqualTo(1);
 	}
 
-	/** 説明の文は 1 つの段落（13px）。押せないときの文（hidden）と、税込の計算・税率が混ざるレシートの文。中身は変えない */
+	/**
+	 * 組の中の段落は、押せないときの文だけ（hidden）。「税込にする」の説明と、税率が混ざったレシートの案内は、全部の組で同じ文なので、
+	 * 明細の行の外に 1 回だけ、明細の上（共通の項目と 1 行目の間）に出す（issue 032）。JavaScript が動いたときだけ見せる（hidden）
+	 */
 	@Test
-	void theExplanationIsOneParagraphWithTheSameWords() throws Exception {
-		String box = boxOf(page("/transactions/new"));
+	void theLockNoteIsInEachSetAndTheExplanationIsOnceAboveTheLines() throws Exception {
+		for (String path : new String[] { "/transactions/new", "/transactions/" + transaction.getId() + "/edit" }) {
+			String body = page(path);
+			String box = boxOf(body);
+			assertThat(count(box, "<p")).as(path + "：組の中の段落は 1 つ").isEqualTo(1);
+			assertThat(box).contains("<p class=\"amount-note\" data-amount-tax-note hidden>" + NOTE + "</p>");
+			assertThat(box).doesNotContain("税率", "端数は切り捨て");
 
-		assertThat(count(box, "<p")).as("説明の段落は 1 つ").isEqualTo(1);
-		assertThat(box).containsPattern("(?s)<p class=\"amount-note\">\\s*<span data-amount-tax-note hidden>" + NOTE + "</span>");
-		assertThat(box).contains("「税込にする」のボタンは、欄の金額を税抜として計算します（端数は切り捨て）。8%と10%が混ざるレシートは、税率ごとに取引を分けて登録してください。");
-		assertThat(box).doesNotContain("form-text");
-		assertThat(count(box, "data-amount-tax-note")).isEqualTo(1);
+			String explanation = "「税込にする」のボタンは、欄の金額を税抜として計算します（端数は切り捨て）。8%と10%が混ざるレシートは、税率ごとに明細の行を分けて登録してください。";
+			assertThat(count(body, explanation)).as(path + "：説明は 1 回だけ").isEqualTo(1);
+			assertThat(body).containsPattern("<p class=\"amount-note\" data-amount-explain hidden>" + java.util.regex.Pattern.quote(explanation) + "</p>");
+			int at = body.indexOf("data-amount-explain");
+			assertThat(at).as(path + "：明細の上（支払方法のあと、1 行目の前）").isGreaterThan(body.indexOf("id=\"paymentMethodId\""))
+					.isLessThan(body.indexOf("data-split-line"));
+			assertThat(body).doesNotContain("form-text");
+		}
 	}
 
 	/** JavaScript が頼る印が、形を変えても全部ある（足す 5、税込 2、クリア 1、固定の文 1、欄の id）。JavaScript は、クラス名に頼らない */
@@ -235,14 +246,34 @@ class TransactionAmountButtonsTest {
 			assertThat(count(box, "data-amount-tax=\"")).as(path).isEqualTo(2);
 			assertThat(count(box, "data-amount-clear")).as(path).isEqualTo(1);
 			assertThat(count(box, "data-amount-tax-note")).as(path).isEqualTo(1);
-			assertThat(body).containsPattern("<div[^>]*data-amount-buttons[^>]*data-amount-target=\"amount\"[^>]*hidden>");
-			assertThat(body).as("入力欄の id（data-amount-target の指す先）").contains("id=\"amount\"");
+			assertBoxTag(body, "lines0.amount");
+			assertThat(body).as("入力欄の id（data-amount-target の指す先）").contains("id=\"lines0.amount\"");
 			assertThat(count(box, "type=\"button\"")).as("ボタンは 8 つ。送信しない").isEqualTo(8);
 		}
 		String script = java.nio.file.Files.readString(java.nio.file.Path.of("src", "main", "resources", "static", "js", "amount-buttons.js"));
 		assertThat(script).as("JavaScript は、クラス名・見た目に頼らない（data- の印だけ）")
 				.doesNotContain("classList", "className", "getElementsByClassName", "querySelector('.", "querySelectorAll('.");
-		assertThat(script).contains("[data-amount-buttons]", "[data-amount-add]", "[data-amount-tax]", "[data-amount-clear]", "[data-amount-tax-note]");
+		assertThat(script).contains("[data-amount-buttons]", "[data-amount-add]", "[data-amount-tax]", "[data-amount-clear]", "[data-amount-tax-note]", "[data-amount-explain]");
+		assertThat(script).as("issue 032：画面の全部の入れ物（行ごとに 1 組）に、それぞれ効く").contains("querySelectorAll('[data-amount-buttons]')");
+	}
+
+	/** issue 032：ボタンの組は、明細の行ごとに 1 組（登録 5 組、編集 1 組）。各組は、同じ行の金額の欄を指し、その欄がある */
+	@Test
+	void eachLineHasItsOwnSetOfButtonsPointingToItsAmountField() throws Exception {
+		String[][] screens = { { page("/transactions/new"), "5" }, { page("/transactions/" + transaction.getId() + "/edit"), "1" } };
+		for (String[] screen : screens) {
+			String body = screen[0];
+			int lines = Integer.parseInt(screen[1]);
+			assertThat(count(body, "data-amount-buttons")).as("組の数").isEqualTo(lines);
+			assertThat(count(body, "data-amount-add=\"1\"")).isEqualTo(lines);
+			assertThat(count(body, "data-amount-tax-note")).as("押せないときの文も、組ごとに 1 つ").isEqualTo(lines);
+			for (int i = 0; i < lines; i++) {
+				assertBoxTag(body, "lines" + i + ".amount");
+				assertThat(body).contains("id=\"lines" + i + ".amount\"");
+				assertThat(body.indexOf("data-amount-target=\"lines" + i + ".amount\"")).as("組は、その行の金額の欄のあと")
+						.isGreaterThan(body.indexOf("id=\"lines" + i + ".amount\""));
+			}
+		}
 	}
 
 	/** 「キャンセル」「保存」は、今までどおり右下に並ぶ（送り先・method・CSRF は変わらない） */
@@ -252,6 +283,13 @@ class TransactionAmountButtonsTest {
 
 		assertThat(body).containsPattern("(?s)<div class=\"form-actions\">\\s*<a class=\"btn btn-outline-secondary\" href=\"/transactions\">キャンセル</a>\\s*<button type=\"submit\" class=\"btn btn-primary\">保存</button>");
 		assertThat(body).contains("method=\"post\"", "name=\"_csrf\"");
+	}
+
+	/** その欄を指す組の開始タグに、data-amount-buttons と hidden がある（属性の順は問わない。Thymeleaf は、作った属性を最後に置く） */
+	private static void assertBoxTag(String body, String target) {
+		java.util.regex.Matcher tag = java.util.regex.Pattern.compile("<div[^>]*data-amount-target=\"" + java.util.regex.Pattern.quote(target) + "\"[^>]*>").matcher(body);
+		assertThat(tag.find()).as(target + " を指す組がある").isTrue();
+		assertThat(tag.group()).as(target + " の組").contains("data-amount-buttons").containsPattern("\\shidden[\\s>]");
 	}
 
 	private static int count(String text, String part) {

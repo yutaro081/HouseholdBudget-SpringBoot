@@ -70,15 +70,26 @@ class TransactionServiceTest {
 				paymentMethodRepository.save(new PaymentMethod(id, "支払方法")));
 	}
 
+	/** 明細が 1 行のフォーム（issue 032：金額・科目・摘要は明細の行） */
 	private static TransactionForm form(Owner owner, LocalDate date, int amount, String description) {
 		TransactionForm form = new TransactionForm();
 		form.setTransactionDate(date);
-		form.setAmount(amount);
-		form.setCategoryId(owner.category().getId());
 		form.setVendorId(owner.vendor().getId());
 		form.setPaymentMethodId(owner.paymentMethod().getId());
-		form.setDescription(description);
+		form.getLines().add(new TransactionForm.Line(owner.category().getId(), amount, description));
 		return form;
+	}
+
+	/** 明細の 1 行目の科目を差し替える */
+	private static void setCategory(TransactionForm form, Long categoryId) {
+		form.getLines().get(0).setCategoryId(categoryId);
+	}
+
+	/** 1 行だけのフォームを登録して、できた 1 件を返す */
+	private Transaction registerOne(Long userId, TransactionForm form) {
+		List<Transaction> saved = service.register(userId, form);
+		assertThat(saved).hasSize(1);
+		return saved.get(0);
 	}
 
 	private static TransactionForm form(Owner owner) {
@@ -104,10 +115,10 @@ class TransactionServiceTest {
 	void listReturnsOwnTransactionsNewestDateFirstThenNewestRegistered() {
 		Owner a = createOwner("svctx1");
 		Owner b = createOwner("svctx2");
-		Transaction oldest = service.register(a.userId(), form(a, LocalDate.of(2026, 1, 5), 100, null));
-		Transaction sameDayFirst = service.register(a.userId(), form(a, LocalDate.of(2026, 10, 27), 200, null));
-		Transaction sameDaySecond = service.register(a.userId(), form(a, LocalDate.of(2026, 10, 27), 300, null));
-		Transaction newest = service.register(a.userId(), form(a, LocalDate.of(2026, 12, 1), 400, null));
+		Transaction oldest = registerOne(a.userId(), form(a, LocalDate.of(2026, 1, 5), 100, null));
+		Transaction sameDayFirst = registerOne(a.userId(), form(a, LocalDate.of(2026, 10, 27), 200, null));
+		Transaction sameDaySecond = registerOne(a.userId(), form(a, LocalDate.of(2026, 10, 27), 300, null));
+		Transaction newest = registerOne(a.userId(), form(a, LocalDate.of(2026, 12, 1), 400, null));
 		service.register(b.userId(), form(b, LocalDate.of(2026, 11, 1), 999, null));
 		entityManager.flush();
 		entityManager.clear();
@@ -131,7 +142,7 @@ class TransactionServiceTest {
 	void registerSavesValuesAndOwner() {
 		Owner a = createOwner("svctx4");
 
-		Transaction saved = service.register(a.userId(), form(a, LocalDate.of(2026, 10, 27), 1234, "昼食"));
+		Transaction saved = registerOne(a.userId(), form(a, LocalDate.of(2026, 10, 27), 1234, "昼食"));
 
 		Transaction found = reread(a.userId(), saved.getId());
 		assertThat(found.getUserId()).isEqualTo(a.userId());
@@ -148,7 +159,7 @@ class TransactionServiceTest {
 	void registerWithNullDescriptionStoresNull() {
 		Owner a = createOwner("svctx5");
 
-		Transaction saved = service.register(a.userId(), form(a, LocalDate.of(2026, 10, 27), 500, null));
+		Transaction saved = registerOne(a.userId(), form(a, LocalDate.of(2026, 10, 27), 500, null));
 
 		assertThat(reread(a.userId(), saved.getId()).getDescription()).isNull();
 	}
@@ -172,7 +183,7 @@ class TransactionServiceTest {
 		Owner b = createOwner("svctx8");
 
 		TransactionForm otherCategory = form(a);
-		otherCategory.setCategoryId(b.category().getId());
+		setCategory(otherCategory, b.category().getId());
 		TransactionForm otherVendor = form(a);
 		otherVendor.setVendorId(b.vendor().getId());
 		TransactionForm otherPayment = form(a);
@@ -191,7 +202,7 @@ class TransactionServiceTest {
 		long missing = a.category().getId() + a.vendor().getId() + a.paymentMethod().getId() + 1_000_000;
 
 		TransactionForm noCategory = form(a);
-		noCategory.setCategoryId(missing);
+		setCategory(noCategory, missing);
 		TransactionForm noVendor = form(a);
 		noVendor.setVendorId(missing);
 		TransactionForm noPayment = form(a);
@@ -203,12 +214,56 @@ class TransactionServiceTest {
 		assertThat(countOf(a.userId())).isZero();
 	}
 
-	// ---- 詳細（1件取得） ----
+	// ---- 明細の行が 2 行以上（issue 032 の段階 2） ----
+
+	/** 2 行の明細は、取引 2 件になる。日付・取引先・支払方法は同じ。行の順に登録する。空の行は数えない */
+	@Test
+	void registerWithSeveralLinesSavesOneTransactionPerFilledLine() {
+		Owner a = createOwner("svctx30");
+		Category daily = categoryRepository.save(new Category(a.userId(), "日用品"));
+		TransactionForm form = form(a, LocalDate.of(2026, 11, 9), 2200, "お弁当");
+		form.getLines().add(new TransactionForm.Line());
+		form.getLines().add(new TransactionForm.Line(daily.getId(), 800, null));
+
+		List<Transaction> saved = service.register(a.userId(), form);
+
+		assertThat(saved).hasSize(2);
+		assertThat(saved).extracting(Transaction::getAmount).containsExactly(2200, 800);
+		assertThat(saved.get(0).getId()).as("行の順に登録する").isLessThan(saved.get(1).getId());
+		assertThat(saved).allSatisfy(t -> {
+			Transaction found = reread(a.userId(), t.getId());
+			assertThat(found.getUserId()).isEqualTo(a.userId());
+			assertThat(found.getTransactionDate()).isEqualTo(LocalDate.of(2026, 11, 9));
+			assertThat(found.getVendor().getId()).isEqualTo(a.vendor().getId());
+			assertThat(found.getPaymentMethod().getId()).isEqualTo(a.paymentMethod().getId());
+		});
+		assertThat(countOf(a.userId())).isEqualTo(2);
+	}
+
+	/**
+	 * 2 行目の科目が他人のもの・存在しないものなら NotFoundException。1 行目も保存しない（ほかの行も含めて 0 件）。
+	 * 先に全部の行を確かめてから書く（行ごとに確かめて保存する形にすると、このテストは失敗する）
+	 */
+	@Test
+	void anotherUsersOrMissingCategoryOnTheSecondLineSavesNoLine() {
+		Owner a = createOwner("svctx31");
+		Owner b = createOwner("svctx32");
+
+		for (Long bad : List.of(b.category().getId(), a.category().getId() + 1_000_000)) {
+			TransactionForm form = form(a);
+			form.getLines().add(new TransactionForm.Line(bad, 800, null));
+			assertThatThrownBy(() -> service.register(a.userId(), form)).isInstanceOf(NotFoundException.class);
+		}
+		assertThat(countOf(a.userId())).isZero();
+		assertThat(countOf(b.userId())).isZero();
+	}
+
+		// ---- 詳細（1件取得） ----
 
 	@Test
 	void getReturnsOwnTransactionWithAssociations() {
 		Owner a = createOwner("svctx10");
-		Transaction saved = service.register(a.userId(), form(a));
+		Transaction saved = registerOne(a.userId(), form(a));
 		entityManager.flush();
 		entityManager.clear();
 
@@ -224,7 +279,7 @@ class TransactionServiceTest {
 	void getOtherUsersOrMissingTransactionIsNotFound() {
 		Owner a = createOwner("svctx11");
 		Owner b = createOwner("svctx12");
-		Transaction mine = service.register(a.userId(), form(a));
+		Transaction mine = registerOne(a.userId(), form(a));
 
 		assertThatThrownBy(() -> service.get(b.userId(), mine.getId())).isInstanceOf(NotFoundException.class);
 		assertThatThrownBy(() -> service.get(a.userId(), mine.getId() + 1_000_000)).isInstanceOf(NotFoundException.class);
@@ -236,10 +291,10 @@ class TransactionServiceTest {
 	void updateChangesValuesButNotOwner() {
 		Owner a = createOwner("svctx13");
 		Category otherCategory = categoryRepository.save(new Category(a.userId(), "別の科目"));
-		Transaction saved = service.register(a.userId(), form(a, LocalDate.of(2026, 10, 27), 1000, "昼食"));
+		Transaction saved = registerOne(a.userId(), form(a, LocalDate.of(2026, 10, 27), 1000, "昼食"));
 
 		TransactionForm changed = form(a, LocalDate.of(2026, 11, 3), 2500, null);
-		changed.setCategoryId(otherCategory.getId());
+		setCategory(changed, otherCategory.getId());
 		service.update(a.userId(), saved.getId(), changed);
 
 		Transaction found = reread(a.userId(), saved.getId());
@@ -256,7 +311,7 @@ class TransactionServiceTest {
 	void updateOtherUsersTransactionIsNotFoundAndLeavesItUnchanged() {
 		Owner a = createOwner("svctx14");
 		Owner b = createOwner("svctx15");
-		Transaction mine = service.register(a.userId(), form(a, LocalDate.of(2026, 10, 27), 1000, "昼食"));
+		Transaction mine = registerOne(a.userId(), form(a, LocalDate.of(2026, 10, 27), 1000, "昼食"));
 
 		// B が、自分の科目などを使って、A の取引の ID を更新しようとする
 		TransactionForm attempt = form(b, LocalDate.of(2026, 12, 25), 9999, "書き換え");
@@ -277,10 +332,10 @@ class TransactionServiceTest {
 	void updateWithOtherUsersItemsIsNotFoundAndLeavesTransactionUnchanged() {
 		Owner a = createOwner("svctx16");
 		Owner b = createOwner("svctx17");
-		Transaction mine = service.register(a.userId(), form(a, LocalDate.of(2026, 10, 27), 1000, "昼食"));
+		Transaction mine = registerOne(a.userId(), form(a, LocalDate.of(2026, 10, 27), 1000, "昼食"));
 
 		TransactionForm otherCategory = form(a, LocalDate.of(2026, 12, 25), 9999, "書き換え");
-		otherCategory.setCategoryId(b.category().getId());
+		setCategory(otherCategory, b.category().getId());
 		TransactionForm otherVendor = form(a, LocalDate.of(2026, 12, 25), 9999, "書き換え");
 		otherVendor.setVendorId(b.vendor().getId());
 		TransactionForm otherPayment = form(a, LocalDate.of(2026, 12, 25), 9999, "書き換え");
@@ -304,8 +359,8 @@ class TransactionServiceTest {
 	@Test
 	void deleteRemovesTheRow() {
 		Owner a = createOwner("svctx18");
-		Transaction saved = service.register(a.userId(), form(a));
-		Transaction kept = service.register(a.userId(), form(a));
+		Transaction saved = registerOne(a.userId(), form(a));
+		Transaction kept = registerOne(a.userId(), form(a));
 		entityManager.flush();
 		entityManager.clear();
 
@@ -323,7 +378,7 @@ class TransactionServiceTest {
 	void deleteOtherUsersOrMissingTransactionIsNotFoundAndKeepsIt() {
 		Owner a = createOwner("svctx19");
 		Owner b = createOwner("svctx20");
-		Transaction mine = service.register(a.userId(), form(a));
+		Transaction mine = registerOne(a.userId(), form(a));
 
 		assertThatThrownBy(() -> service.delete(b.userId(), mine.getId())).isInstanceOf(NotFoundException.class);
 		assertThatThrownBy(() -> service.delete(a.userId(), mine.getId() + 1_000_000)).isInstanceOf(NotFoundException.class);
@@ -336,7 +391,7 @@ class TransactionServiceTest {
 	@Test
 	void afterDeletingTheTransactionItsItemsCanBeDeleted() {
 		Owner a = createOwner("svctx21");
-		Transaction saved = service.register(a.userId(), form(a));
+		Transaction saved = registerOne(a.userId(), form(a));
 		entityManager.flush();
 		entityManager.clear();
 

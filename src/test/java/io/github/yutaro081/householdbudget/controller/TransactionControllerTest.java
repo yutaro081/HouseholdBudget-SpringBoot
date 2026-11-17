@@ -55,6 +55,11 @@ import jakarta.persistence.EntityManager;
 @Transactional
 class TransactionControllerTest {
 
+	/** 明細の 1 行目の項目の名前（issue 032 で、金額・科目・摘要は明細の行に移った） */
+	private static final String AMOUNT = "lines[0].amount";
+	private static final String CATEGORY = "lines[0].categoryId";
+	private static final String DESCRIPTION = "lines[0].description";
+
 	/** 日本時間の 2026-10-27 に固定した Clock（登録画面の日付の初期値、U7） */
 	@TestConfiguration
 	static class FixedClockConfig {
@@ -132,9 +137,9 @@ class TransactionControllerTest {
 	private MockHttpServletRequestBuilder valid(MockHttpServletRequestBuilder builder, Owner o, String... overrides) {
 		java.util.Map<String, String> values = new java.util.LinkedHashMap<>();
 		values.put("transactionDate", "2026-10-20");
-		values.put("amount", "1200");
-		values.put("categoryId", String.valueOf(o.category1().getId()));
-		values.put("description", "昼食");
+		values.put(AMOUNT, "1200");
+		values.put(CATEGORY, String.valueOf(o.category1().getId()));
+		values.put(DESCRIPTION, "昼食");
 		values.put("vendorId", String.valueOf(o.vendor1().getId()));
 		values.put("paymentMethodId", String.valueOf(o.payment1().getId()));
 		for (int i = 0; i < overrides.length; i += 2) {
@@ -151,6 +156,11 @@ class TransactionControllerTest {
 			n++;
 		}
 		return n;
+	}
+
+	/** 送る項目の名前。科目は明細の 1 行目、取引先・支払方法は共通の項目 */
+	private static String nameOf(String field) {
+		return "categoryId".equals(field) ? CATEGORY : field;
 	}
 
 	// ---- ログイン必須・CSRF ----
@@ -181,8 +191,8 @@ class TransactionControllerTest {
 	@Test
 	void postWithoutCsrfTokenSavesNothing() throws Exception {
 		mockMvc.perform(post("/transactions/new").with(asA)
-				.param("transactionDate", "2026-10-20").param("amount", "1200")
-				.param("categoryId", String.valueOf(a.category1().getId()))
+				.param("transactionDate", "2026-10-20").param(AMOUNT, "1200")
+				.param(CATEGORY, String.valueOf(a.category1().getId()))
 				.param("vendorId", String.valueOf(a.vendor1().getId()))
 				.param("paymentMethodId", String.valueOf(a.payment1().getId())))
 				.andExpect(status().isForbidden());
@@ -349,7 +359,7 @@ class TransactionControllerTest {
 		assertThat(body).contains("先に科目を追加してください", "先に取引先を追加してください", "先に支払方法を追加してください");
 		assertThat(body).contains("href=\"/categories\"", "href=\"/vendors\"", "href=\"/payment-methods\"");
 		assertThat(body).doesNotContain("action=\"/transactions/new\"");
-		assertThat(body).doesNotContain("name=\"amount\"");
+		assertThat(body).doesNotContain("name=\"" + AMOUNT + "\"");
 	}
 
 	@Test
@@ -398,7 +408,7 @@ class TransactionControllerTest {
 
 	@Test
 	void registerStripsAmountAndDescriptionSpacesAndStoresNullForBlankDescription() throws Exception {
-		mockMvc.perform(valid(post("/transactions/new"), a, "amount", " 800 ", "description", "　").with(asA))
+		mockMvc.perform(valid(post("/transactions/new"), a, AMOUNT, " 800 ", DESCRIPTION, "　").with(asA))
 				.andExpect(redirectedUrl("/transactions"));
 
 		Transaction t = transactionsOf(a).get(0);
@@ -408,7 +418,7 @@ class TransactionControllerTest {
 
 	@Test
 	void registerStripsSpacesAroundDescription() throws Exception {
-		mockMvc.perform(valid(post("/transactions/new"), a, "description", "　昼食 ").with(asA))
+		mockMvc.perform(valid(post("/transactions/new"), a, DESCRIPTION, "　昼食 ").with(asA))
 				.andExpect(redirectedUrl("/transactions"));
 
 		assertThat(transactionsOf(a).get(0).getDescription()).isEqualTo("昼食");
@@ -426,8 +436,8 @@ class TransactionControllerTest {
 			"1200|2026-10-20|30"
 	})
 	void registerAcceptsBoundaryValues(String amount, String date, int descriptionLength) throws Exception {
-		mockMvc.perform(valid(post("/transactions/new"), a, "amount", amount, "transactionDate", date,
-				"description", "あ".repeat(descriptionLength)).with(asA))
+		mockMvc.perform(valid(post("/transactions/new"), a, AMOUNT, amount, "transactionDate", date,
+				DESCRIPTION, "あ".repeat(descriptionLength)).with(asA))
 				.andExpect(redirectedUrl("/transactions"));
 
 		assertThat(transactionsOf(a)).hasSize(1);
@@ -436,28 +446,28 @@ class TransactionControllerTest {
 	@ParameterizedTest(name = "登録の入力エラー：{0} = [{1}] → {2}")
 	@CsvSource(delimiter = '|', value = {
 			// 金額（型変換のエラー、範囲のエラー、必須）
-			"amount|0|金額は1円以上1,000,000円以下で入力してください",
-			"amount|-1|金額は1円以上1,000,000円以下で入力してください",
-			"amount|1000001|金額は1円以上1,000,000円以下で入力してください",
-			"amount|abc|金額は整数で入力してください",
-			"amount|1,000|金額は整数で入力してください",
+			"lines[0].amount|0|金額は1円以上1,000,000円以下で入力してください",
+			"lines[0].amount|-1|金額は1円以上1,000,000円以下で入力してください",
+			"lines[0].amount|1000001|金額は1円以上1,000,000円以下で入力してください",
+			"lines[0].amount|abc|金額は整数で入力してください",
+			"lines[0].amount|1,000|金額は整数で入力してください",
 			// 全角の数字は半角に直す（R13）ので、範囲のチェックは直した値で行われる
-			"amount|０|金額は1円以上1,000,000円以下で入力してください",
-			"amount|１０００００１|金額は1円以上1,000,000円以下で入力してください",
+			"lines[0].amount|０|金額は1円以上1,000,000円以下で入力してください",
+			"lines[0].amount|１０００００１|金額は1円以上1,000,000円以下で入力してください",
 			// 全角でも、数字以外はエラーのまま
-			"amount|－５|金額は整数で入力してください",
-			"amount|１　２|金額は整数で入力してください",
-			"amount|１．５|金額は整数で入力してください",
-			"amount|１２円|金額は整数で入力してください",
-			"amount|1 000|金額は整数で入力してください",
-			"amount|0x10|金額は整数で入力してください",
-			"amount|#10|金額は整数で入力してください",
-			"amount|+5|金額は整数で入力してください",
-			"amount|1.5|金額は整数で入力してください",
-			"amount|10円|金額は整数で入力してください",
-			"amount|99999999999|金額は整数で入力してください",
-			"amount|''|金額を入力してください",
-			"amount|' '|金額を入力してください",
+			"lines[0].amount|－５|金額は整数で入力してください",
+			"lines[0].amount|１　２|金額は整数で入力してください",
+			"lines[0].amount|１．５|金額は整数で入力してください",
+			"lines[0].amount|１２円|金額は整数で入力してください",
+			"lines[0].amount|1 000|金額は整数で入力してください",
+			"lines[0].amount|0x10|金額は整数で入力してください",
+			"lines[0].amount|#10|金額は整数で入力してください",
+			"lines[0].amount|+5|金額は整数で入力してください",
+			"lines[0].amount|1.5|金額は整数で入力してください",
+			"lines[0].amount|10円|金額は整数で入力してください",
+			"lines[0].amount|99999999999|金額は整数で入力してください",
+			"lines[0].amount|''|金額を入力してください",
+			"lines[0].amount|' '|金額を入力してください",
 			// 日付（範囲のエラー、型変換のエラー、必須）
 			"transactionDate|1999-12-31|日付は2000年3月1日から2100年12月31日までで入力してください",
 			"transactionDate|2000-02-29|日付は2000年3月1日から2100年12月31日までで入力してください",
@@ -468,8 +478,8 @@ class TransactionControllerTest {
 			"transactionDate|abc|日付を正しく入力してください",
 			"transactionDate|''|日付を入力してください",
 			// 選択（未選択、数字でない値は未選択と同じ文言、G5）
-			"categoryId|''|科目を選択してください",
-			"categoryId|abc|科目を選択してください",
+			"lines[0].categoryId|''|科目を選択してください",
+			"lines[0].categoryId|abc|科目を選択してください",
 			"vendorId|''|取引先を選択してください",
 			"vendorId|abc|取引先を選択してください",
 			"paymentMethodId|''|支払方法を選択してください",
@@ -489,7 +499,7 @@ class TransactionControllerTest {
 
 	@ParameterizedTest(name = "登録の入力エラーでも入力値が残る：{0} = [{1}]")
 	@CsvSource(delimiter = '|', value = {
-			"amount|abc", "amount|１２円", "amount|0", "amount|1000001",
+			"lines[0].amount|abc", "lines[0].amount|１２円", "lines[0].amount|0", "lines[0].amount|1000001",
 			"transactionDate|2026-02-30", "transactionDate|1999-12-31", "transactionDate|2000-02-29"
 	})
 	void registerWithInvalidInputKeepsTheEnteredValue(String field, String value) throws Exception {
@@ -501,9 +511,9 @@ class TransactionControllerTest {
 	/** 全角の数字で打った金額は、半角に直して登録される（R13） */
 	@Test
 	void registerAcceptsAFullWidthAmount() throws Exception {
-		mockMvc.perform(valid(post("/transactions/new"), a, "amount", "１２００").with(asA))
+		mockMvc.perform(valid(post("/transactions/new"), a, AMOUNT, "１２００").with(asA))
 				.andExpect(redirectedUrl("/transactions"));
-		mockMvc.perform(valid(post("/transactions/new"), a, "amount", "　３4５　").with(asA))
+		mockMvc.perform(valid(post("/transactions/new"), a, AMOUNT, "　３4５　").with(asA))
 				.andExpect(redirectedUrl("/transactions"));
 
 		assertThat(transactionsOf(a)).extracting(Transaction::getAmount).containsExactlyInAnyOrder(1200, 345);
@@ -512,11 +522,11 @@ class TransactionControllerTest {
 	/** 全角で打って範囲のエラーになったときは、入力欄に半角に直した数字が出る（型変換のエラーのときだけ、入力した文字がそのまま残る） */
 	@Test
 	void registerWithAFullWidthOutOfRangeAmountShowsHalfWidthValueInTheField() throws Exception {
-		String body = body(mockMvc.perform(valid(post("/transactions/new"), a, "amount", "１０００００１").with(asA))
+		String body = body(mockMvc.perform(valid(post("/transactions/new"), a, AMOUNT, "１０００００１").with(asA))
 				.andExpect(status().isOk()).andReturn());
 
 		assertThat(body).contains("金額は1円以上1,000,000円以下で入力してください");
-		assertThat(body).contains("name=\"amount\" value=\"1000001\"");
+		assertThat(body).contains("name=\"" + AMOUNT + "\" value=\"1000001\"");
 		assertThat(transactionsOf(a)).isEmpty();
 	}
 
@@ -525,7 +535,7 @@ class TransactionControllerTest {
 	void updateAcceptsAFullWidthAmount() throws Exception {
 		Transaction t = saveFor(a, LocalDate.of(2026, 10, 19), 1200, "昼食");
 
-		mockMvc.perform(valid(post("/transactions/" + t.getId() + "/edit"), a, "amount", "１５００").with(asA))
+		mockMvc.perform(valid(post("/transactions/" + t.getId() + "/edit"), a, AMOUNT, "１５００").with(asA))
 				.andExpect(redirectedUrl("/transactions"));
 
 		assertThat(transactionsOf(a).get(0).getAmount()).isEqualTo(1500);
@@ -534,8 +544,8 @@ class TransactionControllerTest {
 	@Test
 	void registerWithErrorKeepsOtherValuesAndSelectedOptions() throws Exception {
 		String body = body(mockMvc.perform(post("/transactions/new").with(asA).with(csrf())
-				.param("transactionDate", "2026-10-20").param("amount", "abc")
-				.param("categoryId", String.valueOf(a.category2().getId())).param("description", "入力した摘要")
+				.param("transactionDate", "2026-10-20").param(AMOUNT, "abc")
+				.param(CATEGORY, String.valueOf(a.category2().getId())).param(DESCRIPTION, "入力した摘要")
 				.param("vendorId", String.valueOf(a.vendor2().getId()))
 				.param("paymentMethodId", String.valueOf(a.payment2().getId())))
 				.andExpect(status().isOk()).andReturn());
@@ -552,7 +562,7 @@ class TransactionControllerTest {
 	void registerWithTooLongDescriptionShowsErrorAndKeepsIt() throws Exception {
 		String thirtyOne = "あ".repeat(31);
 
-		String body = body(mockMvc.perform(valid(post("/transactions/new"), a, "description", thirtyOne).with(asA))
+		String body = body(mockMvc.perform(valid(post("/transactions/new"), a, DESCRIPTION, thirtyOne).with(asA))
 				.andExpect(status().isOk()).andReturn());
 
 		assertThat(body).contains("摘要は30文字以内で入力してください");
@@ -563,7 +573,7 @@ class TransactionControllerTest {
 	@Test
 	void registerWithSeveralErrorsShowsEachOnItsField() throws Exception {
 		String body = body(mockMvc.perform(post("/transactions/new").with(asA).with(csrf())
-				.param("transactionDate", "").param("amount", "0").param("categoryId", "")
+				.param("transactionDate", "").param(AMOUNT, "0").param(CATEGORY, "")
 				.param("vendorId", "").param("paymentMethodId", ""))
 				.andExpect(status().isOk()).andReturn());
 
@@ -582,7 +592,7 @@ class TransactionControllerTest {
 			default -> b.payment1().getId();
 		};
 
-		mockMvc.perform(valid(post("/transactions/new"), a, field, String.valueOf(otherId)).with(asA))
+		mockMvc.perform(valid(post("/transactions/new"), a, nameOf(field), String.valueOf(otherId)).with(asA))
 				.andExpect(status().isNotFound())
 				.andExpect(view().name("error/404"));
 
@@ -593,7 +603,7 @@ class TransactionControllerTest {
 	@ParameterizedTest(name = "登録で {0} に存在しないIDを送ると 404")
 	@ValueSource(strings = { "categoryId", "vendorId", "paymentMethodId" })
 	void registerWithNonexistentItemIsNotFound(String field) throws Exception {
-		mockMvc.perform(valid(post("/transactions/new"), a, field, "999999999").with(asA))
+		mockMvc.perform(valid(post("/transactions/new"), a, nameOf(field), "999999999").with(asA))
 				.andExpect(status().isNotFound())
 				.andExpect(view().name("error/404"));
 
@@ -640,8 +650,8 @@ class TransactionControllerTest {
 		Transaction t = saveFor(a, LocalDate.of(2026, 10, 19), 1200, "昼食");
 
 		mockMvc.perform(post("/transactions/" + t.getId() + "/edit").with(asA).with(csrf())
-				.param("transactionDate", "2026-11-03").param("amount", "1500")
-				.param("categoryId", String.valueOf(a.category2().getId())).param("description", "")
+				.param("transactionDate", "2026-11-03").param(AMOUNT, "1500")
+				.param(CATEGORY, String.valueOf(a.category2().getId())).param(DESCRIPTION, "")
 				.param("vendorId", String.valueOf(a.vendor2().getId()))
 				.param("paymentMethodId", String.valueOf(a.payment2().getId())))
 				.andExpect(status().is3xxRedirection())
@@ -665,8 +675,8 @@ class TransactionControllerTest {
 		Transaction t = saveFor(a, LocalDate.of(2026, 10, 19), 1200, "昼食");
 
 		MvcResult result = mockMvc.perform(post("/transactions/" + t.getId() + "/edit").with(asA).with(csrf())
-				.param("transactionDate", "2026-11-03").param("amount", "１２円")
-				.param("categoryId", String.valueOf(a.category2().getId())).param("description", "入力した摘要")
+				.param("transactionDate", "2026-11-03").param(AMOUNT, "１２円")
+				.param(CATEGORY, String.valueOf(a.category2().getId())).param(DESCRIPTION, "入力した摘要")
 				.param("vendorId", String.valueOf(a.vendor2().getId()))
 				.param("paymentMethodId", String.valueOf(a.payment2().getId())))
 				.andExpect(status().isOk())
@@ -691,7 +701,7 @@ class TransactionControllerTest {
 	void updateOfOtherUsersTransactionIsNotFoundWhetherOrNotTheInputIsValid(String amount) throws Exception {
 		Transaction mine = saveFor(a, LocalDate.of(2026, 10, 19), 1200, "昼食");
 
-		mockMvc.perform(valid(post("/transactions/" + mine.getId() + "/edit"), b, "amount", amount, "description", "書き換え")
+		mockMvc.perform(valid(post("/transactions/" + mine.getId() + "/edit"), b, AMOUNT, amount, DESCRIPTION, "書き換え")
 				.with(asB))
 				.andExpect(status().isNotFound())
 				.andExpect(view().name("error/404"));
@@ -709,7 +719,7 @@ class TransactionControllerTest {
 		mockMvc.perform(valid(post("/transactions/" + id + "/edit"), a).with(asA))
 				.andExpect(status().isNotFound())
 				.andExpect(view().name("error/404"));
-		mockMvc.perform(valid(post("/transactions/" + id + "/edit"), a, "amount", "abc").with(asA))
+		mockMvc.perform(valid(post("/transactions/" + id + "/edit"), a, AMOUNT, "abc").with(asA))
 				.andExpect(status().isNotFound());
 	}
 
@@ -724,7 +734,7 @@ class TransactionControllerTest {
 			default -> b.payment1().getId();
 		};
 
-		mockMvc.perform(valid(post("/transactions/" + t.getId() + "/edit"), a, "amount", "7777", field, String.valueOf(otherId))
+		mockMvc.perform(valid(post("/transactions/" + t.getId() + "/edit"), a, AMOUNT, "7777", nameOf(field), String.valueOf(otherId))
 				.with(asA))
 				.andExpect(status().isNotFound())
 				.andExpect(view().name("error/404"));

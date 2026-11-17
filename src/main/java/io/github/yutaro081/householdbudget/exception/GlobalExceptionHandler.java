@@ -15,6 +15,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
  * <li>送信の形がおかしくて、入力を Form に束縛できない（InvalidPropertyException。例：行の番号を書き換えた
  * rows[-1]、rows[abc]、257行目以降）→ 400 の画面（error/4xx）、状態コードも 400（R14、issue 002）。
  * 500 はサーバーの不具合、400 は送信の形がおかしい、という意味で、区別するため。何も保存されない。</li>
+ * <li>BadRequestException（送信の形がおかしい。例：取引の編集に、明細の行が 2 行以上。issue 032）→ 同じ 400 の画面と状態コード</li>
  * </ul>
  * DuplicateException、LimitExceededException、DeletionNotAllowedException は、ここでは扱わない。
  * Controller が受けて、画面の動き（入力エラーとして表示し直す／一覧へ戻って理由を表示する）に変える（5.1）。
@@ -40,6 +41,13 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(InvalidPropertyException.class)
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public String handleBindingFailure() {
+		return "error/4xx";
+	}
+
+	/** 送信の形がおかしい（issue 032）。入力の束縛の失敗と同じ 400 の画面。 */
+	@ExceptionHandler(BadRequestException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public String handleBadRequest() {
 		return "error/4xx";
 	}
 

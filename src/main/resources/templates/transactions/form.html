@@ -13,9 +13,10 @@
     <h1 th:text="${pageTitle}">取引の登録</h1>
 
     <!--/* 登録（transactionId がない）と編集（transactionId がある）で共用する（設計書 4.4.2、U1：表示と送信は同じ URL）。
-         992px 以上は 2 列（左：日付・科目・取引先・支払方法／右：金額・金額ボタン・摘要）、それより小さいときは 1 列（設計書 2.3、issue 015 の 3 回目）。
-         HTML は「左の列 → 右の列」の順に書く（1 列のときの順と、Tab で進む順が、見た目の順と合う）。2 列は CSS（Bootstrap の row / col-lg-6）だけで作る。
-         ラベルの横の「必須」「任意・30 文字以内」は表示だけ（required・maxlength は付けない、G1）。issue 017：灰色の小さな文字（チップではない）、ラベルは太字、金額のラベルは「金額（円）」、日付の欄は 992px 以上で列の半分（最大 220px）、左の列は 992px 以上で項目の間隔を広げる。
+         並び（issue 032。2 列はやめた）：上に共通の項目（日付・取引先・支払方法）、その下に明細の行（登録は 5 行、編集は 1 行。行ごとに 科目・金額・金額ボタン・摘要）、
+         いちばん下に明細の合計。HTML の順が、見た目の順と Tab で進む順。並びは CSS（Bootstrap の row / col-lg-*）だけで作る。
+         行は、はじめから HTML にある（JavaScript で作らない。要件定義書 7 章）。split-lines.js は、空の行を隠す・見せることと、合計を書くことだけをする。
+         ラベルの横の「必須」「任意・30 文字以内」は表示だけ（required・maxlength は付けない、G1）。
          プルダウンが空のとき（B2、Q5-7 の A）は、足りない種類の説明とマスタの画面へのリンクを出し、フォームは出さない。
          入力欄には、カンマも「円」も使わない（2.3）。金額は文字として受け付ける（G1）。
          エラーで戻ったときも、入力値と選んでいた値が残る（th:field）。利用者の入力は th:field / th:text で出す。th:utext は使わない（7.5） */-->
@@ -33,52 +34,61 @@
     <form th:unless="${#lists.isEmpty(categories) or #lists.isEmpty(vendors) or #lists.isEmpty(paymentMethods)}"
           th:action="${transactionId == null} ? @{/transactions/new} : @{/transactions/{id}/edit(id=${transactionId})}"
           th:object="${transactionForm}" method="post" class="form-card" novalidate>
-        <div class="row g-4">
-            <div class="col-lg-6 form-col-left">
-                <div class="field">
-                    <label class="form-label" for="transactionDate">日付 <span class="field-chip field-chip-required">必須</span></label>
-                    <input class="form-control date-input" type="date" th:field="*{transactionDate}">
-                    <div class="field-error" th:each="message : ${#fields.errors('transactionDate')}" th:text="${message}">エラー</div>
-                </div>
+        <!--/* 共通の項目（全部の行で同じ） */-->
+        <div class="row g-3 form-common">
+            <div class="col-lg-4 field">
+                <label class="form-label" for="transactionDate">日付 <span class="field-chip field-chip-required">必須</span></label>
+                <input class="form-control" type="date" th:field="*{transactionDate}">
+                <div class="field-error" th:each="message : ${#fields.errors('transactionDate')}" th:text="${message}">エラー</div>
+            </div>
 
-                <div class="field">
-                    <label class="form-label" for="categoryId">科目 <span class="field-chip field-chip-required">必須</span></label>
-                    <select class="form-select" th:field="*{categoryId}">
+            <div class="col-lg-4 field">
+                <label class="form-label" for="vendorId">取引先 <span class="field-chip field-chip-required">必須</span></label>
+                <select class="form-select" th:field="*{vendorId}">
+                    <option value="">選択してください</option>
+                    <option th:each="vendor : ${vendors}" th:value="${vendor.id}" th:text="${vendor.name}">コンビニ</option>
+                </select>
+                <div class="field-error" th:each="message : ${#fields.errors('vendorId')}" th:text="${message}">エラー</div>
+            </div>
+
+            <div class="col-lg-4 field">
+                <label class="form-label" for="paymentMethodId">支払方法 <span class="field-chip field-chip-required">必須</span></label>
+                <select class="form-select" th:field="*{paymentMethodId}">
+                    <option value="">選択してください</option>
+                    <option th:each="paymentMethod : ${paymentMethods}" th:value="${paymentMethod.id}" th:text="${paymentMethod.name}">現金</option>
+                </select>
+                <div class="field-error" th:each="message : ${#fields.errors('paymentMethodId')}" th:text="${message}">エラー</div>
+            </div>
+        </div>
+
+        <!--/* 金額ボタンの説明（全部の組で同じ文なので、明細の上に 1 回だけ。issue 032）。JavaScript が動いたときだけ見せる（amount-buttons.js が hidden を外す）。文は固定 */-->
+        <p class="amount-note" data-amount-explain hidden>「税込にする」のボタンは、欄の金額を税抜として計算します（端数は切り捨て）。8%と10%が混ざるレシートは、税率ごとに明細の行を分けて登録してください。</p>
+
+        <!--/* 「明細を 1 行以上入力してください」（空でない行が 1 つもないとき） */-->
+        <div class="field-error" th:each="message : ${#fields.errors('lines')}" th:text="${message}">エラー</div>
+
+        <!--/* 明細の行（issue 032）。行ごとに fieldset と legend（明細 1、明細 2…）。th:field の id は lines0.amount の形 */-->
+        <fieldset class="split-line" data-split-line th:each="line, stat : *{lines}">
+            <legend class="split-line-title" th:text="|明細 ${stat.count}|">明細 1</legend>
+            <div class="row g-3">
+                <div class="col-lg-3 field">
+                    <label class="form-label" th:for="|lines${stat.index}.categoryId|">科目 <span class="field-chip field-chip-required">必須</span></label>
+                    <select class="form-select" th:field="*{lines[__${stat.index}__].categoryId}">
                         <option value="">選択してください</option>
                         <option th:each="category : ${categories}" th:value="${category.id}" th:text="${category.name}">食費</option>
                     </select>
-                    <div class="field-error" th:each="message : ${#fields.errors('categoryId')}" th:text="${message}">エラー</div>
+                    <div class="field-error" th:each="message : ${#fields.errors('lines[__${stat.index}__].categoryId')}" th:text="${message}">エラー</div>
                 </div>
 
-                <div class="field">
-                    <label class="form-label" for="vendorId">取引先 <span class="field-chip field-chip-required">必須</span></label>
-                    <select class="form-select" th:field="*{vendorId}">
-                        <option value="">選択してください</option>
-                        <option th:each="vendor : ${vendors}" th:value="${vendor.id}" th:text="${vendor.name}">コンビニ</option>
-                    </select>
-                    <div class="field-error" th:each="message : ${#fields.errors('vendorId')}" th:text="${message}">エラー</div>
-                </div>
-
-                <div class="field">
-                    <label class="form-label" for="paymentMethodId">支払方法 <span class="field-chip field-chip-required">必須</span></label>
-                    <select class="form-select" th:field="*{paymentMethodId}">
-                        <option value="">選択してください</option>
-                        <option th:each="paymentMethod : ${paymentMethods}" th:value="${paymentMethod.id}" th:text="${paymentMethod.name}">現金</option>
-                    </select>
-                    <div class="field-error" th:each="message : ${#fields.errors('paymentMethodId')}" th:text="${message}">エラー</div>
-                </div>
-            </div>
-
-            <div class="col-lg-6">
-                <div class="field">
-                    <label class="form-label" for="amount">金額（円） <span class="field-chip field-chip-required">必須</span></label>
-                    <input class="form-control amount-input" type="text" inputmode="numeric" th:field="*{amount}">
+                <div class="col-lg-5 field">
+                    <label class="form-label" th:for="|lines${stat.index}.amount|">金額（円） <span class="field-chip field-chip-required">必須</span></label>
+                    <input class="form-control amount-input" type="text" inputmode="numeric" th:field="*{lines[__${stat.index}__].amount}" data-split-amount>
                     <div class="field-hint">1〜1,000,000 の整数</div>
-                    <div class="field-error" th:each="message : ${#fields.errors('amount')}" th:text="${message}">エラー</div>
-                    <!--/* 金額の入力を助けるボタン（設計書 2.3、issue 009）。JavaScript が動いたときだけ見せる（hidden を外す）。
-                         ボタンは type="button"（送信しない）。どの欄に効くかは data-amount-target で指す。税込のボタンは、画面を開いたとき欄に値が入っていれば、JavaScript が最初から押せなくする（編集画面、エラーで表示し直した画面）。
-                         文は固定で、JavaScript は見せる・隠すだけ。利用者の入力は使わない（7.5）。入力欄の th:field は変えない。2 列のときは右の列の、金額の欄の下（中身は変えない） */-->
-                    <div class="amount-buttons" data-amount-buttons data-amount-target="amount" hidden>
+                    <div class="field-error" th:each="message : ${#fields.errors('lines[__${stat.index}__].amount')}" th:text="${message}">エラー</div>
+                    <!--/* 金額の入力を助けるボタン（設計書 2.3、issue 009。issue 032 で行ごとに 1 組）。JavaScript が動いたときだけ見せる（hidden を外す）。
+                         ボタンは type="button"（送信しない）。どの欄に効くかは data-amount-target で指す（その行の金額の欄）。
+                         文は固定で、JavaScript は見せる・隠すだけ。利用者の入力は使わない（7.5） */-->
+                    <div class="amount-buttons" data-amount-buttons th:attr="data-amount-target=|lines${stat.index}.amount|" hidden>
                         <div class="amount-row">
                             <span class="amount-row-label">足す</span>
                             <div class="amount-group" role="group" aria-label="足す">
@@ -98,18 +108,24 @@
                             <!--/* 金額をクリア：一覧の「編集」と同じ灰色の枠の小さいボタン（row-btn。issue 029）。つながった形の外に、8% と 16px 空けて置く（押し間違いを防ぐ） */-->
                             <button type="button" class="row-btn amount-clear" data-amount-clear>金額をクリア</button>
                         </div>
-                        <!--/* 説明は 1 つの段落（13px。中身は変えない）。押せないときの文（span。hidden のまま。JavaScript が見せる・隠すだけ）が先頭 */-->
-                        <p class="amount-note"><span data-amount-tax-note hidden>この金額には、もう税をかけられません。税抜きの金額を入れ直すと、押せるようになります。</span> 「税込にする」のボタンは、欄の金額を税抜として計算します（端数は切り捨て）。8%と10%が混ざるレシートは、税率ごとに取引を分けて登録してください。</p>
+                        <!--/* 押せないときの文（hidden のまま。JavaScript が見せる・隠すだけ）。説明の文は、明細の上に 1 回だけ（issue 032） */-->
+                        <p class="amount-note" data-amount-tax-note hidden>この金額には、もう税をかけられません。税抜きの金額を入れ直すと、押せるようになります。</p>
                     </div>
                 </div>
 
-                <div class="field">
-                    <label class="form-label" for="description">摘要 <span class="field-chip field-chip-optional">任意・30 文字以内</span></label>
-                    <input class="form-control" type="text" th:field="*{description}">
-                    <div class="field-error" th:each="message : ${#fields.errors('description')}" th:text="${message}">エラー</div>
+                <div class="col-lg-4 field">
+                    <label class="form-label" th:for="|lines${stat.index}.description|">摘要 <span class="field-chip field-chip-optional">任意・30 文字以内</span></label>
+                    <input class="form-control" type="text" th:field="*{lines[__${stat.index}__].description}">
+                    <div class="field-error" th:each="message : ${#fields.errors('lines[__${stat.index}__].description')}" th:text="${message}">エラー</div>
                 </div>
             </div>
-        </div>
+        </fieldset>
+
+        <!--/* 行を足す（登録の画面だけ）。JavaScript が動いたときだけ見せる。押すと、隠れている次の行を見せる（行は作らない） */-->
+        <button type="button" class="row-btn split-add" data-split-add hidden th:if="${transactionId == null}">＋ 行を足す</button>
+
+        <!--/* 明細の合計（登録・編集の両方）。JavaScript が動いたときだけ見せる。数字は split-lines.js が書く（文は固定）。合計は入力しない・保存しない */-->
+        <p class="split-total" data-split-total-box hidden>明細の合計 <strong><span data-split-total>0</span>円</strong><span class="split-total-note" data-split-not-number hidden>（数字でない欄は、合計に入れていません）</span></p>
 
         <!--/* 右下：キャンセル（取引一覧へのリンク。ボタンではないので、Enter キーでは送信されない）→ 送信ボタン */-->
         <div class="form-actions">
@@ -120,5 +136,6 @@
 
 </main>
 <script defer th:src="@{/js/amount-buttons.js}"></script>
+<script defer th:src="@{/js/split-lines.js}"></script>
 </body>
 </html>

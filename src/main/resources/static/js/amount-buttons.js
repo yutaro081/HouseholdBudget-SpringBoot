@@ -1,4 +1,4 @@
-// 取引の登録・編集画面の、金額の入力を助けるボタン（設計書 2.3、issue 009）。
+// 取引の登録・編集画面の、金額の入力を助けるボタン（設計書 2.3、issue 009）。issue 032：明細の行ごとに 1 組ある。組ごとに、同じ行の金額の欄に効く。
 // 足すボタン（+1・+10・+100・+1000）と、税込のボタン（10%・8%）と、クリアのボタン（欄を空にする）。
 // このファイルは固定で、利用者の入力をファイルの中に埋め込まない。欄の値を読んで、書き戻すだけ。
 // 画面に出す文は、HTML に書いてある固定の文。ここでは、表示と非表示、ボタンの押せる・押せないを切り替えるだけ。
@@ -48,12 +48,8 @@
         return String(Math.floor(amount * percent / 100));
     }
 
-    // 画面の部品をつなぐ。ボタンの入れ物がない画面では、何もしない。
-    function setUp() {
-        var box = document.querySelector('[data-amount-buttons]');
-        if (!box) {
-            return;
-        }
+    // 1 組のボタンの入れ物を、その組が指す欄（data-amount-target）につなぐ。
+    function setUpBox(box) {
         var field = document.getElementById(box.getAttribute('data-amount-target'));
         var note = box.querySelector('[data-amount-tax-note]');
         var addButtons = box.querySelectorAll('[data-amount-add]');
@@ -113,6 +109,19 @@
         // 編集画面（保存した金額）と、入力エラーで表示し直した画面（入力した金額）の、両方がこれで決まる。
         setTaxLocked(field.value.trim() !== '');
         box.hidden = false; // JavaScript が動くときだけ、ボタンを見せる
+    }
+
+    // 画面の全部の組をつなぐ。ボタンの入れ物がない画面では、何もしない。
+    // 説明の段落（明細の上に 1 回だけ。issue 032）も、JavaScript が動くときだけ見せる。
+    function setUp() {
+        var boxes = document.querySelectorAll('[data-amount-buttons]');
+        if (boxes.length === 0) {
+            return;
+        }
+        boxes.forEach(setUpBox);
+        document.querySelectorAll('[data-amount-explain]').forEach(function (explain) {
+            explain.hidden = false;
+        });
     }
 
     // Console で計算を確かめるために、計算の 2 つの関数だけを出しておく（画面の部品には触れない）。

@@ -90,22 +90,36 @@ public class TransactionService {
 	}
 
 	/**
-	 * 取引を登録する。持ち主は userId（画面の値は使わない）。
+	 * 取引を登録する。空でない明細の行ごとに 1 件（issue 032）。日付・取引先・支払方法は、全部の行で同じ。行の順に登録する。
+	 * 持ち主は userId（画面の値は使わない）。
+	 * <p>
+	 * 【守り】先に、取引先・支払方法と、全部の行の科目が自分のものかを確かめ、そのあとで書く（行ごとに確かめて書く形にしない）。
+	 * 1 つでも他人のもの・存在しないものがあれば、1 件も書かない。1 つのトランザクションなので、途中で失敗しても全部取り消される（二重の守り）。
 	 *
+	 * @return 登録した取引（行の順）
 	 * @throws NotFoundException 科目・取引先・支払方法のどれかが、存在しない、または他人のもの（何も保存しない）
 	 */
 	@Transactional
-	public Transaction register(Long userId, TransactionForm form) {
-		Category category = categoryService.get(userId, form.getCategoryId());
+	public List<Transaction> register(Long userId, TransactionForm form) {
 		Vendor vendor = vendorService.get(userId, form.getVendorId());
 		PaymentMethod paymentMethod = paymentMethodService.get(userId, form.getPaymentMethodId());
+		List<TransactionForm.Line> lines = form.filledLines();
+		List<Category> categories = new ArrayList<>();
+		for (TransactionForm.Line line : lines) {
+			categories.add(categoryService.get(userId, line.getCategoryId()));
+		}
 
-		return transactionRepository.save(new Transaction(userId, form.getTransactionDate(), form.getAmount(),
-				category, form.getDescription(), vendor, paymentMethod));
+		List<Transaction> saved = new ArrayList<>();
+		for (int i = 0; i < lines.size(); i++) {
+			TransactionForm.Line line = lines.get(i);
+			saved.add(transactionRepository.save(new Transaction(userId, form.getTransactionDate(), line.getAmount(),
+					categories.get(i), line.getDescription(), vendor, paymentMethod)));
+		}
+		return List.copyOf(saved);
 	}
 
 	/**
-	 * 取引を更新する。持ち主は変わらない。
+	 * 取引を更新する。持ち主は変わらない。明細は 1 行（issue 032 の段階 2。Controller が 2 行以上を 400 にしてある）。
 	 *
 	 * @throws NotFoundException 取引が、存在しない、または他人のもの。科目・取引先・支払方法のどれかが、
 	 *                           存在しない、または他人のもの（どちらの場合も、取引は変わらない）
@@ -113,11 +127,12 @@ public class TransactionService {
 	@Transactional
 	public void update(Long userId, Long id, TransactionForm form) {
 		Transaction transaction = find(userId, id);
-		Category category = categoryService.get(userId, form.getCategoryId());
+		TransactionForm.Line line = form.filledLines().get(0);
+		Category category = categoryService.get(userId, line.getCategoryId());
 		Vendor vendor = vendorService.get(userId, form.getVendorId());
 		PaymentMethod paymentMethod = paymentMethodService.get(userId, form.getPaymentMethodId());
 
-		transaction.update(form.getTransactionDate(), form.getAmount(), category, form.getDescription(),
+		transaction.update(form.getTransactionDate(), line.getAmount(), category, line.getDescription(),
 				vendor, paymentMethod);
 		transactionRepository.saveAndFlush(transaction);
 	}

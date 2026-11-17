@@ -262,23 +262,44 @@ main.form-wide {
 }
 
 /*
- * 992px 以上のときだけ（issue 017）：①日付の欄は列の半分（最大 220px）。②左の列（日付・科目・取引先・支払方法）の項目の間隔を広げる。
- * 右の列は金額のボタンと説明で長いので、左の列の終わり（支払方法の下）が、右の列の摘要の下より少し下に来るようにする。値はブラウザで見て調整してよい。
- * 1 列のとき（992px 未満）は、今のまま。
+ * 明細の行（issue 032）：行ごとに fieldset。上に区切り線、見出し「明細 1」…は小さめの太字。
+ * 2 列（issue 015 の 3 回目。日付の欄の幅、左の列の間隔の規則）は、issue 032 でやめた。細かい値は、ブラウザで見て調整してよい。
  */
-@media (min-width: 992px) {
-    .date-input {
-        width: 50%;
-        max-width: 220px;
-    }
+.split-line {
+    margin: var(--hb-space-4) 0 0;
+    padding: var(--hb-space-3) 0 0;
+    border: 0;
+    border-top: 1px solid var(--hb-line);
+}
 
-    .form-col-left .field {
-        margin-bottom: var(--hb-space-6);
-    }
+.split-line-title {
+    float: none;
+    width: auto;
+    margin-bottom: var(--hb-space-2);
+    font-size: var(--hb-font-size-body);
+    font-weight: 700;
+}
 
-    .form-col-left .field:last-child {
-        margin-bottom: 0;
-    }
+/* 行を足す（登録の画面だけ。見た目は .row-btn） */
+.split-add {
+    margin-top: var(--hb-space-3);
+}
+
+/* 明細の合計（JavaScript が動いたときだけ見せる）。数字の部分だけ太字 */
+.split-total {
+    margin: var(--hb-space-4) 0 0;
+    text-align: right;
+}
+
+.split-total-note {
+    margin-left: var(--hb-space-2);
+    color: var(--hb-text-sub);
+    font-size: var(--hb-font-size-small);
+}
+
+/* 金額ボタンの説明（明細の上に 1 回だけ。issue 032） */
+.form-common + .amount-note {
+    margin-top: var(--hb-space-3);
 }
 
 /* 金額の欄：大きめの文字（見出しの 1.75rem）、ターコイズの枠（#0E9594。白との比 3.66 対 1）、数字は右寄せ。選んだとき（フォーカス）は .form-control:focus の枠が効く */

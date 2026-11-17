@@ -34,9 +34,10 @@ import io.github.yutaro081.householdbudget.security.LoginUser;
 import jakarta.persistence.EntityManager;
 
 /**
- * 取引の登録・編集画面の 2 列の作り（issue 015 の 3 回目。設計書 2.3、4.4.2）の、HTML と CSS の確認。
- * 確かめるのは、HTML の文字列〔2 列の入れ物、項目の順、ラベルの横の印、右下のボタン、上の戻るリンク〕と、style.css の規則。
- * 実際の並び〔2 列になること、992px の前後、金額ボタンが 1 行に収まること〕は、MockMvc では確かめられないので、ブラウザで確かめる。
+ * 取引の登録・編集画面の作り（設計書 2.3、4.4.2）の、HTML と CSS の確認。issue 032 で、2 列〔issue 015 の 3 回目〕をやめ、
+ * 上に共通の項目〔日付・取引先・支払方法〕、その下に明細の行〔科目・金額・摘要。登録は 5 行、編集は 1 行〕、いちばん下に明細の合計、の並びにした。
+ * 確かめるのは、HTML の文字列〔項目の順、ラベルの横の印、右下のボタン、上の戻るリンク〕と、style.css の規則。
+ * 実際の見た目〔項目の幅、金額ボタンの折り返し、重く見えないか〕は、MockMvc では確かめられないので、ブラウザで確かめる。
  * 開発用の DB につなぐが、各テストはトランザクションで包まれ、終わると取り消される（行は残らない）。
  */
 @SpringBootTest
@@ -111,8 +112,8 @@ class TransactionFormLayoutTest {
 
 	private String errorPage() throws Exception {
 		return mockMvc.perform(post("/transactions/new").with(asUser).with(csrf())
-				.param("transactionDate", "2026-10-20").param("amount", "abc")
-				.param("categoryId", String.valueOf(category.getId())).param("description", "昼食")
+				.param("transactionDate", "2026-10-20").param("lines[0].amount", "abc")
+				.param("lines[0].categoryId", String.valueOf(category.getId())).param("lines[0].description", "昼食")
 				.param("vendorId", String.valueOf(vendor.getId()))
 				.param("paymentMethodId", String.valueOf(payment.getId())))
 				.andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
@@ -157,16 +158,20 @@ class TransactionFormLayoutTest {
 		Long id = userRepository.save(new User("formlay2", "dummy-hash-for-test")).getId();
 		String body = mockMvc.perform(get("/transactions/new").with(user(new LoginUser(id, "formlay2", "x"))))
 				.andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-		assertThat(body).contains("← 取引一覧に戻る", "先に科目を追加してください").doesNotContain("キャンセル", "name=\"amount\"");
+		assertThat(body).contains("← 取引一覧に戻る", "先に科目を追加してください").doesNotContain("キャンセル", "name=\"lines[0].amount\"");
 	}
 
 	// ---- ラベルの横の印 ----
 
+	/** 必須の印：共通の 3 つ（日付・取引先・支払方法）＋ 行ごとに 2 つ（科目・金額）。任意の印：行ごとに 1 つ（摘要）。登録は 5 行、編集は 1 行 */
 	@Test
-	void fiveRequiredMarksAndOneOptionalMarkAndNoHtmlRestrictions() throws Exception {
-		for (String body : new String[] { newPage(), editPage(), errorPage() }) {
-			assertThat(count(body, "field-chip-required\">必須</span>")).as("必須の印：日付・金額・科目・取引先・支払方法").isEqualTo(5);
-			assertThat(count(body, "field-chip-optional\">任意・30 文字以内</span>")).as("摘要の印").isEqualTo(1);
+	void requiredAndOptionalMarksAreThreeCommonPlusTwoPerLineAndNoHtmlRestrictions() throws Exception {
+		String[][] screens = { { newPage(), "5" }, { editPage(), "1" }, { errorPage(), "5" } };
+		for (String[] screen : screens) {
+			String body = screen[0];
+			int lines = Integer.parseInt(screen[1]);
+			assertThat(count(body, "field-chip-required\">必須</span>")).as("必須の印").isEqualTo(3 + 2 * lines);
+			assertThat(count(body, "field-chip-optional\">任意・30 文字以内</span>")).as("摘要の印").isEqualTo(lines);
 			assertThat(body).as("印は表示だけ（G1）：required と maxlength は付けない").doesNotContainPattern("\\srequired[\\s=>]").doesNotContain("maxlength");
 			assertThat(body).as("ラベルの文から、補足を外した").doesNotContain("（任意。30文字以内）", "金額（円。1〜1000000の整数）");
 		}
@@ -176,27 +181,27 @@ class TransactionFormLayoutTest {
 	@Test
 	void amountLabelHasTheYenInParentheses() throws Exception {
 		for (String body : new String[] { newPage(), editPage(), errorPage() }) {
-			assertThat(body).containsPattern("<label[^>]*for=\"amount\"[^>]*>金額（円） <span class=\"field-chip field-chip-required\">必須</span>");
+			assertThat(body).containsPattern("<label[^>]*for=\"lines0.amount\"[^>]*>金額（円） <span class=\"field-chip field-chip-required\">必須</span>");
 		}
 	}
 
-	/** issue 017：日付の欄に date-input（992px 以上で幅を半分にする目印）、左の列に form-col-left（項目の間隔を広げる目印）を付ける */
+	/** issue 032：2 列の目印（col-lg-6、form-col-left、date-input）は、もう使わない */
 	@Test
-	void dateInputAndLeftColumnCarryTheLayoutHooks() throws Exception {
+	void theTwoColumnHooksAreGone() throws Exception {
 		for (String body : new String[] { newPage(), editPage(), errorPage() }) {
-			assertThat(body).containsPattern("<input class=\"form-control date-input\" type=\"date\"");
-			assertThat(body).contains("<div class=\"col-lg-6 form-col-left\">");
-			assertThat(count(body, "form-col-left")).isEqualTo(1);
+			assertThat(body).doesNotContain("col-lg-6", "form-col-left", "date-input");
 		}
 	}
 
 	@Test
 	void marksAreInsideTheLabelsOfTheirFields() throws Exception {
 		String body = newPage();
-		for (String id : new String[] { "transactionDate", "amount", "categoryId", "vendorId", "paymentMethodId" }) {
+		for (String id : new String[] { "transactionDate", "vendorId", "paymentMethodId", "lines0.categoryId", "lines0.amount", "lines4.categoryId", "lines4.amount" }) {
 			assertThat(body).as(id).containsPattern("<label[^>]*for=\"" + id + "\"[^>]*>[^<]*<span class=\"field-chip field-chip-required\">必須</span>");
 		}
-		assertThat(body).containsPattern("<label[^>]*for=\"description\"[^>]*>[^<]*<span class=\"field-chip field-chip-optional\">任意・30 文字以内</span>");
+		for (String id : new String[] { "lines0.description", "lines4.description" }) {
+			assertThat(body).as(id).containsPattern("<label[^>]*for=\"" + id + "\"[^>]*>[^<]*<span class=\"field-chip field-chip-optional\">任意・30 文字以内</span>");
+		}
 	}
 
 	@Test
@@ -205,43 +210,75 @@ class TransactionFormLayoutTest {
 		assertThat(body).contains("1〜1,000,000 の整数");
 		// issue 017：ラベルが「金額（円）」になったので、補足の頭の「円。」はなくした。カンマ付き
 		assertThat(body).doesNotContain("円。1〜1000000の整数", "円。1〜");
-		assertThat(body.indexOf("id=\"amount\"")).isLessThan(body.indexOf("1〜1,000,000 の整数"));
+		assertThat(count(body, "1〜1,000,000 の整数")).as("金額の欄ごとに 1 つ").isEqualTo(5);
+		assertThat(body.indexOf("id=\"lines0.amount\"")).isLessThan(body.indexOf("1〜1,000,000 の整数"));
 		assertThat(body.indexOf("1〜1,000,000 の整数")).as("金額ボタンの前").isLessThan(body.indexOf("data-amount-buttons"));
 		assertThat(count(newPage(), "class=\"field-error\"")).as("エラーがない画面に field-error はない").isZero();
 	}
 
-	// ---- 2 列の作り（HTML の順 = 1 列のときの順 = Tab の順） ----
+	// ---- 並び（HTML の順 = Tab の順。issue 032） ----
 
+	/**
+	 * 上に共通の項目（日付 → 取引先 → 支払方法）、その下に明細の行（行ごとに 科目 → 金額 → 金額ボタン → 摘要）、
+	 * そのあと「行を足す」（登録だけ）と明細の合計、最後に「キャンセル」「保存」。HTML の順が Tab で進む順
+	 */
 	@Test
-	void twoColumnsLeftHasDateCategoryVendorPaymentAndRightHasAmountButtonsDescription() throws Exception {
-		for (String body : new String[] { newPage(), editPage(), errorPage() }) {
-			assertThat(body).containsPattern("<div class=\"row[^\"]*\"");
-			assertThat(count(body, "col-lg-6")).as("列は 2 つ").isEqualTo(2);
-			assertThat(body).as("切り替えは lg（992px）。md（768px）にはしない").doesNotContain("col-md-");
-			int right = body.indexOf("col-lg-6", body.indexOf("col-lg-6") + 1);
+	void commonFieldsComeFirstThenEachLineThenTheTotalThenTheButtons() throws Exception {
+		String[][] screens = { { newPage(), "5" }, { editPage(), "1" }, { errorPage(), "5" } };
+		for (String[] screen : screens) {
+			String body = screen[0];
+			int lines = Integer.parseInt(screen[1]);
 			int date = body.indexOf("id=\"transactionDate\"");
-			int cat = body.indexOf("id=\"categoryId\"");
 			int vend = body.indexOf("id=\"vendorId\"");
 			int pay = body.indexOf("id=\"paymentMethodId\"");
-			int amount = body.indexOf("id=\"amount\"");
-			int buttons = body.indexOf("data-amount-buttons");
-			int desc = body.indexOf("id=\"description\"");
-			assertThat(date).isPositive().isLessThan(cat);
-			assertThat(cat).isLessThan(vend);
+			assertThat(date).isPositive().isLessThan(vend);
 			assertThat(vend).isLessThan(pay);
-			assertThat(pay).as("左の列の終わりまでに支払方法がある").isLessThan(right);
-			assertThat(right).as("右の列は、金額の前").isLessThan(amount);
-			assertThat(amount).isLessThan(buttons);
-			assertThat(buttons).as("金額ボタンは、金額の欄と摘要の間").isLessThan(desc);
-			assertThat(body.indexOf("<button type=\"submit\"", formStart(body))).as("送信ボタンは、2 列のあと").isGreaterThan(desc);
+			int explain = body.indexOf("data-amount-explain");
+			assertThat(explain).as("金額ボタンの説明は、明細の上に 1 回だけ（issue 032）").isGreaterThan(pay);
+			int previous = explain;
+			for (int i = 0; i < lines; i++) {
+				int cat = body.indexOf("id=\"lines" + i + ".categoryId\"");
+				int amount = body.indexOf("id=\"lines" + i + ".amount\"");
+				int buttons = body.indexOf("data-amount-target=\"lines" + i + ".amount\"");
+				int desc = body.indexOf("id=\"lines" + i + ".description\"");
+				assertThat(cat).as((i + 1) + " 行目の科目は、前の項目のあと").isGreaterThan(previous);
+				assertThat(amount).isGreaterThan(cat);
+				assertThat(buttons).as("金額ボタンは、金額の欄と摘要の間").isGreaterThan(amount).isLessThan(desc);
+				previous = desc;
+			}
+			assertThat(body.indexOf("id=\"lines" + lines + ".categoryId\"")).as("行は " + lines + " つ").isNegative();
+			int total = body.indexOf("data-split-total-box");
+			assertThat(total).as("明細の合計は、最後の行のあと").isGreaterThan(previous);
+			assertThat(body.indexOf("<button type=\"submit\"", formStart(body))).as("送信ボタンは、合計のあと").isGreaterThan(total);
 		}
+	}
+
+	/** 明細の行は、行ごとに fieldset と legend（「明細 1」…）でまとめる（どの行の科目・金額かが、読み上げでも分かる） */
+	@Test
+	void eachLineIsAFieldsetWithANumberedLegend() throws Exception {
+		String body = newPage();
+		for (int i = 1; i <= 5; i++) {
+			assertThat(body).containsPattern("<fieldset[^>]*data-split-line[^>]*>\\s*<legend[^>]*>明細 " + i + "</legend>");
+		}
+		assertThat(count(body, "<fieldset")).isEqualTo(5);
+		assertThat(count(editPage(), "<fieldset")).isEqualTo(1);
+	}
+
+	/** 「行を足す」は登録の画面だけ（最後の行のあと、合計の前）。編集の画面には出さない */
+	@Test
+	void theAddButtonIsOnlyOnTheNewFormBetweenTheLastLineAndTheTotal() throws Exception {
+		String body = newPage();
+		int add = body.indexOf("data-split-add");
+		assertThat(add).isGreaterThan(body.indexOf("id=\"lines4.description\"")).isLessThan(body.indexOf("data-split-total-box"));
+		assertThat(errorPage()).contains("data-split-add");
+		assertThat(editPage()).doesNotContain("data-split-add");
 	}
 
 	@Test
 	void amountInputHasTheBigClassAndKeepsTheAttributesTheOtherTestsCheck() throws Exception {
 		String body = editPage();
 		assertThat(body).containsPattern("<input class=\"form-control amount-input\" type=\"text\" inputmode=\"numeric\"");
-		assertThat(body).contains("name=\"amount\" value=\"1200\"");
+		assertThat(body).contains("name=\"lines[0].amount\" value=\"1200\"");
 	}
 
 	@Test
@@ -333,26 +370,19 @@ class TransactionFormLayoutTest {
 		assertThat(css).containsPattern("\\.btn\\s*\\{[^}]*--bs-btn-font-weight:\\s*400");
 	}
 
-	/** issue 017：日付の欄は、992px 以上のとき、列の半分（最大 220px）。それより小さいときは今のまま（規則は 992px 以上の中にだけある） */
+	/** issue 032：2 列の規則（日付の欄を半分にする、左の列の間隔）は、なくした */
 	@Test
-	void dateFieldIsHalfTheColumnUpTo220pxFrom992px() throws Exception {
+	void theTwoColumnRulesAreGone() throws Exception {
 		String css = stripComments(css());
-
-		Matcher media = Pattern.compile("@media \\(min-width: 992px\\)\\s*\\{[^@]*?\\.date-input\\s*\\{([^}]*)\\}").matcher(css);
-		assertThat(media.find()).as("992px 以上の規則").isTrue();
-		assertThat(media.group(1)).contains("width: 50%", "max-width: 220px");
-		assertThat(count(css, ".date-input")).as("992px 以上の中にだけある").isEqualTo(1);
+		assertThat(css).doesNotContain(".date-input", ".form-col-left");
 	}
 
-	/** issue 017：992px 以上で、左の列の項目の間隔を広げる（左の列の終わりが、右の列の摘要の下より少し下に来るように） */
+	/** issue 032：明細の行の区切りと、明細の合計の規則がある */
 	@Test
-	void leftColumnFieldsAreSpacedWiderFrom992px() throws Exception {
+	void theLineAndTotalRulesExist() throws Exception {
 		String css = stripComments(css());
-
-		Matcher media = Pattern.compile("@media \\(min-width: 992px\\)\\s*\\{[^@]*?\\.form-col-left \\.field\\s*\\{([^}]*)\\}").matcher(css);
-		assertThat(media.find()).as("992px 以上の規則").isTrue();
-		assertThat(media.group(1)).contains("margin-bottom: var(--hb-space-6)");
-		assertThat(css).as("1 列のときの間隔（.field の 1rem）は変えない").containsPattern("\\.field\\s*\\{\\s*margin-bottom: 1rem;");
+		assertThat(rule(css, ".split-line")).isNotBlank();
+		assertThat(rule(css, ".split-total")).isNotBlank();
 	}
 
 	private static String stripComments(String css) {

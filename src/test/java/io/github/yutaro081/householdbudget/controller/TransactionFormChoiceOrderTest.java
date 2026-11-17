@@ -156,7 +156,7 @@ class TransactionFormChoiceOrderTest {
 	private static void assertChoiceOrder(String body, String screen) {
 		assertThat(labels(body, "vendorId")).as(screen + "：取引先は件数の多い順。同じ件数は登録順。0 件は最後").containsExactlyElementsOf(VENDORS_BY_USE);
 		assertThat(labels(body, "paymentMethodId")).as(screen + "：支払方法は件数の多い順。0 件は最後").containsExactlyElementsOf(PAYMENTS_BY_USE);
-		assertThat(labels(body, "categoryId")).as(screen + "：科目は登録順のまま（件数は日用品のほうが多い）").containsExactlyElementsOf(CATEGORIES_IN_ORDER);
+		assertThat(labels(body, "lines0.categoryId")).as(screen + "：科目は登録順のまま（件数は日用品のほうが多い）").containsExactlyElementsOf(CATEGORIES_IN_ORDER);
 	}
 
 	// ---- 並び ----
@@ -182,7 +182,7 @@ class TransactionFormChoiceOrderTest {
 		assertChoiceOrder(body, "編集");
 		assertThat(selected(body, "vendorId")).as("2 番目に並ぶスーパーが選ばれたまま").containsExactly("スーパー");
 		assertThat(selected(body, "paymentMethodId")).as("2 番目に並ぶ電子マネーが選ばれたまま").containsExactly("電子マネー");
-		assertThat(selected(body, "categoryId")).containsExactly("食費");
+		assertThat(selected(body, "lines0.categoryId")).containsExactly("食費");
 	}
 
 	@Test
@@ -197,7 +197,7 @@ class TransactionFormChoiceOrderTest {
 	@Test
 	void theNewFormRedisplayedAfterAnInputErrorKeepsTheChosenVendorAndPaymentMethod() throws Exception {
 		String body = body(post("/transactions/new").with(csrf())
-				.param("transactionDate", "2026-10-20").param("amount", "1200").param("categoryId", "")
+				.param("transactionDate", "2026-10-20").param("lines[0].amount", "1200").param("lines[0].categoryId", "")
 				.param("vendorId", String.valueOf(convenience.getId()))
 				.param("paymentMethodId", String.valueOf(cash.getId())));
 
@@ -210,8 +210,8 @@ class TransactionFormChoiceOrderTest {
 	@Test
 	void theEditFormRedisplayedAfterAnInputErrorKeepsTheChosenVendorAndPaymentMethod() throws Exception {
 		String body = body(post("/transactions/" + supermarketTransaction.getId() + "/edit").with(csrf())
-				.param("transactionDate", "2026-10-20").param("amount", "abc")
-				.param("categoryId", String.valueOf(food.getId()))
+				.param("transactionDate", "2026-10-20").param("lines[0].amount", "abc")
+				.param("lines[0].categoryId", String.valueOf(food.getId()))
 				.param("vendorId", String.valueOf(supermarket.getId()))
 				.param("paymentMethodId", String.valueOf(emoney.getId())));
 

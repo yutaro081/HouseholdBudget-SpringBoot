@@ -16,20 +16,21 @@ import org.springframework.web.bind.WebDataBinder;
  */
 class StrictIntegerEditorTest {
 
-	/** TransactionForm の amount に、editor を付けて束縛した結果を返す（本番の @InitBinder と同じ付け方）。 */
+	/** TransactionForm の明細の 1 行目の金額（lines[0].amount）に、本番の @InitBinder と同じ設定（TransactionFormBinding）で束縛した結果を返す（issue 032）。 */
 	private static String bind(String input) {
 		TransactionForm form = new TransactionForm();
 		WebDataBinder binder = new WebDataBinder(form, "transactionForm");
-		binder.registerCustomEditor(Integer.class, "amount", new StrictIntegerEditor());
-		binder.bind(new MutablePropertyValues(java.util.Map.of("amount", input)));
-		FieldError error = binder.getBindingResult().getFieldError("amount");
+		TransactionFormBinding.configure(binder);
+		binder.bind(new MutablePropertyValues(java.util.Map.of("lines[0].amount", input)));
+		FieldError error = binder.getBindingResult().getFieldError("lines[0].amount");
 		if (error != null) {
 			assertThat(error.isBindingFailure()).isTrue();
 			assertThat(error.getCode()).isEqualTo("typeMismatch");
 			assertThat(error.getRejectedValue()).isEqualTo(input);
 			return "ERROR";
 		}
-		return form.getAmount() == null ? "NULL" : String.valueOf(form.getAmount());
+		Integer amount = form.getLines().get(0).getAmount();
+		return amount == null ? "NULL" : String.valueOf(amount);
 	}
 
 	@ParameterizedTest(name = "[{0}] → {1}")

@@ -119,8 +119,8 @@ class SessionExpiredTest {
 
 		MvcResult result = mockMvc.perform(post("/transactions/new").with(oldSession())
 				.with(user(new LoginUser(userId, "expired1", "x"))).param("_csrf", "old-token")
-				.param("transactionDate", "2026-10-20").param("amount", "1200")
-				.param("categoryId", String.valueOf(category.getId()))
+				.param("transactionDate", "2026-10-20").param("lines[0].amount", "1200")
+				.param("lines[0].categoryId", String.valueOf(category.getId()))
 				.param("vendorId", String.valueOf(vendor.getId()))
 				.param("paymentMethodId", String.valueOf(payment.getId())))
 				.andExpect(status().is3xxRedirection()).andReturn();
