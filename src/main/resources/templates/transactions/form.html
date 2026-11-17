@@ -119,6 +119,11 @@
                     <div class="field-error" th:each="message : ${#fields.errors('lines[__${stat.index}__].description')}" th:text="${message}">エラー</div>
                 </div>
             </div>
+            <!--/* 行を消す（登録の画面の明細 2〜5 だけ。明細 1 と編集の画面には出さない）。JavaScript が動いたときだけ見せる。
+                 押すと、確認なしで、この行を空にして隠す（split-lines.js）。消した行は空なので、サーバーは無視する */-->
+            <div class="split-line-actions" th:if="${transactionId == null and stat.index > 0}">
+                <button type="button" class="row-btn split-remove" data-split-remove hidden>行を消す</button>
+            </div>
         </fieldset>
 
         <!--/* 行を足す（登録の画面だけ）。JavaScript が動いたときだけ見せる。押すと、隠れている次の行を見せる（行は作らない） */-->
@@ -135,6 +140,8 @@
     </form>
 
 </main>
+<!--/* 読む順は、amount-buttons.js が先、split-lines.js が後（defer は書いた順に動く）。
+     同じ金額ボタンを押したとき、amount-buttons.js が欄を書き換えたあとで、split-lines.js が明細の合計を計算し直すため（ボタンが欄を書き換えても input のできごとは起きない） */-->
 <script defer th:src="@{/js/amount-buttons.js}"></script>
 <script defer th:src="@{/js/split-lines.js}"></script>
 </body>

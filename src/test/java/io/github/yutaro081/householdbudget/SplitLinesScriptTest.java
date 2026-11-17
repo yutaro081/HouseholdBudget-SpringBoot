@@ -26,7 +26,7 @@ class SplitLinesScriptTest {
 	@Test
 	void scriptExistsAndIsShort() throws IOException {
 		List<String> lines = Files.readAllLines(SCRIPT);
-		assertThat(lines).as("短い自作の JavaScript（150 行以内）").hasSizeBetween(20, 150);
+		assertThat(lines).as("短い自作の JavaScript（200 行以内。budget-total.js と同じ）").hasSizeBetween(20, 200);
 	}
 
 	@Test
@@ -53,14 +53,22 @@ class SplitLinesScriptTest {
 	/** 画面に出す文は、HTML に書いてある。ここには書かない */
 	@Test
 	void scriptHasNoSentencesOfItsOwn() throws IOException {
-		assertThat(code()).doesNotContain("行を足す", "明細の合計", "数字でない欄があります", "円");
+		assertThat(code()).doesNotContain("行を足す", "行を消す", "明細の合計", "数字でない欄があります", "円");
+	}
+
+	/** 行を消すときは、確認を出さない。金額の欄に input のできごとを起こして、金額ボタンの状態（税込の押せない状態）と合計を、空の欄に合わせる */
+	@Test
+	void removingALineAsksNothingAndTellsTheAmountButtonsTheFieldIsEmpty() throws IOException {
+		String code = code();
+		assertThat(code).doesNotContain("confirm(");
+		assertThat(code).contains("dispatchEvent(new Event('input'))");
 	}
 
 	/** data- の印だけに頼る（クラス名・見た目に頼らない） */
 	@Test
 	void scriptUsesOnlyDataMarks() throws IOException {
 		String code = code();
-		assertThat(code).contains("[data-split-line]", "[data-split-add]", "[data-split-total]", "[data-split-total-box]");
+		assertThat(code).contains("[data-split-line]", "[data-split-add]", "[data-split-total]", "[data-split-total-box]", "[data-split-remove]");
 		assertThat(code).doesNotContain("classList", "className", "getElementsByClassName", "querySelector('.", "querySelectorAll('.");
 	}
 

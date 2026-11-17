@@ -242,6 +242,38 @@ class TransactionSplitEntryTest {
 		}
 	}
 
+	/** 「行を消す」の開始タグ（type="button" と hidden がある。属性の順は問わない） */
+	private static final Pattern REMOVE_BUTTON = Pattern.compile("<button[^>]*data-split-remove[^>]*>");
+
+	/** 登録の画面（新規・複写・入力エラーの出し直し）：明細 2〜5 にだけ「行を消す」がある。type="button"、hidden で始まる。明細 1 にはない */
+	@Test
+	void linesTwoToFiveHaveAHiddenRemoveButtonAndLineOneDoesNot() throws Exception {
+		Transaction src = saveFor(a, 3456, "週末の買い物");
+		String[] bodies = {
+				page(get("/transactions/new"), asA),
+				page(get("/transactions/new").param("copyFrom", String.valueOf(src.getId())), asA),
+				page(common(post("/transactions/new"), a, line(0, "categoryId"), String.valueOf(a.food().getId()), line(0, "amount"), "abc"), asA) };
+		for (String body : bodies) {
+			assertThat(REMOVE_BUTTON.matcher(lineBlock(body, 0)).find()).as("明細 1 には付けない").isFalse();
+			for (int i = 1; i < LINES; i++) {
+				Matcher tag = REMOVE_BUTTON.matcher(lineBlock(body, i));
+				assertThat(tag.find()).as("明細 " + (i + 1) + " にある").isTrue();
+				assertThat(tag.group()).contains("type=\"button\"").containsPattern("\\shidden[\\s>]");
+				assertThat(lineBlock(body, i)).contains(">行を消す</button>");
+				assertThat(tag.find()).as("1 行に 1 つ").isFalse();
+			}
+			assertThat(count(body, "data-split-remove")).isEqualTo(LINES - 1);
+		}
+	}
+
+	/** 編集の画面（1 行）には「行を消す」を出さない */
+	@Test
+	void theEditFormHasNoRemoveButton() throws Exception {
+		Transaction t = saveFor(a, 1200, "昼食");
+
+		assertThat(page(get("/transactions/" + t.getId() + "/edit"), asA)).doesNotContain("data-split-remove", "行を消す");
+	}
+
 	// ---- 登録 ----
 
 	/** 2 行を入れて保存すると、取引が 2 件できる。日付・取引先・支払方法は同じ。行の順に登録される */

@@ -280,6 +280,12 @@ main.form-wide {
     font-weight: 700;
 }
 
+/* 行を消す（明細 2〜5 の右下。見た目は .row-btn） */
+.split-line-actions {
+    margin-top: var(--hb-space-2);
+    text-align: right;
+}
+
 /* 行を足す（登録の画面だけ。見た目は .row-btn） */
 .split-add {
     margin-top: var(--hb-space-3);

@@ -100,6 +100,30 @@
                 }
                 updateAddButton();
             });
+
+            // 行を消す（明細 2〜5 だけにある）：確認なしで、その行の科目・金額・摘要を空にして、行を隠す。
+            // 欄に input のできごとを起こして、ほかの処理に「空になった」ことを知らせる
+            // （amount-buttons.js が「税込にする」を押せる状態に戻し、下の合計が計算し直す）。
+            rows.forEach(function (row) {
+                var removeButton = row.querySelector('[data-split-remove]');
+                if (!removeButton) {
+                    return;
+                }
+                removeButton.addEventListener('click', function () {
+                    row.querySelectorAll('select').forEach(function (select) {
+                        select.value = '';
+                    });
+                    row.querySelectorAll('input:not([type="button"])').forEach(function (input) {
+                        input.value = '';
+                        input.dispatchEvent(new Event('input'));
+                    });
+                    row.hidden = true;
+                    updateAddButton();
+                    // 押したボタンは隠れるので、カーソルを「行を足す」に移す
+                    addButton.focus();
+                });
+                removeButton.hidden = false; // JavaScript が動くときだけ見せる
+            });
             updateAddButton();
         }
 
