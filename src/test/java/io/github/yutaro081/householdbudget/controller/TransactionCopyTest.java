@@ -124,7 +124,7 @@ class TransactionCopyTest {
 	private List<Transaction> transactionsOf(Owner o) {
 		entityManager.flush();
 		entityManager.clear();
-		return transactionRepository.findByUserIdOrderByTransactionDateDescIdDesc(o.userId());
+		return transactionRepository.findForListByUserId(o.userId());
 	}
 
 	// ---- データ分離（先に書いたテスト） ----

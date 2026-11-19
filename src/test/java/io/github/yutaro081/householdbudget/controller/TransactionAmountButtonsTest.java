@@ -260,7 +260,7 @@ class TransactionAmountButtonsTest {
 	/** issue 032：ボタンの組は、明細の行ごとに 1 組（登録 5 組、編集 1 組）。各組は、同じ行の金額の欄を指し、その欄がある */
 	@Test
 	void eachLineHasItsOwnSetOfButtonsPointingToItsAmountField() throws Exception {
-		String[][] screens = { { page("/transactions/new"), "5" }, { page("/transactions/" + transaction.getId() + "/edit"), "1" } };
+		String[][] screens = { { page("/transactions/new"), "5" }, { page("/transactions/" + transaction.getId() + "/edit"), "5" } };
 		for (String[] screen : screens) {
 			String body = screen[0];
 			int lines = Integer.parseInt(screen[1]);

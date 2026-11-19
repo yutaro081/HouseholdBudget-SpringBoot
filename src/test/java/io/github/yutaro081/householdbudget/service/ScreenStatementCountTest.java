@@ -3,6 +3,7 @@ package io.github.yutaro081.householdbudget.service;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import org.hibernate.SessionFactory;
 import org.junit.jupiter.api.Test;
@@ -19,6 +20,7 @@ import io.github.yutaro081.householdbudget.entity.PaymentMethod;
 import io.github.yutaro081.householdbudget.entity.Transaction;
 import io.github.yutaro081.householdbudget.entity.User;
 import io.github.yutaro081.householdbudget.entity.Vendor;
+import io.github.yutaro081.householdbudget.form.TransactionForm;
 import io.github.yutaro081.householdbudget.repository.BudgetRepository;
 import io.github.yutaro081.householdbudget.repository.CategoryRepository;
 import io.github.yutaro081.householdbudget.repository.PaymentMethodRepository;
@@ -199,6 +201,98 @@ class ScreenStatementCountTest {
 
 		assertThat(withEight).as("8 個ずつでも、2 個ずつのときと同じ本数").isEqualTo(withTwo);
 		assertThat(withTwo).isEqualTo(4);
+	}
+
+	// ---- 同じレシートの取引（issue 032 の段階 3。T3-10） ----
+
+	/** count 行のレシートを持つユーザー（行の科目は別々）。最後の行の id を返す（編集・複写の入口） */
+	private record ReceiptOwner(Long userId, Long lastId, List<Long> categoryIds, Long vendorId, Long paymentId) {
+	}
+
+	private ReceiptOwner receiptOf(String username, int count) {
+		Long userId = userRepository.save(new User(username, "dummy-hash-for-test")).getId();
+		Vendor vendor = vendorRepository.save(new Vendor(userId, "取引先"));
+		PaymentMethod payment = paymentMethodRepository.save(new PaymentMethod(userId, "支払方法"));
+		List<Long> categoryIds = new java.util.ArrayList<>();
+		for (int i = 0; i < 5; i++) {
+			categoryIds.add(categoryRepository.save(new Category(userId, "科目" + i)).getId());
+		}
+		List<Transaction> saved = transactionService.register(userId, receiptForm(categoryIds, vendor.getId(), payment.getId(), count));
+		entityManager.flush();
+		entityManager.clear();
+		return new ReceiptOwner(userId, saved.get(saved.size() - 1).getId(), categoryIds, vendor.getId(), payment.getId());
+	}
+
+	private static TransactionForm receiptForm(List<Long> categoryIds, Long vendorId, Long paymentId, int count) {
+		TransactionForm form = new TransactionForm();
+		form.setTransactionDate(LocalDate.of(2026, 11, 9));
+		form.setVendorId(vendorId);
+		form.setPaymentMethodId(paymentId);
+		for (int i = 0; i < count; i++) {
+			form.getLines().add(new TransactionForm.Line(categoryIds.get(i), 100 * (i + 1), null));
+		}
+		return form;
+	}
+
+	private org.hibernate.stat.Statistics statistics() {
+		var statistics = entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
+		statistics.clear();
+		return statistics;
+	}
+
+	/** 編集・複写の画面のためにレシートを読む SQL は、入口の行と、まとまりの 2 本。2 行でも 5 行でも同じ */
+	@Test
+	void readingAReceiptDoesNotIssueMoreStatementsForMoreLines() {
+		long[] counts = new long[2];
+		int[] sizes = { 2, 5 };
+		for (int i = 0; i < 2; i++) {
+			ReceiptOwner owner = receiptOf("stmtrcp" + i, sizes[i]);
+			var statistics = statistics();
+			assertThat(transactionService.getReceipt(owner.userId(), owner.lastId())).hasSize(sizes[i])
+					.allSatisfy(t -> assertThat(t.getCategory().getName()).startsWith("科目"));
+			counts[i] = statistics.getPrepareStatementCount();
+		}
+		assertThat(counts[1]).as("5 行でも、2 行のときと同じ本数").isEqualTo(counts[0]);
+		assertThat(counts[0]).isEqualTo(2);
+	}
+
+	/** 取引一覧（月ごと。削除の確認の文のためのレシートの合計を含む）の SQL は 1 本。レシートの行が増えても同じ */
+	@Test
+	void theListWithReceiptsIsStillOneStatement() {
+		long[] counts = new long[2];
+		int[] sizes = { 2, 5 };
+		for (int i = 0; i < 2; i++) {
+			ReceiptOwner owner = receiptOf("stmtrcl" + i, sizes[i]);
+			var statistics = statistics();
+			assertThat(transactionService.listByMonth(owner.userId())).singleElement()
+					.satisfies(month -> assertThat(month.receipts()).hasSize(1));
+			counts[i] = statistics.getPrepareStatementCount();
+		}
+		assertThat(counts[1]).isEqualTo(counts[0]).isEqualTo(1);
+	}
+
+	/** 登録と更新で、確かめのための検索の本数（JPQL・名前付きの検索）は、行の数で増えない（科目は 1 回で読んで照らし合わせる） */
+	@Test
+	void registeringAndUpdatingDoNotIssueMoreQueriesForMoreLines() {
+		long[] registerCounts = new long[2];
+		long[] updateCounts = new long[2];
+		int[] sizes = { 2, 5 };
+		for (int i = 0; i < 2; i++) {
+			ReceiptOwner owner = receiptOf("stmtrcu" + i, 1);
+			var statistics = statistics();
+			transactionService.register(owner.userId(), receiptForm(owner.categoryIds(), owner.vendorId(), owner.paymentId(), sizes[i]));
+			entityManager.flush();
+			registerCounts[i] = statistics.getQueryExecutionCount();
+			entityManager.clear();
+
+			statistics = statistics();
+			transactionService.update(owner.userId(), owner.lastId(), receiptForm(owner.categoryIds(), owner.vendorId(), owner.paymentId(), sizes[i]));
+			entityManager.flush();
+			updateCounts[i] = statistics.getQueryExecutionCount();
+			entityManager.clear();
+		}
+		assertThat(registerCounts[1]).as("登録：5 行でも、2 行のときと同じ本数").isEqualTo(registerCounts[0]);
+		assertThat(updateCounts[1]).as("更新：5 行でも、2 行のときと同じ本数").isEqualTo(updateCounts[0]);
 	}
 
 }

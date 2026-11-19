@@ -337,7 +337,7 @@ class TransactionRowActionsTest {
 			assertThat(bodies.get(1)).as("存在しない ID と他人の ID").isEqualTo(bodies.get(0));
 			assertThat(bodies.get(2)).as("数字でない ID と他人の ID").isEqualTo(bodies.get(0));
 		}
-		assertThat(transactionRepository.findByUserIdOrderByTransactionDateDescIdDesc(userId)).as("他人の削除で、消えていない").hasSize(1);
+		assertThat(transactionRepository.findForListByUserId(userId)).as("他人の削除で、消えていない").hasSize(1);
 	}
 
 	/** 自分の取引の削除は、今までどおり一覧に戻る（POST と CSRF は変わらない） */
@@ -352,7 +352,7 @@ class TransactionRowActionsTest {
 
 		entityManager.flush();
 		entityManager.clear();
-		assertThat(transactionRepository.findByUserIdOrderByTransactionDateDescIdDesc(userId)).isEmpty();
+		assertThat(transactionRepository.findForListByUserId(userId)).isEmpty();
 	}
 
 	// ---- issue 025 の段階 7：取引の詳細ページをなくした ----

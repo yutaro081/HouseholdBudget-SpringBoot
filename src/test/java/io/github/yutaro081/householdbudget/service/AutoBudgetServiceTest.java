@@ -162,7 +162,7 @@ class AutoBudgetServiceTest {
 	private int transactionCount(Owner owner) {
 		entityManager.flush();
 		entityManager.clear();
-		return transactionRepository.findByUserIdOrderByTransactionDateDescIdDesc(owner.id()).size();
+		return transactionRepository.findForListByUserId(owner.id()).size();
 	}
 
 	// ================================================================

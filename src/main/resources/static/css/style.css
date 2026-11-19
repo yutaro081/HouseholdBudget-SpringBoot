@@ -280,6 +280,13 @@ main.form-wide {
     font-weight: 700;
 }
 
+/* 取引一覧の、同じレシートの取引の印「分割」（issue 032）：科目名の右に、補足の色の小さな文字。色の意味（赤・青）は使わない */
+.split-mark {
+    margin-left: var(--hb-space-2);
+    color: var(--hb-text-sub);
+    font-size: var(--hb-font-size-small);
+}
+
 /* 行を消す（明細 2〜5 の右下。見た目は .row-btn） */
 .split-line-actions {
     margin-top: var(--hb-space-2);

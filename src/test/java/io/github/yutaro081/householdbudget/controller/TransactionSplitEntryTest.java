@@ -107,7 +107,7 @@ class TransactionSplitEntryTest {
 	private List<Transaction> transactionsOf(Owner o) {
 		entityManager.flush();
 		entityManager.clear();
-		return transactionRepository.findByUserIdOrderByTransactionDateDescIdDesc(o.userId()).stream()
+		return transactionRepository.findForListByUserId(o.userId()).stream()
 				.sorted(Comparator.comparing(Transaction::getId)).toList();
 	}
 
@@ -266,12 +266,20 @@ class TransactionSplitEntryTest {
 		}
 	}
 
-	/** 編集の画面（1 行）には「行を消す」を出さない */
+	/** 編集の画面（issue 032 の段階 3。5 行）も、明細 2〜5 にだけ「行を消す」がある。明細 1 には付けない（Q032-13） */
 	@Test
-	void theEditFormHasNoRemoveButton() throws Exception {
+	void theEditFormHasRemoveButtonsOnLinesTwoToFiveButNotOnLineOne() throws Exception {
 		Transaction t = saveFor(a, 1200, "昼食");
 
-		assertThat(page(get("/transactions/" + t.getId() + "/edit"), asA)).doesNotContain("data-split-remove", "行を消す");
+		String body = page(get("/transactions/" + t.getId() + "/edit"), asA);
+
+		assertThat(REMOVE_BUTTON.matcher(lineBlock(body, 0)).find()).as("明細 1 には付けない").isFalse();
+		for (int i = 1; i < LINES; i++) {
+			Matcher tag = REMOVE_BUTTON.matcher(lineBlock(body, i));
+			assertThat(tag.find()).as("明細 " + (i + 1) + " にある").isTrue();
+			assertThat(tag.group()).contains("type=\"button\"").containsPattern("\\shidden[\\s>]");
+		}
+		assertThat(count(body, "data-split-remove")).isEqualTo(LINES - 1);
 	}
 
 	// ---- 登録 ----
@@ -509,32 +517,18 @@ class TransactionSplitEntryTest {
 		assertThat(transactionsOf(b)).isEmpty();
 	}
 
-	// ---- 編集（段階 2 では 1 つの取引ずつ） ----
+	// ---- 編集（issue 032 の段階 3：同じレシートの取引は、まとめて編集する。まとまりの確かめは TransactionReceiptTest） ----
 
-	/** 編集の画面は、明細が 1 行だけ。「行を足す」は出さない */
+	/** 編集の画面も 5 行（取引の行 ＋ 空の行）。「行を足す」がある（2 行以上を送るのは 400 ではなくなった） */
 	@Test
-	void theEditFormHasOnlyOneLineAndNoAddButton() throws Exception {
+	void theEditFormHasFiveLinesAndTheAddButton() throws Exception {
 		Transaction t = saveFor(a, 1200, "昼食");
 
 		String body = page(get("/transactions/" + t.getId() + "/edit"), asA);
 
-		assertThat(count(body, "data-split-line")).isEqualTo(1);
-		assertThat(body).contains("name=\"" + line(0, "amount") + "\" value=\"1200\"").doesNotContain("lines[1]", "data-split-add");
-	}
-
-	/** 編集で 2 行以上を送ると 400。取引は変わらない */
-	@Test
-	void editingWithTwoLinesIsABadRequestAndChangesNothing() throws Exception {
-		Transaction t = saveFor(a, 1200, "昼食");
-
-		mockMvc.perform(common(post("/transactions/" + t.getId() + "/edit"), a, receipt(a)).with(asA))
-				.andExpect(status().isBadRequest())
-				.andExpect(view().name("error/4xx"));
-
-		List<Transaction> after = transactionsOf(a);
-		assertThat(after).hasSize(1);
-		assertThat(after.get(0).getAmount()).isEqualTo(1200);
-		assertThat(after.get(0).getDescription()).isEqualTo("昼食");
+		assertThat(count(body, "data-split-line")).isEqualTo(LINES);
+		assertThat(body).contains("name=\"" + line(0, "amount") + "\" value=\"1200\"", "name=\"" + line(1, "amount") + "\" value=\"\"");
+		assertThat(body).containsPattern("<button type=\"button\"[^>]*data-split-add[^>]*hidden[^>]*>[^<]*行を足す</button>");
 	}
 
 	/** 他人の取引の ID なら、2 行を送っても、先に 404（ID と user_id で先に探す。設計書 7.8） */
@@ -549,16 +543,16 @@ class TransactionSplitEntryTest {
 		assertThat(transactionsOf(a).get(0).getAmount()).isEqualTo(1200);
 	}
 
-	/** 編集で明細を空にすると、入力エラー（1 行以上）。変わらない。出し直した画面も 1 行 */
+	/** 編集で明細を空にすると、入力エラー（1 行以上）。変わらない。出し直した画面は 5 行 */
 	@Test
-	void editingWithAnEmptyLineIsAnErrorAndShowsOneLine() throws Exception {
+	void editingWithAnEmptyLineIsAnErrorAndShowsFiveLines() throws Exception {
 		Transaction t = saveFor(a, 1200, "昼食");
 
 		String body = page(common(post("/transactions/" + t.getId() + "/edit"), a,
 				line(0, "categoryId"), "", line(0, "amount"), "", line(0, "description"), ""), asA);
 
 		assertThat(body).contains("明細を 1 行以上入力してください");
-		assertThat(count(body, "data-split-line")).isEqualTo(1);
+		assertThat(count(body, "data-split-line")).isEqualTo(LINES);
 		assertThat(transactionsOf(a).get(0).getAmount()).isEqualTo(1200);
 	}
 

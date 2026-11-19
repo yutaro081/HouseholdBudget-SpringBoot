@@ -175,7 +175,7 @@ class TransactionRepositoryTest {
 		Transaction newest = saveOn(a, LocalDate.of(2026, 12, 1), 400);
 		saveOn(b, LocalDate.of(2026, 11, 1), 999);
 
-		List<Transaction> list = transactionRepository.findByUserIdOrderByTransactionDateDescIdDesc(a.user().getId());
+		List<Transaction> list = transactionRepository.findForListByUserId(a.user().getId());
 
 		assertThat(list).extracting(Transaction::getId)
 				.containsExactly(newest.getId(), sameDaySecond.getId(), sameDayFirst.getId(), oldest.getId());
@@ -185,7 +185,70 @@ class TransactionRepositoryTest {
 	void listIsEmptyWhenNoTransactions() {
 		Owner a = createOwner("txtest12");
 
-		assertThat(transactionRepository.findByUserIdOrderByTransactionDateDescIdDesc(a.user().getId())).isEmpty();
+		assertThat(transactionRepository.findForListByUserId(a.user().getId())).isEmpty();
+	}
+
+	// ---- 同じレシートの取引（issue 032 の段階 3。T3-11） ----
+
+	/** 印を付ける（Service と同じメソッド）。DB に書いてから、読み直せるようにする */
+	private void mark(Long group, Transaction... rows) {
+		for (Transaction row : rows) {
+			Transaction found = transactionRepository.findByIdAndUserId(row.getId(), row.getUserId()).orElseThrow();
+			found.changeReceiptGroup(group);
+		}
+		entityManager.flush();
+		entityManager.clear();
+	}
+
+	/** 「印 と user_id」で、自分の行だけを id の順に読む。同じ印の値が他人の行に入っていても（準備で直接入れる）、他人の行は読まない */
+	@Test
+	void receiptRowsAreReadByMarkAndUserIdInIdOrder() {
+		Owner a = createOwner("txtest40");
+		Owner b = createOwner("txtest41");
+		Transaction r1 = saveOn(a, LocalDate.of(2026, 11, 9), 100);
+		Transaction r2 = saveOn(a, LocalDate.of(2026, 11, 9), 200);
+		Transaction single = saveOn(a, LocalDate.of(2026, 11, 9), 300);
+		Transaction theirs = saveOn(b, LocalDate.of(2026, 11, 9), 999);
+		mark(r1.getId(), r2, r1, theirs);
+
+		assertThat(transactionRepository.findByUserIdAndReceiptGroupOrderByIdAsc(a.user().getId(), r1.getId()))
+				.extracting(Transaction::getId).containsExactly(r1.getId(), r2.getId());
+		assertThat(transactionRepository.findByUserIdAndReceiptGroupOrderByIdAsc(b.user().getId(), r1.getId()))
+				.extracting(Transaction::getId).containsExactly(theirs.getId());
+		assertThat(transactionRepository.findByUserIdAndReceiptGroupOrderByIdAsc(a.user().getId(), single.getId())).isEmpty();
+	}
+
+	/** まとまりを読むときも、科目・取引先・支払方法を一緒に読み込む */
+	@Test
+	void receiptRowsAreLoadedWithTheirAssociations() {
+		Owner a = createOwner("txtest42");
+		Transaction r1 = saveOn(a, LocalDate.of(2026, 11, 9), 100);
+		Transaction r2 = saveOn(a, LocalDate.of(2026, 11, 9), 200);
+		mark(r1.getId(), r1, r2);
+		var util = entityManager.getEntityManagerFactory().getPersistenceUnitUtil();
+
+		for (Transaction row : transactionRepository.findByUserIdAndReceiptGroupOrderByIdAsc(a.user().getId(), r1.getId())) {
+			assertThat(util.isLoaded(row, "category")).isTrue();
+			assertThat(util.isLoaded(row, "vendor")).isTrue();
+			assertThat(util.isLoaded(row, "paymentMethod")).isTrue();
+		}
+	}
+
+	/** 一覧の並び：日付の新しい順 → まとまり（印。なければ id）の新しい順 → まとまりの中は id の順 */
+	@Test
+	void theListPutsReceiptRowsTogether() {
+		Owner a = createOwner("txtest43");
+		LocalDate day = LocalDate.of(2026, 11, 9);
+		Transaction s1 = saveOn(a, day, 100);
+		Transaction r1 = saveOn(a, day, 200);
+		Transaction r2 = saveOn(a, day, 300);
+		Transaction s2 = saveOn(a, day, 400);
+		Transaction r3 = saveOn(a, day, 500);
+		Transaction newer = saveOn(a, LocalDate.of(2026, 11, 10), 600);
+		mark(r1.getId(), r1, r2, r3);
+
+		assertThat(transactionRepository.findForListByUserId(a.user().getId())).extracting(Transaction::getId)
+				.containsExactly(newer.getId(), s2.getId(), r1.getId(), r2.getId(), r3.getId(), s1.getId());
 	}
 
 	/** ID と user_id の両方で探す。自分のものは見つかり、他人のID・存在しないIDは見つからない。 */
@@ -214,7 +277,7 @@ class TransactionRepositoryTest {
 
 		entityManager.clear();
 		Transaction fromList = transactionRepository
-				.findByUserIdOrderByTransactionDateDescIdDesc(a.user().getId()).get(0);
+				.findForListByUserId(a.user().getId()).get(0);
 		assertThat(util.isLoaded(fromList, "category")).isTrue();
 		assertThat(util.isLoaded(fromList, "vendor")).isTrue();
 		assertThat(util.isLoaded(fromList, "paymentMethod")).isTrue();

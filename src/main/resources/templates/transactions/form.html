@@ -119,15 +119,15 @@
                     <div class="field-error" th:each="message : ${#fields.errors('lines[__${stat.index}__].description')}" th:text="${message}">エラー</div>
                 </div>
             </div>
-            <!--/* 行を消す（登録の画面の明細 2〜5 だけ。明細 1 と編集の画面には出さない）。JavaScript が動いたときだけ見せる。
+            <!--/* 行を消す（登録・編集の画面の明細 2〜5。明細 1 には出さない。Q032-13）。JavaScript が動いたときだけ見せる。
                  押すと、確認なしで、この行を空にして隠す（split-lines.js）。消した行は空なので、サーバーは無視する */-->
-            <div class="split-line-actions" th:if="${transactionId == null and stat.index > 0}">
+            <div class="split-line-actions" th:if="${stat.index > 0}">
                 <button type="button" class="row-btn split-remove" data-split-remove hidden>行を消す</button>
             </div>
         </fieldset>
 
-        <!--/* 行を足す（登録の画面だけ）。JavaScript が動いたときだけ見せる。押すと、隠れている次の行を見せる（行は作らない） */-->
-        <button type="button" class="row-btn split-add" data-split-add hidden th:if="${transactionId == null}">＋ 行を足す</button>
+        <!--/* 行を足す（登録・編集の画面。issue 032 の段階 3 で、編集にも出す）。JavaScript が動いたときだけ見せる。押すと、隠れている次の行を見せる（行は作らない） */-->
+        <button type="button" class="row-btn split-add" data-split-add hidden>＋ 行を足す</button>
 
         <!--/* 明細の合計（登録・編集の両方）。JavaScript が動いたときだけ見せる。数字は split-lines.js が書く（文は固定）。合計は入力しない・保存しない */-->
         <p class="split-total" data-split-total-box hidden>明細の合計 <strong><span data-split-total>0</span>円</strong><span class="split-total-note" data-split-not-number hidden>（数字でない欄は、合計に入れていません）</span></p>

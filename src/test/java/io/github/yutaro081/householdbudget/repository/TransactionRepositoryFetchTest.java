@@ -57,7 +57,7 @@ class TransactionRepositoryFetchTest {
 
 		var statistics = entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
 		statistics.clear();
-		List<Transaction> list = transactionRepository.findByUserIdOrderByTransactionDateDescIdDesc(userId);
+		List<Transaction> list = transactionRepository.findForListByUserId(userId);
 		for (Transaction t : list) {
 			// 画面が名前を読むのと同じ
 			t.getCategory().getName();

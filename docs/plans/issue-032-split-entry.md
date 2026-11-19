@@ -219,12 +219,13 @@
 
 ```powershell
 New-Item -ItemType Directory -Force "$env:USERPROFILE\hb-backup"
-mysqldump -u root -p --single-transaction --default-character-set=utf8mb4 --result-file="$env:USERPROFILE\hb-backup\householdbudget-before-issue032.sql" householdbudget
+mysqldump -u root -p --single-transaction --set-gtid-purged=OFF --default-character-set=utf8mb4 --result-file="$env:USERPROFILE\hb-backup\householdbudget-before-issue032.sql" householdbudget
 Get-Item "$env:USERPROFILE\hb-backup\householdbudget-before-issue032.sql" | Select-Object Name, Length
 Select-String -Path "$env:USERPROFILE\hb-backup\householdbudget-before-issue032.sql" -Pattern 'CREATE TABLE .transactions. ' | Select-Object -First 1
 ```
 
 - `--result-file` を使う〔PowerShell 5.1 の `>` で書き出すと、文字コードが UTF-16 になり、戻すときに読めないことがあるため〕。
+- `--set-gtid-purged=OFF` を付ける〔2026年11月19日に足した。付けないと GTID の警告が出て、控えに GTID の情報が入る。GTID の情報が入った控えは、戻すときにエラーになることがある〔下の「戻し方」〕〕。
 - 確かめ：ファイルの大きさ（Length）が 0 でない。2 つ目の命令で、`transactions` のテーブルを作る行（CREATE TABLE …transactions…）が 1 行出る。
 
 **② 流す前の件数**〔`mysql -u root -p --default-character-set=utf8mb4 householdbudget` で入る〕
@@ -284,6 +285,9 @@ SELECT COUNT(*) FROM transactions;
 ```
 
 - 戻したあと：`SHOW CREATE TABLE` に `receipt_group` がなく、件数が②と同じ。`.\mvnw clean test` が通る。
+- **戻すときは、GTID の情報を入れていない控え〔`--set-gtid-purged=OFF` を付けて取った控え〕を使う**〔2026年11月19日・本人〕。GTID の情報が入った控えを `source` すると、`@@GLOBAL.GTID_PURGED` のエラーが出ることがある。
+  - 2026年11月19日の控えのうち、`householdbudget-before-issue032.sql`〔`ALTER` の前〕は GTID の情報が入っている。`householdbudget-after-alter-issue032.sql`〔`ALTER` のあと。`--set-gtid-purged=OFF` 付き〕は入っていない。
+  - `ALTER` の前の形に戻したいときは、`householdbudget-after-alter-issue032.sql` で戻してから、上の「列と索引だけを元に戻す」`ALTER` を流す〔`ALTER` の前と後で、データは同じ。件数 139 件〕。
 
 **`schema.sql` には、3-3 で同じ列と索引を書く**〔新しい環境では、`CREATE TABLE IF NOT EXISTS` で最初から列ができる。今の DB には効かないので、3-2 の `ALTER` が要る〕。
 
@@ -342,12 +346,12 @@ SELECT COUNT(*) FROM transactions;
 
 ## 5. 決まっていない点
 
-なし〔Q032-1〜12 は、2026年11月17日に本人が決めた。1.1 に移した〕。
+なし〔Q032-1〜12 は、2026年11月17日に本人が決めた。1.1 に移した。Q032-13・14 は、2026年11月19日に本人が決めた〔下の表〕〕。
 
 | 番号 | 決めること | 案 | おすすめ〔理由〕 | 本人の決定 |
 |---|---|---|---|---|
-| Q032-13 | **編集の画面でも、明細 1 に「行を消す」を付けないままでよいか**〔段階 3〕 | A：付けない〔登録と同じ〕<br>B：編集のときだけ、明細 1 にも付ける | **A**〔明細 1 はいつも見えている行で、全部の行を隠すことがなくなる。明細 1 の内容を消したいときは、欄を空にすれば、空の行として無視され、明細 2 以降の内容が `id` の小さい取引から順に入るので、困らない。B は、明細 1 を隠したあと「行を足す」で、空の明細 1 がいちばん上に戻り、分かりにくい〕 | |
-| Q032-14 | **`BadRequestException` を消すか**〔段階 3 で、編集でも 5 行まで受け付けるので、今の使い道〔編集で 2 行以上 → 400〕がなくなる〕 | A：3-3 で、例外のクラスと `GlobalExceptionHandler` の受け口を消す<br>B：残す〔将来使うかもしれない〕 | **A**〔使わないコードを残さない。6 行目以降は、今の束縛の上限〔`InvalidPropertyException`〕で 400 になる。注意：段階 2 で、設計書 4.5 の例外の表に `BadRequestException` を書き忘れていた。A なら、書かずに済む〕 | |
+| Q032-13 | **編集の画面でも、明細 1 に「行を消す」を付けないままでよいか**〔段階 3〕 | A：付けない〔登録と同じ〕<br>B：編集のときだけ、明細 1 にも付ける | **A**〔明細 1 はいつも見えている行で、全部の行を隠すことがなくなる。明細 1 の内容を消したいときは、欄を空にすれば、空の行として無視され、明細 2 以降の内容が `id` の小さい取引から順に入るので、困らない。B は、明細 1 を隠したあと「行を足す」で、空の明細 1 がいちばん上に戻り、分かりにくい〕 | ☑ **A**〔おすすめどおり。2026年11月19日〕 |
+| Q032-14 | **`BadRequestException` を消すか**〔段階 3 で、編集でも 5 行まで受け付けるので、今の使い道〔編集で 2 行以上 → 400〕がなくなる〕 | A：3-3 で、例外のクラスと `GlobalExceptionHandler` の受け口を消す<br>B：残す〔将来使うかもしれない〕 | **A**〔使わないコードを残さない。6 行目以降は、今の束縛の上限〔`InvalidPropertyException`〕で 400 になる。注意：段階 2 で、設計書 4.5 の例外の表に `BadRequestException` を書き忘れていた。A なら、書かずに済む〕 | ☑ **A**〔おすすめどおり。2026年11月19日。3-3 で消した〕 |
 
 ## 6. 段階 3 で直す文書の下書き〔Q032-11〕
 
@@ -412,3 +416,6 @@ SELECT COUNT(*) FROM transactions;
 - 2026年11月17日：**段階 2 を実装した**〔コミットしない〕。`TransactionForm`〔共通の項目と `lines`〕、`TransactionFormBinding`〔5 行の上限、`lines.amount` の変換、空の行の Validator を足す〕、`BadRequestException`、`TransactionController`、`TransactionService`〔全部の行を確かめてから書く〕、`messages.properties`、`transactions/form.html`、`style.css`〔2 列の規則を外し、明細の行と合計の規則を足した〕、`amount-buttons.js`〔全部の組に効く。説明の段落を見せる〕、新しい `split-lines.js`。わざと壊して確かめた〔5 つ。どれも、ねらったテストが失敗し、元に戻した〕：①行ごとに確かめて保存する → 他人・存在しない科目が 2 行目にあるテスト 3 件が失敗、②行の数の確かめを ID の確かめより先に置く → 他人の ID の編集が 404 でなく 400 になり 1 件失敗、③Validator を「足す」でなく「置きかえる」→ 金額の範囲などの注釈のテストが多数失敗、④行の数の上限をなくす → 6 行目のテスト 6 件が失敗、⑤型変換のエラーの行も空として扱う → 一部だけ入った行のテスト 4 件が失敗。`.\mvnw clean test` は 2,708 件 → 2,788 件〔+80〕、失敗 0、「Too many connections」は出なかった。次は、本人のブラウザでの確かめ。
 - 2026年11月17日：**段階 2 に「行を消す」を足した**〔本人の決定。コミットしない〕。設計書 2.3・4.3 と 3.2 に書いた。テストを先に書き、3 件が失敗することを確かめた〔明細 2〜5 にボタンがある、`split-lines.js` が `[data-split-remove]` を使う、確認を出さず `input` のできごとを起こす〕。実装：`form.html`〔明細 2〜5 にボタン、読む順の理由のコメント〕、`split-lines.js`、`style.css`。`amount-buttons.js` は変えていない。わざと壊して確かめた：明細 1 にもボタンを出す → `linesTwoToFiveHaveAHiddenRemoveButtonAndLineOneDoesNot` が失敗、編集の画面にも出す → `theEditFormHasNoRemoveButton` が失敗〔どちらも戻した〕。`split-lines.js` の行の数の上限のテストを、150 行から 200 行にした〔`budget-total.js` と同じ〕。`.\mvnw clean test` は 2,788 件 → 2,791 件〔+3〕、失敗 0、「Too many connections」は出なかった。
 - 2026年11月18日：**段階 3-1 を行った**〔コードとテストは変えていない〕。6 章の下書きを使って、要件定義書〔3 章、4.2、5 章〕と設計書〔2.1、2.2、2.3、2.6、3.1、3.6、3.7、3.8、3.9、3.10〔ER 図〕、4.6、4.7、5.16〔新しい節〕、6.2、7.8〕を直した。段階 2 で決まったこと〔「行を消す」、明細の合計は編集にも〕と合わせ、編集の画面にも「行を足す」「行を消す」を出す形にそろえた。下書きにない直し〔一覧の並びの要件、5 章の「登録・編集で」、つながりのない取引の扱い、6.2 の編集 1 行の決まりを消す、7.8 の行の数にかかわらず 404〕を足した。3.3 を 3-1〜3-3 に分け、本人が流す SQL〔控え、`ALTER`、確かめ、戻し方〕と、3-3 のテストの案〔T3-1〜T3-14〕を書いた。決まっていない点に Q032-13〔編集の明細 1 の「行を消す」〕、Q032-14〔`BadRequestException`〕を足した。
+- 2026年11月19日：**段階 3-2 を本人が行った**。控え：`householdbudget-before-issue032.sql`〔21,501 バイト。`transactions` の `CREATE TABLE` あり〕。GTID の警告が出たので、`--set-gtid-purged=OFF` を付けた控え `householdbudget-after-alter-issue032.sql` も取った。件数：流す前 139 件、流したあと 139 件。`receipt_group` が NULL でない行は 0 件。索引 `idx_transactions_user_receipt` は 2 行。`ALTER` のあとの `.\mvnw clean test`：2,791 件・失敗 0。3-2 の「戻し方」に、GTID なしの控えを使うこと、GTID ありの控えで `GTID_PURGED` のエラーが出ることがあることを足した〔①の命令にも `--set-gtid-purged=OFF` を足した〕。Q032-13〔編集でも明細 1 に「行を消す」を付けない〕と Q032-14〔`BadRequestException` を消す〕は、本人がおすすめどおりに決めた。
+- 2026年11月19日：**段階 3-3 のテストを先に書いた**〔コミットしない〕。画面のテスト〔新しい `TransactionReceiptTest`。印は SQL で読み書きし、Entity に頼らない〕と、段階 2 の編集のテストの直し〔`TransactionSplitEntryTest`、`TransactionFormLayoutTest`、`TransactionAmountButtonsTest`〕は、今のコードで 129 件中 45 件が失敗〔`TransactionReceiptTest` 49 件中 37 件〕。Java の新しい形を呼ぶテスト〔`EntityMappingTest`、`TransactionRepositoryTest`、`ScreenStatementCountTest` と、一覧の検索の名前を `findForListByUserId` に変えた 9 クラス〕は、コンパイルが通らなかった〔11 ファイル〕。
+- 2026年11月19日：**段階 3-3 を実装した**〔コミットしない〕。`schema.sql`〔`receipt_group` と索引〕、`Transaction`〔印と `changeReceiptGroup`〕、`TransactionRepository`〔一覧の並び `findForListByUserId`〔`@Query`〕、`findByUserIdAndReceiptGroupOrderByIdAsc`〕、`TransactionService`〔`getReceipt`、登録の印、編集〔行の対応は順番、id を変えない、余った行は id の大きいほうから消す、印を付ける・外す〕、削除・複写はまとまり、科目は自分の科目を 1 回で読んで照らし合わせる〔行の数で検索を増やさない〕、明細が空なら書かない〕、`TransactionForm`〔レシートから作る `forEdit`・`copyOf`〕、`TransactionController`〔編集で 2 行以上を 400 にする決まりを外した〕、`TransactionMonth`〔レシートの合計と行の数〕、`transactions/list.html`〔印「分割」と、まとまりの削除の確認の文〕、`transactions/form.html`〔編集にも「行を足す」「行を消す」〕、`messages.properties`、`style.css`。`BadRequestException` と受け口を消した〔Q032-14〕。わざと壊して確かめた〔7 つ。どれも、ねらったテストが失敗し、元に戻した〕：①まとまりを印だけで読む、②画面から送った印を使う、③日付・取引先・支払方法を 1 行目だけ変える、④科目の確かめを行ごとに書きながら行う、⑤入口を ID だけで探す、⑥1 行でも印を付ける、⑦行の数の上限をなくす。`.\mvnw clean test` は 2,791 件 → 2,846 件〔+55〕、失敗 0、「Too many connections」は出なかった。次は、本人のブラウザでの確かめ。

@@ -88,7 +88,7 @@ class TransactionListSingleSearchTest {
 
 		String body = list();
 
-		verify(transactionRepository, times(1)).findByUserIdOrderByTransactionDateDescIdDesc(userId);
+		verify(transactionRepository, times(1)).findForListByUserId(userId);
 		assertThat(body).contains("日付の新しい順に、3 件を表示しています。");
 		assertThat(body).contains("2 件・合計 <span class=\"month-amount\">300円</span>", "1 件・合計 <span class=\"month-amount\">300円</span>");
 	}
@@ -98,7 +98,7 @@ class TransactionListSingleSearchTest {
 	void theEmptyListAlsoSearchesOnlyOnceAndShowsTheEmptyMessage() throws Exception {
 		String body = list();
 
-		verify(transactionRepository, times(1)).findByUserIdOrderByTransactionDateDescIdDesc(userId);
+		verify(transactionRepository, times(1)).findForListByUserId(userId);
 		assertThat(body).contains("取引はまだありません").doesNotContain("件を表示しています", "<table", "month-row");
 	}
 
@@ -117,7 +117,7 @@ class TransactionListSingleSearchTest {
 
 		String body = list();
 
-		verify(transactionRepository, times(1)).findByUserIdOrderByTransactionDateDescIdDesc(userId);
+		verify(transactionRepository, times(1)).findForListByUserId(userId);
 		assertThat(body).contains("日付の新しい順に、1,000 件を表示しています。");
 	}
 }

@@ -19,6 +19,9 @@ import jakarta.persistence.Table;
  * <p>
  * 科目・取引先・支払方法の「使用中」の確認（設計書 5.5）にも使う。
  * 更新用の update を持つ。持ち主（user_id）と id を変えるメソッドは作らない。
+ * <p>
+ * receipt_group は同じレシートの印（issue 032。設計書 3.6、5.16）。2 行以上に分けて登録した取引だけに、まとまりの最初の行の id を入れる。
+ * 1 行の取引は null。印は、サーバー（TransactionService）だけが付ける・外す。画面の値は使わない（設計書 3.9）。
  */
 @Entity
 @Table(name = "transactions")
@@ -51,6 +54,10 @@ public class Transaction {
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "payment_method_id", nullable = false)
 	private PaymentMethod paymentMethod;
+
+	/** 同じレシートの印（issue 032）。外部キーではない。印のない取引は null */
+	@Column(name = "receipt_group")
+	private Long receiptGroup;
 
 	/** JPA が使う。アプリのコードからは使わない。 */
 	protected Transaction() {
@@ -111,6 +118,15 @@ public class Transaction {
 
 	public PaymentMethod getPaymentMethod() {
 		return paymentMethod;
+	}
+
+	public Long getReceiptGroup() {
+		return receiptGroup;
+	}
+
+	/** 同じレシートの印を付ける・外す（null）。TransactionService だけが使う（画面の値は渡さない。設計書 3.9、5.16）。 */
+	public void changeReceiptGroup(Long receiptGroup) {
+		this.receiptGroup = receiptGroup;
 	}
 
 }

@@ -166,7 +166,7 @@ class TransactionFormLayoutTest {
 	/** 必須の印：共通の 3 つ（日付・取引先・支払方法）＋ 行ごとに 2 つ（科目・金額）。任意の印：行ごとに 1 つ（摘要）。登録は 5 行、編集は 1 行 */
 	@Test
 	void requiredAndOptionalMarksAreThreeCommonPlusTwoPerLineAndNoHtmlRestrictions() throws Exception {
-		String[][] screens = { { newPage(), "5" }, { editPage(), "1" }, { errorPage(), "5" } };
+		String[][] screens = { { newPage(), "5" }, { editPage(), "5" }, { errorPage(), "5" } };
 		for (String[] screen : screens) {
 			String body = screen[0];
 			int lines = Integer.parseInt(screen[1]);
@@ -224,7 +224,7 @@ class TransactionFormLayoutTest {
 	 */
 	@Test
 	void commonFieldsComeFirstThenEachLineThenTheTotalThenTheButtons() throws Exception {
-		String[][] screens = { { newPage(), "5" }, { editPage(), "1" }, { errorPage(), "5" } };
+		String[][] screens = { { newPage(), "5" }, { editPage(), "5" }, { errorPage(), "5" } };
 		for (String[] screen : screens) {
 			String body = screen[0];
 			int lines = Integer.parseInt(screen[1]);
@@ -261,17 +261,16 @@ class TransactionFormLayoutTest {
 			assertThat(body).containsPattern("<fieldset[^>]*data-split-line[^>]*>\\s*<legend[^>]*>明細 " + i + "</legend>");
 		}
 		assertThat(count(body, "<fieldset")).isEqualTo(5);
-		assertThat(count(editPage(), "<fieldset")).isEqualTo(1);
+		assertThat(count(editPage(), "<fieldset")).isEqualTo(5);
 	}
 
-	/** 「行を足す」は登録の画面だけ（最後の行のあと、合計の前）。編集の画面には出さない */
+	/** 「行を足す」は、登録・編集の画面の両方で、最後の行のあと、合計の前（issue 032 の段階 3 で、編集の画面にも出す） */
 	@Test
-	void theAddButtonIsOnlyOnTheNewFormBetweenTheLastLineAndTheTotal() throws Exception {
-		String body = newPage();
-		int add = body.indexOf("data-split-add");
-		assertThat(add).isGreaterThan(body.indexOf("id=\"lines4.description\"")).isLessThan(body.indexOf("data-split-total-box"));
-		assertThat(errorPage()).contains("data-split-add");
-		assertThat(editPage()).doesNotContain("data-split-add");
+	void theAddButtonIsBetweenTheLastLineAndTheTotal() throws Exception {
+		for (String body : new String[] { newPage(), editPage(), errorPage() }) {
+			int add = body.indexOf("data-split-add");
+			assertThat(add).isGreaterThan(body.indexOf("id=\"lines4.description\"")).isLessThan(body.indexOf("data-split-total-box"));
+		}
 	}
 
 	@Test

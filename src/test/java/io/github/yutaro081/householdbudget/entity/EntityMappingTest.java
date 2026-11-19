@@ -11,6 +11,7 @@ import io.github.yutaro081.householdbudget.domain.Season;
 import io.github.yutaro081.householdbudget.repository.BudgetRepository;
 import io.github.yutaro081.householdbudget.repository.CategoryRepository;
 import io.github.yutaro081.householdbudget.repository.PaymentMethodRepository;
+import io.github.yutaro081.householdbudget.repository.TransactionRepository;
 import io.github.yutaro081.householdbudget.repository.UserRepository;
 import io.github.yutaro081.householdbudget.repository.VendorRepository;
 import jakarta.persistence.EntityManager;
@@ -39,6 +40,8 @@ class EntityMappingTest {
 	@Autowired
 	private BudgetRepository budgetRepository;
 
+	@Autowired
+	private TransactionRepository transactionRepository;
 	@Autowired
 	private EntityManager entityManager;
 
@@ -93,6 +96,35 @@ class EntityMappingTest {
 		PaymentMethod p = paymentMethodRepository.findById(paymentMethod.getId()).orElseThrow();
 		assertThat(p.getUserId()).isEqualTo(userId);
 		assertThat(p.getName()).isEqualTo("クレジットカード");
+	}
+
+	/** 取引の印（receipt_group。issue 032）：最初は NULL。値を入れて読み直せる。NULL に戻せる */
+	@Test
+	void transactionReceiptGroup() {
+		User user = saveUser("maptest6");
+		Long userId = user.getId();
+		Category category = categoryRepository.save(new Category(userId, "食費"));
+		Vendor vendor = vendorRepository.save(new Vendor(userId, "スーパー"));
+		PaymentMethod payment = paymentMethodRepository.save(new PaymentMethod(userId, "現金"));
+		Transaction saved = transactionRepository.save(new Transaction(userId, java.time.LocalDate.of(2026, 11, 9), 100, category, null, vendor, payment));
+		entityManager.flush();
+		entityManager.clear();
+
+		Transaction found = transactionRepository.findByIdAndUserId(saved.getId(), userId).orElseThrow();
+		assertThat(found.getReceiptGroup()).isNull();
+
+		found.changeReceiptGroup(saved.getId());
+		entityManager.flush();
+		entityManager.clear();
+		assertThat(transactionRepository.findByIdAndUserId(saved.getId(), userId).orElseThrow().getReceiptGroup()).isEqualTo(saved.getId());
+		Object stored = entityManager.createNativeQuery("SELECT receipt_group FROM transactions WHERE id = ?1")
+				.setParameter(1, saved.getId()).getSingleResult();
+		assertThat(((Number) stored).longValue()).isEqualTo(saved.getId());
+
+		transactionRepository.findByIdAndUserId(saved.getId(), userId).orElseThrow().changeReceiptGroup(null);
+		entityManager.flush();
+		entityManager.clear();
+		assertThat(transactionRepository.findByIdAndUserId(saved.getId(), userId).orElseThrow().getReceiptGroup()).isNull();
 	}
 
 	/** 予算：season は SPRING などの文字で保存される。冬の年は12月がある年 */

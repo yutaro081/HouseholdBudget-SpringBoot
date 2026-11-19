@@ -99,7 +99,7 @@ class TransactionServiceTest {
 	private long countOf(Long userId) {
 		entityManager.flush();
 		entityManager.clear();
-		return transactionRepository.findByUserIdOrderByTransactionDateDescIdDesc(userId).size();
+		return transactionRepository.findForListByUserId(userId).size();
 	}
 
 	/** DB から読み直した取引（保存前の状態をキャッシュから見ないため） */

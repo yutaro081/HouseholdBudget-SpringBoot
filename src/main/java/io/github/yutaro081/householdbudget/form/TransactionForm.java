@@ -17,14 +17,14 @@ import jakarta.validation.constraints.Size;
  * 取引の登録・編集の入力を受け取るクラス（設計書 4.7、6.2、6.4〜6.7。issue 032）。
  * <p>
  * 共通の項目（日付・取引先・支払方法）と、明細の行の並び（lines。各行は科目・金額・摘要）を持つ。
- * 登録の画面は 5 行（{@link #MAX_LINES}）、編集の画面は 1 行。保存すると、空でない行ごとに 1 件の取引になる。
+ * 登録・編集の画面は 5 行（{@link #MAX_LINES}。編集は、同じレシートの取引の行 ＋ 空の行。issue 032 の段階 3）。保存すると、空でない行ごとに 1 件の取引になる。
  * <p>
  * 注釈の入力チェック（日付、取引先・支払方法の必須、行の金額の範囲、摘要の文字数）は、Bean Validation が行う。
  * 「空でない行だけ、科目と金額が必須」「空でない行が 1 行以上」は、注釈ではなく、{@link TransactionFormBinding} の Validator が確かめる
  * （空の行は無視するため。型変換のエラーがある行を、空の行と見分けるため）。
  * エラーメッセージのキーは、注釈の名前.transactionForm.項目名（行は lines.amount の形。messages.properties、G6）。
  * <p>
- * user_id、行の ID など、画面から指定させたくない項目は持たない（6.1、3.9）。
+ * user_id、同じレシートの印、行の ID など、画面から指定させたくない項目は持たない（6.1、3.9）。
  */
 public class TransactionForm {
 
@@ -57,21 +57,26 @@ public class TransactionForm {
 		return form;
 	}
 
-	/** 編集の画面：登録済みの値。明細は 1 行（段階 2 では、1 つの取引ずつ直す）。 */
-	public static TransactionForm forEdit(Transaction transaction) {
+	/**
+	 * 編集の画面：同じレシートの取引（印のない取引なら 1 件。id の順）の値。共通の項目は最初の取引から、明細の行は取引ごとに入れ、
+	 * 残りは空の行（全部で 5 行。issue 032 の段階 3）。
+	 */
+	public static TransactionForm forEdit(List<Transaction> receipt) {
+		Transaction first = receipt.get(0);
 		TransactionForm form = new TransactionForm();
-		form.transactionDate = transaction.getTransactionDate();
-		form.vendorId = transaction.getVendor().getId();
-		form.paymentMethodId = transaction.getPaymentMethod().getId();
-		form.lines.add(new Line(transaction.getCategory().getId(), transaction.getAmount(), transaction.getDescription()));
+		form.transactionDate = first.getTransactionDate();
+		form.vendorId = first.getVendor().getId();
+		form.paymentMethodId = first.getPaymentMethod().getId();
+		for (Transaction transaction : receipt) {
+			form.lines.add(new Line(transaction.getCategory().getId(), transaction.getAmount(), transaction.getDescription()));
+		}
+		form.fillLinesUpTo(MAX_LINES);
 		return form;
 	}
 
-	/** 複写の画面：写す元の値を共通の項目と明細の 1 行目に入れ、残りは空の行（5 行）。日付は、呼ぶ側が今日にする。 */
-	public static TransactionForm copyOf(Transaction transaction) {
-		TransactionForm form = forEdit(transaction);
-		form.fillLinesUpTo(MAX_LINES);
-		return form;
+	/** 複写の画面：写す元のレシートの値（編集の画面と同じ入れ方）。日付は、呼ぶ側が今日にする。保存はしない。 */
+	public static TransactionForm copyOf(List<Transaction> receipt) {
+		return forEdit(receipt);
 	}
 
 	/** 行が count 行より少なければ、空の行を足す（減らさない）。入力エラーで出し直すとき、登録は 5 行、編集は 1 行にそろえる。 */

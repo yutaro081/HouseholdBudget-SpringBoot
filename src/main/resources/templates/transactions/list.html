@@ -41,21 +41,25 @@
                 <span class="month-sum"><th:block th:text="|${month.count} 件・合計 |">8 件・合計 </th:block><span class="month-amount" th:text="|${#numbers.formatInteger(month.total, 1, 'COMMA')}円|">29,800円</span></span>
             </div></td>
         </tr>
-        <tr th:each="transaction : ${month.transactions}">
+        <!--/* 同じレシートの取引（issue 032）：行は 1 行 ＝ 1 科目のまま。科目の横に小さな印「分割」。receipt は、そのレシートの合計と行の数（Service が作る。ここでは足し算しない）。印のない行は null */-->
+        <tr th:each="transaction : ${month.transactions}"
+            th:with="receipt=${transaction.receiptGroup == null ? null : month.receipts.get(transaction.receiptGroup)}">
             <td class="list-muted" th:text="${#temporals.format(transaction.transactionDate, 'yyyy/MM/dd')}">2026/10/19</td>
-            <td th:text="${transaction.category.name}">食費</td>
+            <td><span th:text="${transaction.category.name}">食費</span><span class="split-mark" th:if="${receipt != null}">分割</span></td>
             <td th:text="${transaction.vendor.name}">コンビニ</td>
             <td class="list-muted" th:text="${transaction.paymentMethod.name}">現金</td>
             <td class="list-muted" th:text="${transaction.description}">昼食</td>
             <td class="num" th:text="${#numbers.formatInteger(transaction.amount, 1, 'COMMA')}">30,000</td>
             <!--/* 操作：編集・複写・削除（issue 025 の段階 3）。「詳細」のリンクはなくした。
-                 削除の確認の文は、日付・科目名・金額を入れて、HTML の属性 data-confirm に入れる（科目名は利用者の入力なので、onsubmit の文字列には入れない。th:attr が HTML として無害化する）。
+                 削除の確認の文は、日付・科目名・金額を入れて、HTML の属性 data-confirm に入れる（科目名は利用者の入力なので、onsubmit の文字列には入れない。th:data-confirm が HTML として無害化する）。
+                 同じレシートの取引（issue 032）は、どの行も、日付・取引先名・レシートの合計・行の数の文（そのレシートをまとめて削除する）。
+                 「編集」「複写」「削除」は全部の行に出す（どの行から押しても、レシート全体。Service がまとめて扱う）。
                  確認は confirm-submit.js が出す。JavaScript が無効のときは、確認なしで削除される（今までと同じ）。POST と CSRF のトークン（th:action）は変わらない */-->
             <td><div class="row-actions">
                 <a class="row-btn" title="この取引を直す" th:href="@{/transactions/{id}/edit(id=${transaction.id})}"><th:block th:replace="~{fragments/icons :: icon('pencil', 14, 2)}"></th:block>編集</a>
                 <a class="row-btn" title="この取引を写して、新しく登録する" th:href="@{/transactions/new(copyFrom=${transaction.id})}"><th:block th:replace="~{fragments/icons :: icon('copy', 14, 2)}"></th:block>複写</a>
                 <form th:action="@{/transactions/{id}/delete(id=${transaction.id})}" method="post"
-                      th:attr="data-confirm=#{transaction.delete.confirm(${#temporals.format(transaction.transactionDate, 'yyyy/MM/dd')}, ${transaction.category.name}, ${#numbers.formatInteger(transaction.amount, 1, 'COMMA')})}">
+                      th:data-confirm="${receipt == null} ? #{transaction.delete.confirm(${#temporals.format(transaction.transactionDate, 'yyyy/MM/dd')}, ${transaction.category.name}, ${#numbers.formatInteger(transaction.amount, 1, 'COMMA')})} : #{transaction.delete.confirmReceipt(${#temporals.format(transaction.transactionDate, 'yyyy/MM/dd')}, ${transaction.vendor.name}, ${#numbers.formatInteger(receipt.total, 1, 'COMMA')}, ${receipt.lines})}">
                     <button type="submit" class="row-btn row-btn-danger" title="この取引を削除する"><th:block th:replace="~{fragments/icons :: icon('trash', 14, 2)}"></th:block>削除</button>
                 </form>
             </div></td>

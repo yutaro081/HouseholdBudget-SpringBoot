@@ -43,9 +43,26 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 	/** 自分の取引で、その支払方法が使われているか。 */
 	boolean existsByUserIdAndPaymentMethodId(Long userId, Long paymentMethodId);
 
-	/** 自分の取引を、日付の新しい順（同じ日は id の新しい順）で全件。一覧に使う（Q4・Q5）。 */
+	/**
+	 * 自分の取引を、一覧の順で全件（Q4・Q5。issue 032 で並びを変えた。設計書 2.3、4.6）。
+	 * 日付の新しい順 → まとまり（同じレシートの印。なければ id）の新しい順 → まとまりの中は id の順。
+	 * 印は、まとまりの最初の行の id なので、「同じ日は登録の新しい順」を、レシートの単位で保ち、同じレシートの行は必ず隣に並ぶ。
+	 * 印のない取引だけなら、今までと同じ並び（日付の新しい順、同じ日は id の新しい順）。
+	 */
 	@EntityGraph(attributePaths = { "category", "vendor", "paymentMethod" })
-	List<Transaction> findByUserIdOrderByTransactionDateDescIdDesc(Long userId);
+	@Query("""
+			select t from Transaction t
+			where t.userId = :userId
+			order by t.transactionDate desc, coalesce(t.receiptGroup, t.id) desc, t.id asc
+			""")
+	List<Transaction> findForListByUserId(@Param("userId") Long userId);
+
+	/**
+	 * 自分の、同じレシートの取引を、id の順（明細の行の順）で全件（issue 032。設計書 3.9、5.16）。
+	 * 必ず「印 と user_id」の両方で絞る（同じ印の値が他人の行に入っていても、読まない）。入口の行は、先に findByIdAndUserId で探す。
+	 */
+	@EntityGraph(attributePaths = { "category", "vendor", "paymentMethod" })
+	List<Transaction> findByUserIdAndReceiptGroupOrderByIdAsc(Long userId, Long receiptGroup);
 
 	/** ID と user_id の両方で1件探す。他人のものや、存在しない ID は見つからない。編集・複写・更新・削除に使う。 */
 	@EntityGraph(attributePaths = { "category", "vendor", "paymentMethod" })

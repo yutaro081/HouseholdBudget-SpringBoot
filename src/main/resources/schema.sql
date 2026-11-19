@@ -86,6 +86,8 @@ CREATE TABLE IF NOT EXISTS budgets (
 -- transactions（取引）設計書 3.6、3.7
 -- 摘要（description）だけ NULL を許す。
 -- 金額と取引の日付（2000年3月1日から2100年12月31日）の範囲は、入力チェック（章6）に加えて、CHECK 制約でも守る。
+-- receipt_group は同じレシートの印（issue 032）。2 行以上に分けて登録した取引だけに、まとまりの最初の行の id を入れる。1 行の取引は NULL。
+-- 外部キーではない。すでにある DB には、本人が root で ALTER を流して足した（手順は issue 032 の手順書 3.3 の 3-2。この CREATE TABLE は、新しい環境のため）。
 -- ---------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS transactions (
     id                BIGINT      NOT NULL AUTO_INCREMENT,
@@ -96,6 +98,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     description       VARCHAR(30) NULL,
     vendor_id         BIGINT      NOT NULL,
     payment_method_id BIGINT      NOT NULL,
+    receipt_group     BIGINT      NULL,
     CONSTRAINT pk_transactions PRIMARY KEY (id),
     CONSTRAINT fk_transactions_user FOREIGN KEY (user_id) REFERENCES users (id)
         ON DELETE RESTRICT,
@@ -107,5 +110,6 @@ CREATE TABLE IF NOT EXISTS transactions (
         ON DELETE RESTRICT,
     CONSTRAINT ck_transactions_amount CHECK (amount BETWEEN 1 AND 1000000),
     CONSTRAINT ck_transactions_date CHECK (transaction_date BETWEEN '2000-03-01' AND '2100-12-31'),
-    INDEX idx_transactions_user_date (user_id, transaction_date)
+    INDEX idx_transactions_user_date (user_id, transaction_date),
+    INDEX idx_transactions_user_receipt (user_id, receipt_group)
 ) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_ci;
