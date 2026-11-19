@@ -15,18 +15,19 @@ import io.github.yutaro081.householdbudget.entity.Transaction;
  * @param total        その月の取引金額の合計（円）。件数が多いと INT を超えるので long
  * @param transactions その月の取引（一覧の順：日付の新しい順 → まとまりの新しい順 → まとまりの中は id の順）
  * @param receipts     その月の、同じレシートの取引の合計と行の数（印 → 合計）。削除の確認の文に使う（issue 032）。
- *                     同じレシートの取引は日付が同じなので、必ず同じ月に入る
+ *                     同じレシートの取引は日付が同じなので、必ず同じ月に入る。絞り込んでも、レシート全体の値（issue 023）
  */
 public record TransactionMonth(YearMonth month, int count, long total, List<Transaction> transactions,
 		Map<Long, Receipt> receipts) {
 
 	/**
-	 * 同じレシートの取引の、金額の合計と行の数（issue 032）。
+	 * 同じレシートの取引の、金額の合計と行の数（issue 032）。絞り込んだ一覧でも、レシート全体の値（＝削除で消える行。issue 023）。
 	 *
-	 * @param total 行の金額の合計（円）
-	 * @param lines 行の数
+	 * @param total       行の金額の合計（円）
+	 * @param lines       行の数
+	 * @param hiddenLines そのうち、一覧に出ていない行の数（絞り込まないときは 0。画面で引き算しないよう、Service が数える。issue 023）
 	 */
-	public record Receipt(long total, int lines) {
+	public record Receipt(long total, int lines, int hiddenLines) {
 	}
 
 }

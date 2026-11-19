@@ -11,11 +11,28 @@
     <div class="page-head">
         <div>
             <h1>取引一覧</h1>
-            <p class="page-sub" th:unless="${#lists.isEmpty(months)}" th:text="|日付の新しい順に、${#numbers.formatInteger(transactionCount, 1, 'COMMA')} 件を表示しています。|">日付の新しい順に、23 件を表示しています。</p>
+            <p class="page-sub" th:if="${filter.empty and not #lists.isEmpty(months)}" th:text="|日付の新しい順に、${#numbers.formatInteger(transactionCount, 1, 'COMMA')} 件を表示しています。|">日付の新しい順に、23 件を表示しています。</p>
+            <!--/* 絞り込んだとき（issue 023。設計書 2.3、Q023-1〜3）：件数の文の代わりに、見出しの文と「絞り込みを外す」リンク。0 件でも出す。
+                 見出しの文は messages.properties。年は文字で渡す（数字で渡すと「2,026」になる）。件数・合計は Service が出した値に桁区切りを付けるだけ（ここでは足し算しない）。
+                 季節の名前は、冬だけ期間を添える（年をまたぐため。季節の見出し fragments/season と同じ考え）。科目名は利用者の入力なので、th:text で出す（th:utext は使わない、7.5） */-->
+            <p class="page-sub filter-head" th:unless="${filter.empty}"
+               th:with="count=${#numbers.formatInteger(transactionCount, 1, 'COMMA')}, total=${#numbers.formatInteger(transactionTotal, 1, 'COMMA')}, p=${filter.period}">
+                <th:block th:if="${p != null}"
+                          th:with="seasonName=#{|season.${p.season.urlName}|},
+                                   seasonLabel=${p.season.urlName == 'winter'}
+                                       ? #{transaction.filter.season.winter(${'' + p.year}, ${seasonName}, ${'' + p.startDate.year}, ${'' + p.startDate.monthValue}, ${'' + p.endDateExclusive.minusMonths(1).year}, ${'' + p.endDateExclusive.minusMonths(1).monthValue})}
+                                       : #{transaction.filter.season(${'' + p.year}, ${seasonName})}">
+                    <span class="filter-title" th:if="${filter.category != null}" th:text="#{transaction.filter.heading.both(${seasonLabel}, ${filter.category.name}, ${count}, ${total})}">2026年 秋・食費の取引（3 件・合計 12,300円）</span>
+                    <span class="filter-title" th:if="${filter.category == null}" th:text="#{transaction.filter.heading.season(${seasonLabel}, ${count}, ${total})}">2026年 秋の取引（3 件・合計 12,300円）</span>
+                </th:block>
+                <span class="filter-title" th:if="${p == null}" th:text="#{transaction.filter.heading.category(${filter.category.name}, ${count}, ${total})}">食費の取引（全期間・3 件・合計 12,300円）</span>
+                <a class="filter-clear" th:href="@{/transactions}" th:text="#{transaction.filter.clear}">絞り込みを外す</a>
+            </p>
         </div>
     </div>
 
-    <p th:if="${#lists.isEmpty(months)}">取引はまだありません</p>
+    <p th:if="${#lists.isEmpty(months) and filter.empty}">取引はまだありません</p>
+    <p th:if="${#lists.isEmpty(months) and not filter.empty}" th:text="#{transaction.filter.none}">この条件に当てはまる取引はありません。</p>
 
     <!--/* 日付の新しい順（同じ日は登録の新しい順）。編集・削除のボタンは置かない（U3）。
          日付は 2026/10/19、金額は 30,000 の形（「円」は見出し「金額（円）」にまとめる。issue 024）（2.3、Q5-9）。利用者が入力した値は th:text で出す。th:utext は使わない（7.5） */-->
@@ -54,12 +71,14 @@
                  削除の確認の文は、日付・科目名・金額を入れて、HTML の属性 data-confirm に入れる（科目名は利用者の入力なので、onsubmit の文字列には入れない。th:data-confirm が HTML として無害化する）。
                  同じレシートの取引（issue 032）は、どの行も、日付・取引先名・レシートの合計・行の数の文（そのレシートをまとめて削除する）。
                  「編集」「複写」「削除」は全部の行に出す（どの行から押しても、レシート全体。Service がまとめて扱う）。
-                 確認は confirm-submit.js が出す。JavaScript が無効のときは、確認なしで削除される（今までと同じ）。POST と CSRF のトークン（th:action）は変わらない */-->
+                 確認は confirm-submit.js が出す。JavaScript が無効のときは、確認なしで削除される（今までと同じ）。POST と CSRF のトークン（th:action）は変わらない。
+                 絞り込んだ一覧（issue 023）：receipt の合計と行の数は、レシート全体の値（Service が作る）。一覧に出ていない行があるときは（receipt.hiddenLines が 0 より大きい）、
+                 「この一覧に出ていない ○ 行も消えます。」を足した文（Q023-4）。行の数・出ていない行の数は、文字で渡す（桁区切りを付けない） */-->
             <td><div class="row-actions">
                 <a class="row-btn" title="この取引を直す" th:href="@{/transactions/{id}/edit(id=${transaction.id})}"><th:block th:replace="~{fragments/icons :: icon('pencil', 14, 2)}"></th:block>編集</a>
                 <a class="row-btn" title="この取引を写して、新しく登録する" th:href="@{/transactions/new(copyFrom=${transaction.id})}"><th:block th:replace="~{fragments/icons :: icon('copy', 14, 2)}"></th:block>複写</a>
                 <form th:action="@{/transactions/{id}/delete(id=${transaction.id})}" method="post"
-                      th:data-confirm="${receipt == null} ? #{transaction.delete.confirm(${#temporals.format(transaction.transactionDate, 'yyyy/MM/dd')}, ${transaction.category.name}, ${#numbers.formatInteger(transaction.amount, 1, 'COMMA')})} : #{transaction.delete.confirmReceipt(${#temporals.format(transaction.transactionDate, 'yyyy/MM/dd')}, ${transaction.vendor.name}, ${#numbers.formatInteger(receipt.total, 1, 'COMMA')}, ${receipt.lines})}">
+                      th:data-confirm="${receipt == null} ? #{transaction.delete.confirm(${#temporals.format(transaction.transactionDate, 'yyyy/MM/dd')}, ${transaction.category.name}, ${#numbers.formatInteger(transaction.amount, 1, 'COMMA')})} : (${receipt.hiddenLines > 0} ? #{transaction.delete.confirmReceiptHidden(${#temporals.format(transaction.transactionDate, 'yyyy/MM/dd')}, ${transaction.vendor.name}, ${#numbers.formatInteger(receipt.total, 1, 'COMMA')}, ${'' + receipt.lines}, ${'' + receipt.hiddenLines})} : #{transaction.delete.confirmReceipt(${#temporals.format(transaction.transactionDate, 'yyyy/MM/dd')}, ${transaction.vendor.name}, ${#numbers.formatInteger(receipt.total, 1, 'COMMA')}, ${receipt.lines})})">
                     <button type="submit" class="row-btn row-btn-danger" title="この取引を削除する"><th:block th:replace="~{fragments/icons :: icon('trash', 14, 2)}"></th:block>削除</button>
                 </form>
             </div></td>

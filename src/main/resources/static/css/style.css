@@ -1714,6 +1714,19 @@ main.list-wide {
     font-size: var(--hb-font-size-small);
 }
 
+/* 取引一覧を絞り込んだときの見出しの行（issue 023。設計書 2.3）：件数の文（.page-sub）の場所に、見出しの文と「絞り込みを外す」リンクを横に並べる。
+   狭いときは、リンクが下に回り込む。見出しの文だけ本文の色（--hb-text）。新しい色は足さない */
+.filter-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--hb-space-1) var(--hb-space-3);
+}
+
+.filter-title {
+    color: var(--hb-text);
+}
+
 /* 取引一覧の目印 .list-card：カードの見た目（白、枠、角丸）は .table-card が決める（issue 024 の段階 12）。ここは中のセルの規則だけ */
 .list-card table.list {
     margin-bottom: 0;

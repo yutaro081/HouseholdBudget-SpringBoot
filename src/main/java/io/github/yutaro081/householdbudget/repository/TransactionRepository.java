@@ -1,6 +1,7 @@
 package io.github.yutaro081.householdbudget.repository;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -12,6 +13,7 @@ import org.springframework.data.repository.query.Param;
 import io.github.yutaro081.householdbudget.dto.CategoryActual;
 import io.github.yutaro081.householdbudget.dto.DailyActual;
 import io.github.yutaro081.householdbudget.dto.MonthlyActual;
+import io.github.yutaro081.householdbudget.dto.ReceiptTotal;
 import io.github.yutaro081.householdbudget.entity.Transaction;
 
 /**
@@ -56,6 +58,44 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 			order by t.transactionDate desc, coalesce(t.receiptGroup, t.id) desc, t.id asc
 			""")
 	List<Transaction> findForListByUserId(@Param("userId") Long userId);
+
+	/**
+	 * 自分の取引を、絞り込んで、一覧の順で全件（issue 023。設計書 4.6、5.17）。
+	 * <p>
+	 * <b>決まった JPQL 1 本</b>で、値が null の条件では絞らない（科目ID が null なら全科目、期間が null なら全期間）。
+	 * 条件によって検索の文を組み立てない（文字列をつながない。設計書 7.4）。期間は「開始日以上、終了日の翌日未満」で、
+	 * sumByCategory と同じ（SeasonPeriod.startDate() と endDateExclusive() を渡す）。user_id では必ず絞る（設計書 3.9）。
+	 * <p>
+	 * 並びと、科目・取引先・支払方法をまとめて読む指定は、{@link #findForListByUserId} と同じ（並びの指定が 2 か所にあるので、
+	 * 同じ並びになることをテストで守る）。findForListByUserId は、テストの準備と SQL の本数のテストが使うので、残す。
+	 */
+	@EntityGraph(attributePaths = { "category", "vendor", "paymentMethod" })
+	@Query("""
+			select t from Transaction t
+			where t.userId = :userId
+			  and (:categoryId is null or t.category.id = :categoryId)
+			  and (:start is null or t.transactionDate >= :start)
+			  and (:endExclusive is null or t.transactionDate < :endExclusive)
+			order by t.transactionDate desc, coalesce(t.receiptGroup, t.id) desc, t.id asc
+			""")
+	List<Transaction> findForListByUserIdAndFilter(@Param("userId") Long userId,
+			@Param("categoryId") Long categoryId,
+			@Param("start") LocalDate start,
+			@Param("endExclusive") LocalDate endExclusive);
+
+	/**
+	 * 自分の、同じレシートの取引の、金額の合計と行の数を、印ごとにまとめて 1 回で返す（issue 023。削除の確認の文。設計書 4.6、5.17）。
+	 * 必ず「印 と user_id」の両方で絞る（同じ印の値が他人の行に入っていても、数えない。設計書 3.9）。
+	 * 渡した印のレシートだけ。印の並びが空のときは呼ばない（呼ぶ側の決まり）。
+	 */
+	@Query("""
+			select new io.github.yutaro081.householdbudget.dto.ReceiptTotal(t.receiptGroup, sum(t.amount), count(t))
+			from Transaction t
+			where t.userId = :userId
+			  and t.receiptGroup in :groups
+			group by t.receiptGroup
+			""")
+	List<ReceiptTotal> sumByReceiptGroups(@Param("userId") Long userId, @Param("groups") Collection<Long> groups);
 
 	/**
 	 * 自分の、同じレシートの取引を、id の順（明細の行の順）で全件（issue 032。設計書 3.9、5.16）。

@@ -487,4 +487,31 @@ class SeasonPeriodTest {
 		}
 	}
 
+	// ---- isUnspecified：年も季節も指定されていないか（取引一覧の絞り込み。issue 023、設計書 2.4・4.5） ----
+
+	/** 両方 null のときだけ「指定なし」。空文字は指定ありとして扱う（parse で不正になり、404） */
+	@Test
+	void isUnspecifiedOnlyWhenBothAreNull() {
+		assertThat(SeasonPeriod.isUnspecified(null, null)).isTrue();
+		assertThat(SeasonPeriod.isUnspecified("2026", null)).isFalse();
+		assertThat(SeasonPeriod.isUnspecified(null, "autumn")).isFalse();
+		assertThat(SeasonPeriod.isUnspecified("", "")).isFalse();
+		assertThat(SeasonPeriod.isUnspecified("2026", "autumn")).isFalse();
+	}
+
+	/** 指定なしのとき、resolve は今日の季節（予実比較・予算設定）。取引一覧は期間で絞らない（どちらも isUnspecified で分かれる） */
+	@Test
+	void resolveUsesTodayExactlyWhenUnspecified() {
+		LocalDate today = LocalDate.of(2027, 2, 15);
+		String[][] cases = { { null, null }, { "2026", null }, { null, "winter" }, { "", "" }, { "2026", "winter" } };
+		for (String[] c : cases) {
+			Optional<SeasonPeriod> resolved = SeasonPeriod.resolve(c[0], c[1], today);
+			if (SeasonPeriod.isUnspecified(c[0], c[1])) {
+				assertThat(resolved).contains(SeasonPeriod.from(today));
+			} else {
+				assertThat(resolved).isEqualTo(SeasonPeriod.parse(c[0], c[1]));
+			}
+		}
+	}
+
 }

@@ -4,12 +4,18 @@ import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import io.github.yutaro081.householdbudget.domain.SeasonPeriod;
+import io.github.yutaro081.householdbudget.dto.ReceiptTotal;
+import io.github.yutaro081.householdbudget.dto.TransactionFilter;
+import io.github.yutaro081.householdbudget.dto.TransactionListView;
 import io.github.yutaro081.householdbudget.dto.TransactionMonth;
 import io.github.yutaro081.householdbudget.entity.Category;
 import io.github.yutaro081.householdbudget.entity.PaymentMethod;
@@ -67,28 +73,102 @@ public class TransactionService {
 	 */
 	@Transactional(readOnly = true)
 	public List<TransactionMonth> listByMonth(Long userId) {
-		// 検索は list と同じ 1 回（ユーザーの絞り込みも同じ）。並びを保ったまま、月ごとに分ける
+		// 検索は list と同じ 1 回（ユーザーの絞り込みも同じ）。全部の行があるので、レシートの合計と行の数も、この結果から作る
+		List<Transaction> rows = list(userId);
+		return byMonth(rows, receiptsOf(rows));
+	}
+
+	/**
+	 * 取引一覧の画面の値（issue 023。設計書 2.3、5.17）。条件がなければ {@link #listByMonth(Long)} と同じ（検索は 1 回）。
+	 * 条件があれば、絞り込み用の検索で読み、月ごとに分ける。月と全体の件数・合計は、出した行から作る。
+	 * <p>
+	 * 【守り】同じレシートの合計と行の数（削除の確認の文）は、絞り込む前のレシート全体の値にする（削除では、出ていない行も消えるため）。
+	 * 出ている行の印を集め、「印 と user_id」で 1 回で読む。出ていない行の数も数える。分割の行がなければ、読まない。
+	 *
+	 * @param filter 絞り込みの条件。Controller が確かめてから作ったもの（科目は自分の科目）。user_id は持たない
+	 */
+	@Transactional(readOnly = true)
+	public TransactionListView listView(Long userId, TransactionFilter filter) {
+		List<TransactionMonth> months;
+		if (filter.isEmpty()) {
+			months = listByMonth(userId);
+		} else {
+			SeasonPeriod period = filter.period();
+			List<Transaction> rows = transactionRepository.findForListByUserIdAndFilter(userId, filter.categoryId(),
+					period == null ? null : period.startDate(), period == null ? null : period.endDateExclusive());
+			months = byMonth(rows, wholeReceiptsOf(userId, rows));
+		}
+		int count = 0;
+		long total = 0;
+		for (TransactionMonth month : months) {
+			count += month.count();
+			total += month.total();
+		}
+		return new TransactionListView(filter, months, count, total);
+	}
+
+	/** 並びを保ったまま、月ごとに分ける。月の件数と合計は、渡した行から。レシートの合計と行の数は whole（レシート全体の値）から */
+	private static List<TransactionMonth> byMonth(List<Transaction> rows, Map<Long, ReceiptTotal> whole) {
 		Map<YearMonth, List<Transaction>> byMonth = new LinkedHashMap<>();
-		for (Transaction transaction : list(userId)) {
+		for (Transaction transaction : rows) {
 			byMonth.computeIfAbsent(YearMonth.from(transaction.getTransactionDate()), key -> new ArrayList<>()).add(transaction);
 		}
 		List<TransactionMonth> months = new ArrayList<>();
 		byMonth.forEach((month, transactions) -> {
 			long total = 0;
-			Map<Long, long[]> receipts = new LinkedHashMap<>();   // 印 → { 合計, 行の数 }
+			Map<Long, Integer> shown = new LinkedHashMap<>();   // 印 → この一覧に出ている行の数
 			for (Transaction transaction : transactions) {
 				total += transaction.getAmount();
 				if (transaction.getReceiptGroup() != null) {
-					long[] sum = receipts.computeIfAbsent(transaction.getReceiptGroup(), key -> new long[2]);
-					sum[0] += transaction.getAmount();
-					sum[1]++;
+					shown.merge(transaction.getReceiptGroup(), 1, Integer::sum);
 				}
 			}
 			Map<Long, TransactionMonth.Receipt> receiptOf = new LinkedHashMap<>();
-			receipts.forEach((group, sum) -> receiptOf.put(group, new TransactionMonth.Receipt(sum[0], (int) sum[1])));
+			shown.forEach((group, shownLines) -> {
+				ReceiptTotal receipt = whole.get(group);
+				if (receipt == null) {
+					// 出ている行は自分の行なので、「印 と user_id」で読めば必ずある。ないときは不具合（少ない値で文を作らない）
+					throw new IllegalStateException("receipt total not found");
+				}
+				int lines = receipt.lines().intValue();
+				receiptOf.put(group, new TransactionMonth.Receipt(receipt.total(), lines, lines - shownLines));
+			});
 			months.add(new TransactionMonth(month, transactions.size(), total, List.copyOf(transactions), Map.copyOf(receiptOf)));
 		});
 		return List.copyOf(months);
+	}
+
+	/** 全部の行があるとき（絞らない一覧）：渡した行から、レシートの合計と行の数を作る（検索を増やさない） */
+	private static Map<Long, ReceiptTotal> receiptsOf(List<Transaction> rows) {
+		Map<Long, long[]> sums = new HashMap<>();   // 印 → { 合計, 行の数 }
+		for (Transaction transaction : rows) {
+			if (transaction.getReceiptGroup() != null) {
+				long[] sum = sums.computeIfAbsent(transaction.getReceiptGroup(), key -> new long[2]);
+				sum[0] += transaction.getAmount();
+				sum[1]++;
+			}
+		}
+		Map<Long, ReceiptTotal> receipts = new HashMap<>();
+		sums.forEach((group, sum) -> receipts.put(group, new ReceiptTotal(group, sum[0], sum[1])));
+		return receipts;
+	}
+
+	/** 絞り込んだとき：出ている行の印を集め、「印 と user_id」で、レシート全体の合計と行の数を 1 回で読む。分割の行がなければ読まない */
+	private Map<Long, ReceiptTotal> wholeReceiptsOf(Long userId, List<Transaction> rows) {
+		Set<Long> groups = new LinkedHashSet<>();
+		for (Transaction transaction : rows) {
+			if (transaction.getReceiptGroup() != null) {
+				groups.add(transaction.getReceiptGroup());
+			}
+		}
+		if (groups.isEmpty()) {
+			return Map.of();
+		}
+		Map<Long, ReceiptTotal> receipts = new HashMap<>();
+		for (ReceiptTotal receipt : transactionRepository.sumByReceiptGroups(userId, groups)) {
+			receipts.put(receipt.receiptGroup(), receipt);
+		}
+		return receipts;
 	}
 
 	/**

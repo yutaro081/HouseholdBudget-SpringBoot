@@ -130,10 +130,21 @@ public record SeasonPeriod(int year, Season season) {
 	 * @param today  今日（日本時間。Controller が Clock から求めて渡す）
 	 */
 	public static Optional<SeasonPeriod> resolve(String year, String season, LocalDate today) {
-		if (year == null && season == null) {
+		if (isUnspecified(year, season)) {
 			return Optional.of(from(today));
 		}
 		return parse(year, season);
+	}
+
+	/**
+	 * URL に、年も季節も指定されていないか（両方とも null。issue 023、設計書 2.4）。空文字は「指定あり」（parse で不正になる）。
+	 * <ul>
+	 * <li>予実比較・予算設定（{@link #resolve}）：指定なしなら、今日の季節</li>
+	 * <li>取引一覧の絞り込み：指定なしなら、期間で絞らない（全期間）。それ以外は {@link #parse} の結果で、空なら呼ぶ側が 404 にする</li>
+	 * </ul>
+	 */
+	public static boolean isUnspecified(String year, String season) {
+		return year == null && season == null;
 	}
 
 }

@@ -2,7 +2,7 @@
 
 全体の位置づけは [実行計画書](execution-plan.md) を見てください。この文書は、[issue 023](../issues/023-科目から明細へ.md)（予実比較の実績の数字から、その季節・その科目の取引の一覧へたどる）を進める手順書です。
 
-> **状態（2026年11月19日）**：◐ **段階 1-1（文書）完了**。issue 023 とこの手順書を作り、要件定義書〔3 章、4.2〕と設計書を段階 1 の分だけ直した。コードとテストは、まだ変えていない。次は段階 1-2〔テストと実装〕。
+> **状態（2026年11月19日）**：◐ **段階 1 完了**〔1-1 文書、1-2 テストと実装〕。取引一覧を、URL の `category`・`year`・`season` で絞り込める。`.\mvnw clean test` は 2,898 件成功。予実比較は、まだ変えていない。次は段階 2〔予実比較のリンク〕。本人のブラウザでの確認を待つ。
 
 - ブランチ：`feature/issue-023-drilldown`。秘密情報：パスワード・接続先の値は、どこにも書かない。
 - 進め方：1 つの段階が終わったら止まって、確認を待つ。変更は、文書が先〔要件定義書 → 設計書 → この手順書〕、コードは後。**テストが先**〔失敗を確かめてから実装〕。コミットと push は本人。
@@ -35,6 +35,13 @@
 | Q023-3 | 絞り込んで 0 件のときは、見出し〔0 件・合計 0円〕と「絞り込みを外す」リンクを出し、その下に「**この条件に当てはまる取引はありません。**」 |
 | Q023-4 | 「この一覧に出ていない ○ 行も消えます。」は、「よろしいですか？」の前：「2026/11/09 スーパー 3,000円（2 行）を削除します。**この一覧に出ていない 1 行も消えます。**よろしいですか？」 |
 | — | 3.6 の `vendor` の守り〔`VendorService.get`〕は、このままでよい |
+
+### 1.2 段階 1-2 の前に決まったこと〔2026年11月19日・本人〕
+
+| 番号 | 決まったこと |
+|---|---|
+| 10 | **`TransactionFilter` は `dto` に置く**〔`form` ではない〕。理由：Controller が値を確かめてから作る入れ物で、画面の値を直接受け取る Form ではないため。`form` に置くと、あとで `@ModelAttribute` で直接受け取る形にされ、確かめを飛ばす道ができる〔設計書 4.7〕 |
+| 11 | **絞り込み用の検索は、決まった JPQL 1 本**で、`(:categoryId is null or t.category.id = :categoryId)` のように、指定がなければ絞らない形で書く。条件によって文字列を組み立てる作り〔Criteria、文字列の連結など〕は使わない〔設計書 4.6、7.4〕。期間が指定なし〔`LocalDate` の null〕でエラーにならないかを、テストで確かめる |
 
 ## 2. 調べた結果〔2026年11月19日。読むだけで調べた〕
 
@@ -106,8 +113,9 @@
 3. 印ごとの合計を読む検索から `user_id` を外す → 他人の行のテストが失敗すること。
 4. 確認の文の合計・行の数を、絞り込んだ行から作る〔今の作りに戻す〕→ 「確認の文 ＝ 消える行」のテストが失敗すること。
 5. 季節の片方だけを受け付ける〔`parse` の代わりに `resolve` を使う、など〕→ 404 のテストが失敗すること。
+6. 削除の確認の文の合計・行の数を、絞り込んだ後の行から作る〔`listView` で、レシート全体を読む代わりに、出ている行から作る〕→ 「確認の文 ＝ 消える行」のテストが失敗すること〔2026年11月19日・本人が足した〕。
 
-**完了の条件**：関係するテストが通る。全体のテスト〔`clean` 付き〕が通る。本人がブラウザで、URL を打って確かめる。
+**完了の条件**：関係するテストが通る。全体のテスト〔`clean` 付き〕が通る〔済み。2,898 件〕。本人がブラウザで、URL を打って確かめる〔待ち〕。
 
 ### 3.3 段階 2：予実比較のリンク
 
@@ -156,3 +164,17 @@
 - 2026年11月19日：調べものを報告した〔ファイルは変えなかった。2 章のもと〕。
 - 2026年11月19日：決まったことが、本人から示された〔1 章〕。**段階 1-1 の途中**：この手順書を作り、issue 023 を 032 のあとの形に書き直した。要件定義書・設計書は、まだ変えていない〔要件定義書の前と後の文、設計書の直す所の案を報告した〕。
 - 2026年11月19日：本人が Q023-1〜4 を決めた〔1.1〕。要件定義書〔3 章、4.2。4.2 の新しい項の「合計」の文は本人の直しを入れた〕と、設計書〔2.2、2.3、2.4、2.5、3.9、4.4.1、4.4.2、4.5、4.6、4.7、5.17〔新しい節〕、7.4、7.8〕を、段階 1 の分だけ直した。**段階 1-1 完了**。
+- 2026年11月19日：本人が、決まったこと 10・11 を決めた〔1.2〕。設計書 4.5〔`SeasonPeriod.isUnspecified`、`TransactionService.listView`〕、4.6〔決まった JPQL 1 本、`sumByReceiptGroups`〕、4.7〔`TransactionFilter` を dto に。`TransactionListView`・`ReceiptTotal` を足し、`TransactionMonth.Receipt` の形を書いた〕、5.17〔図の検索の箱〕、7.4 を直した。
+- 2026年11月19日：**段階 1-2 のテストを先に書いた**〔コミットしない〕。画面のテスト〔新しい `TransactionFilterTest`。HTTP で送るだけなので、今のコードでもコンパイルできる〕は、今のコードで **45 件中 39 件が失敗**〔理由：パラメータが無視されて 404 にならず 200、見出しと「絞り込みを外す」リンクがない、確認の文に「この一覧に出ていない ○ 行も消えます。」がない、見出しの合計を読めない〕。通った 6 件は、未ログインの 3 件、絞らない一覧の 1 件、今はパラメータが無視されて全部の行が出るので通ってしまう 2 件〔並び、全部の行が出ているレシートの文〕。新しい形を呼ぶテスト〔新しい `TransactionRepositoryFilterTest` 5 件、`SeasonPeriodTest` に足した 2 件〕は、`findForListByUserIdAndFilter`・`sumByReceiptGroups`・`ReceiptTotal`・`isUnspecified` がなく、コンパイルできないことで失敗を確かめた。
+- 2026年11月19日：**段階 1-2 を実装した**〔コミットしない〕。`SeasonPeriod.isUnspecified`〔`resolve` もこれを使う。動きは同じ〕、`dto` に `TransactionFilter`・`TransactionListView`・`ReceiptTotal`、`TransactionMonth.Receipt` に `hiddenLines`、`TransactionRepository`〔`findForListByUserIdAndFilter`・`sumByReceiptGroups`。`findForListByUserId` は変えていない〕、`TransactionService.listView`〔絞らないときは `listByMonth` のまま 1 本。絞ったときは、出ている行に分割の行があれば、レシート全体を読む検索をもう 1 本〕、`TransactionController.list`〔季節 → 科目 → 検索〕、`transactions/list.html`〔見出し 3 種類、冬の期間、0 件の文、確認の文の出し分け〕、`messages.properties`、`style.css`〔`.filter-head`・`.filter-title`。今の変数だけで、新しい色は足していない〕。予実比較の画面・`ComparisonService`・`sumByCategory`、SQL の本数のテストは変えていない。
+  - **期間が指定なし〔`LocalDate` の null〕**：Hibernate が型を決められずにエラーになることはなかった〔`allNullGivesTheUnfilteredList` で、全部 null の検索が、絞らない一覧と同じ行・同じ並びを返すことを確かめた〕。避ける工夫は要らなかった。
+  - **`category` が 2 回来たとき**：Spring は**最初の値**を使う〔`categoryTwiceUsesTheFirstValueAndNeverShowsOthersData`〕。最初が自分の科目なら、その科目で絞る。最初が他人の科目・数字でない値なら 404。どの順でも、他人のデータは出ない〔設計書の「どちらの値でも、自分の科目でなければ 404」のとおり〕。`year`・`season` が 2 回のときは 404〔予実比較と同じ〕。
+  - **テスト**：関係するテストだけを流して通ったあと、`.\mvnw clean test` は **2,846 件 → 2,898 件**〔＋52：`TransactionFilterTest` 45、`TransactionRepositoryFilterTest` 5、`SeasonPeriodTest` 2〕、失敗 0。
+  - **わざと壊して確かめた**〔3.2 の候補 1〜6。毎回 `TransactionFilterTest` と `TransactionRepositoryFilterTest` を流し、元に戻した。戻したあと、3 つのファイルが控えと 1 バイトも違わないことを確かめ、`clean` を付けて全体を流し直した〕：
+    1. 絞り込みの検索から `user_id` の条件を外す → 9 件が失敗〔`otherUsersRowsAreNeverShownEvenWithMyCategoryId`、`otherUsersRowsAreNeverReturned` など。他人の行のレシートが読めず止まるもの〔`IllegalStateException`〕も含む〕。
+    2. `CategoryService.get` を呼ばず、見つからない科目を「指定なし」にする → 2 件が失敗〔`otherUsersMissingAndInvalidCategoriesAreTheSame404`、`categoryTwiceUsesTheFirstValueAndNeverShowsOthersData`〕。
+    3. レシートの合計の検索から `user_id` の条件を外す → 2 件が失敗〔`anotherUsersRowWithTheSameMarkIsNotCounted`、`receiptTotalsAreReadByMarkAndUser`〕。
+    4. 月のまとまりで、確認の文の合計・行の数を出ている行から作る → 3 件が失敗〔`theDeleteConfirmationOfAPartlyShownReceiptCountsTheWholeReceipt`〔確認の文 ＝ 消える行〕、`aReceiptWithTwoShownLinesCountsBothAndOneHiddenLine`、`anotherUsersRowWithTheSameMarkIsNotCounted`〕。
+    5. 年か季節の片方だけを「指定なし」として受け付ける → 1 件が失敗〔`onlyOneOfYearAndSeasonIsNotFound`〕。
+    6. `listView` で、レシート全体を読む代わりに、絞り込んだ後の行から作る → 3 件が失敗〔4 と同じ 3 件〕。
+  - README・`docs/testing.md` の件数は、段階 4 でまとめて直す〔今回は直していない〕。

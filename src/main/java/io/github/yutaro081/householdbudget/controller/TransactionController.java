@@ -2,7 +2,6 @@ package io.github.yutaro081.householdbudget.controller;
 
 import java.time.Clock;
 import java.time.LocalDate;
-import java.util.List;
 
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
@@ -18,7 +17,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import io.github.yutaro081.householdbudget.dto.TransactionMonth;
+import io.github.yutaro081.householdbudget.domain.SeasonPeriod;
+import io.github.yutaro081.householdbudget.dto.TransactionFilter;
+import io.github.yutaro081.householdbudget.dto.TransactionListView;
+import io.github.yutaro081.householdbudget.entity.Category;
+import io.github.yutaro081.householdbudget.exception.NotFoundException;
 import io.github.yutaro081.householdbudget.form.TransactionForm;
 import io.github.yutaro081.householdbudget.form.TransactionFormBinding;
 import io.github.yutaro081.householdbudget.security.LoginUser;
@@ -73,14 +76,34 @@ public class TransactionController {
 		TransactionFormBinding.configure(binder);
 	}
 
-	/** 取引の一覧（日付の新しい順、同じ日は登録の新しい順）。 */
+	/**
+	 * 取引の一覧（日付の新しい順、同じ日は登録の新しい順）。任意の {@code category}・{@code year}・{@code season} で絞り込む（issue 023。設計書 2.2、5.17）。
+	 * <p>
+	 * 確かめる順番は「季節 → 科目 → 検索」。どこかで 404 なら、検索しない。
+	 * <ul>
+	 * <li>季節：年も季節もなければ、期間で絞らない（全期間。予実比較と違い、今の季節にはしない）。それ以外は SeasonPeriod.parse
+	 * （予実比較と同じ決まり）で、片方だけ・不正・範囲外・空・2 回なら NotFoundException（404）</li>
+	 * <li>科目：数字でない・範囲外の値は型変換のエラーで 404（GlobalExceptionHandler）。空は「指定なし」（copyFrom と同じ）。
+	 * 2 回来たときは、Spring が最初の値を使う。どちらの値でも、自分の科目でなければ 404（CategoryService.get が ID と user_id で探す）</li>
+	 * </ul>
+	 * 取引の検索は 1 回だけ（絞らないときは今までと同じ。絞り込んだときは、分割の行があれば、レシート全体の合計を読む検索がもう 1 回）。
+	 * 件数・合計・月のまとまりは、Service が作る（ここでもテンプレートでも足し算しない）。「取引がまだない」の判定は、まとまりが空かどうか
+	 */
 	@GetMapping
-	public String list(@AuthenticationPrincipal LoginUser loginUser, Model model) {
-		// 取引の検索は 1 回だけ（月ごとのまとまり。月の見出しの件数と合計は、Service が計算する。issue 025）。
-		// 「○ 件を表示しています」の全件数は、月のまとまりの件数を足して、ここで出す（テンプレートでは足し算しない）。「取引がまだない」の判定は、まとまりが空かどうか
-		List<TransactionMonth> months = transactionService.listByMonth(loginUser.getUserId());
-		model.addAttribute("months", months);
-		model.addAttribute("transactionCount", months.stream().mapToInt(TransactionMonth::count).sum());
+	public String list(@AuthenticationPrincipal LoginUser loginUser,
+			@RequestParam(name = "category", required = false) Long category,
+			@RequestParam(required = false) String year,
+			@RequestParam(required = false) String season,
+			Model model) {
+		Long userId = loginUser.getUserId();
+		SeasonPeriod period = SeasonPeriod.isUnspecified(year, season) ? null
+				: SeasonPeriod.parse(year, season).orElseThrow(NotFoundException::new);
+		Category own = category == null ? null : categoryService.get(userId, category);
+		TransactionListView view = transactionService.listView(userId, new TransactionFilter(own, period));
+		model.addAttribute("filter", view.filter());
+		model.addAttribute("months", view.months());
+		model.addAttribute("transactionCount", view.count());
+		model.addAttribute("transactionTotal", view.total());
 		return "transactions/list";
 	}
 
