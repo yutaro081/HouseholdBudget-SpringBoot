@@ -221,7 +221,7 @@ sequenceDiagram
 |---|---|---|---|---|
 | 予算設定 | `/budgets`（例：`/budgets?year=2026&season=spring`。自動予算：`/budgets?year=2026&season=winter&auto=1`） | GET | ○ | 指定した季節の、自分の全科目の予算額を、まとめて入力できる形で表示する。季節を指定しないときは今の季節（Q8、R11、2.4）。**任意の `auto`（1・2・3のどれか）があるときは、自動予算の案を入力欄に入れて表示する**（保存はしない。5.14、issue 019）。`auto` が 1〜3 以外（空・`0`・`4`・`abc`・`01` など）なら 404（7.8） |
 | 予算設定処理 | `/budgets?year=…&season=…`（画面と同じ URL） | POST | ○ | 指定した季節の全科目の予算額を入力チェックして、まとめて保存する（Q27 の c） |
-| 予実比較 | `/comparison`（例：`/comparison?year=2026&season=spring`） | GET | ○ | 季節ごとの科目別の予算・実績・差額を表示する。予算が未設定の科目は「未設定」（2.4） |
+| 予実比較 | `/comparison`（例：`/comparison?year=2026&season=spring`） | GET | ○ | 季節ごとの科目別の予算・実績・差額を表示する。予算が未設定の科目は「未設定」（2.4）。科目の行の実績（0 円以外）は、取引一覧の絞り込みへのリンク（issue 023。2.3） |
 
 - 画面を表示するための CSS や画像（`/css/**`、`/js/**`、`/fonts/**` など）も、ログイン前から読めるようにする（章7）。
 - 詳細画面は、どの画面にも作らない（一覧で足りるため。取引の詳細画面は、issue 025 でなくした。`/transactions/{id}`（GET）は、画面がないので 404）。
@@ -362,7 +362,7 @@ sequenceDiagram
   - 並び・月ごとの区切り（月の件数と合計は、絞り込んだ行で数える）・各行の操作は、絞り込まないときと同じ。全件表示（ページ分けはしない）。
   - 分けて登録した取引は、当てはまる行だけを出す（「分割」の印は今までどおり）。編集・複写・削除は、今までどおり、そのレシートの全部の行が対象。**削除の確認の文の合計と行の数は、絞り込む前のレシート全体で数える**（5.17）。画面に出ていない行があるときは、「よろしいですか？」の前に「この一覧に出ていない ○ 行も消えます。」を足す（例「2026/11/09 スーパー 3,000円（2 行）を削除します。この一覧に出ていない 1 行も消えます。よろしいですか？」）。
   - 編集・複写・削除のあとは、今までどおり `/transactions`（絞り込みは外れる。2.6）。
-  - 絞り込みを選ぶ欄は、画面に置かない（URL で入る）。
+  - 絞り込みを選ぶ欄は、画面に置かない（URL と、予実比較の実績のリンクで入る）。
 - **同じレシートの取引（issue 032）**：行は今までどおり 1 行 ＝ 1 科目。同じレシートの取引の行には、小さな印（補足の色の小さな文字「分割」）を付ける。**並び**は、日付の新しい順 → まとまり（印。なければ `id`）の新しい順 → まとまりの中は `id` の順（明細の行の順）。印は、まとまりの最初の行の `id` なので、「同じ日は登録の新しい順」を、レシートの単位で保ち、同じレシートの行は必ず隣に並ぶ。「編集」「複写」「削除」は、全部の行に出す（どの行から押しても、そのレシート全体。Q032-3）。月の件数と合計は、今までどおり行で数える。
 - カードの見た目は、取引一覧だけの目印のクラスで付ける（`table.list` は、ほかの表も使うため）。
 
@@ -472,6 +472,7 @@ sequenceDiagram
 | 表示 | **表の形**（issue 020。予算設定の表とそろえる。issue 024 で、列を足した）：金額の単位「円」は、見出しにまとめる（今の季節：「予算（円）」「実績（円）」「残り（円）」「見込み（円）」「見込みとの差（円）」。過去・未来の季節：「予算（円）」「実績（円）」「差額（円）」）。セルには付けない。数字の列は、見出しも数字も右寄せ。**表は白いカード（`.table-card`）の中**（背景 白、枠 `#E2E8E8`、角 16px）。**表の見出しは 13px の太字、色 `#56625F`。「残り（円）」「見込みとの差（円）」（過去・未来の季節は「差額（円）」）だけ、濃いターコイズ `#0B6E6B`**。**列の幅**：表は 100% の幅（`width: 100%`、`table-layout: fixed`）。割合で決める。**今の季節（7 列。表に `has-forecast`）：科目 13%・今の状況 11%・予算 13%・実績 13%・残り 13%・見込み 17%・見込みとの差 20%**（数字の 3 列〔予算・実績・残り〕は同じ幅。見込みと見込みとの差は、中身が長いので広くする。5 列を等分すると、見込みとの差〔約 214px〕が横 1366px に収まらない）。**過去・未来の季節（5 列）：科目 22%・状況 16%・予算 20%・実績 20%・差額 22%**。各列の見出しにクラス（`col-status`、`col-budget`、`col-actual`、`col-remain`、`col-forecast`、`col-gap`、`col-diff`）を付けて、幅を決める。**残りと見込みとの差の数字は、太字（700）、1rem**（変数 `--hb-key-number-size`。ブラウザで見て、20px〔1.25rem〕に戻すときは、この変数と列の割合を 1 か所で変える）。セルにだけ付くクラス `remain-cell`・`gap-cell` で指定する（「最後の列」では指定しない。列を足しても崩れない）。**「残り」と「見込み」の間に、縦の区切り線**（1px、`#C9D2D1`、変数 `--hb-divider`。見込みの列〔見出しとセル。`forecast-cell`〕の左）を入れる。**表のセルの文字は 1rem**、見出しは 13px。幅がせまいときは、表の最小の幅（今の季節 約 68rem、過去・未来の季節 44rem）で、表が横にスクロールする。**合計行**は、予算設定と同じ形：文字を大きく（1.25rem の太字）、上に太い線（3px、本文の色）。チップも出す |
 | 表示 | **「予算内」のチップ**（要件4.4。Phase 8 の issue 005 の 💮 を、issue 024 で置きかえた）：対象は、赤でも青でもなく、予算が設定されていて、実績が0円より大きく、予算の1/3を超え、予算以下の行（予算ちょうども含む。Q8-28、Q8-29）。予算が未設定の行、実績が0円の行、赤・青の行には付けない。合計行にも同じ判定で付ける（Q8-27）。**あんず色の背景（`#FFF2E5`）、枠 `#E8C9A8`、文字 `#7A3A10`、文字の左に花のアイコン `flower`（16px。塗りの花）**。行の背景は変えない（薄いアプリコットの行の背景は、なくした）。花のアイコンは飾りなので `aria-hidden`。チップの文字「予算内」は、画面に見える文字（読み上げ用の `visually-hidden` は使わない） |
 | 表示 | 科目が0件のときは、「先に科目を追加してください」と科目の画面へのリンクを出し、表と合計行は出さない（Q7-7。取引の登録、予算設定の画面と同じ）。見出しと前後リンクは出す |
+| 表示 | **実績のリンク（issue 023。要件4.4）**：科目の行の実績の数字（今の季節の 7 列の表、過去・未来の季節の 5 列の表の両方）は、その季節・その科目の取引一覧へのリンク。行き先は `/transactions?category={row.categoryId}&year={表示している季節の年}&season={表示している季節}`（今日の季節ではなく、画面に出している季節 `comparison.period`。前の季節・次の季節に移った画面でも正しい。冬は季節の年）。**実績が 0 円の行、合計行、要約カードの数字はリンクにしない**（0 円の行は文字のまま）。**見た目は、ふつうのリンクの決まり**（Bootstrap の `--bs-link-color`〔濃いターコイズ `#0B6E6B`〕と下線。押すときは `--bs-link-hover-color`）で、新しい CSS の規則は足さない。セルの右寄せ・桁区切り・数字の桁そろえは、親の `td.num` のまま。**title**：「2026年 秋・食費の取引を見る」（`comparison.actual.link.title`。季節の書き方は取引一覧の絞り込みの見出しと同じで、冬は期間を添える「2026年 冬（2026年12月〜2027年2月）・食費の取引を見る」）。科目名は `th:title` で無害化して出す（7.5）。予実比較の数字の出し方（`ComparisonService`、`sumByCategory`）は変えない |
 
 **トップ `/`**（issue 010。要件 4.5）
 
@@ -524,7 +525,7 @@ sequenceDiagram
   - 2000年春では、「前の季節」を出さない。
   - 2100年冬では、「次の季節」を出さない。
 - **404 になる場合**（B15）：`year` が2000〜2100以外、数字でない／`season` が上の4つ以外／`year` と `season` の**片方だけ**を指定した。空の値・同じパラメータが 2 回のときも同じ（文字で受け取るので、「2026,2027」のようにつながり、4 桁の数字にならない）。取引一覧の絞り込み（issue 023）でも同じ。
-- 予実比較の表の中身：科目ごとに、予算、実績（その季節の取引の合計。なければ0円）、差額（予算 − 実績。超過するとマイナス。今の季節では「残り」）。今の季節では、さらに、見込み（5.13）と、見込みとの差（予算 − 見込み）。最下行に合計行。色は、各行と合計行に同じルール（要件4.4）。金額の表示の形は 2.3 のとおり。
+- 予実比較の表の中身：科目ごとに、予算、実績（その季節の取引の合計。なければ0円。0 円でなければ、その季節・その科目の取引一覧へのリンク。issue 023、2.3、5.17）、差額（予算 − 実績。超過するとマイナス。今の季節では「残り」）。今の季節では、さらに、見込み（5.13）と、見込みとの差（予算 − 見込み）。最下行に合計行。色は、各行と合計行に同じルール（要件4.4）。金額の表示の形は 2.3 のとおり。
   - **その季節の予算が未設定の科目**：予算の欄は「未設定」、差額（残り）は空欄、色なし（R11）。今の季節では、見込みと見込みとの差は「—」。実績は表示する。
   - **合計行**（Q22 の C）：合計の予算は**予算が設定されている科目の予算の合計**、合計の実績は**すべての科目の実績の合計**、差額はその差（合計の予算 − 合計の実績）。色は①〜④の順番（5.9）。**すべての科目が未設定のときだけ**、合計行も予算「未設定」・差額は空欄・色なし。
 - 未来の季節も表示できる（実績は0円になる）。
@@ -932,7 +933,7 @@ flowchart LR
 | `vendors/list.html`、`vendors/edit.html` | 取引先の一覧・変更 | `VendorController` |
 | `payment-methods/list.html`、`payment-methods/edit.html` | 支払方法の一覧・変更 | `PaymentMethodController` |
 | `budgets/form.html` | 予算設定 | `BudgetController`。入力欄は行ごと（`rows[0].amount` …）。見出しと前後リンクは `fragments/season.html` を使う。**issue 019**：「自動予算」ボタンと一言、選ぶ欄、最初の文、5 列の表、合計行、`budget-total.js` の読み込み。`th:text` だけで、`th:utext` は使わない |
-| `comparison/index.html` | 予実比較 | `ComparisonController`。見出しと前後リンクは `fragments/season.html`。表は、科目、今の状況（チップ `.chip`。過去・未来の季節は「状況」。issue 024）、予算、実績、残り・見込み・見込みとの差（今の季節だけ。過去・未来の季節は差額）の列と、最下行の合計行。見出しの単位は「（円）」にまとめ、セルには「円」を付けない。残り〔差額〕のセルは、マイナスのとき `diff-over`（赤）。見込みとの差のセルに `gap-cell`、マイナスのとき `gap-over`（赤）と「超える見込み」のチップ。文言（「予算」「実績」「差額」「未設定」「合計」など）はテンプレートに直接書く（Q7-5）。色は差額のセルの CSS のクラス（赤：`diff-over`）で付け、`<tr>` には、合計行だけ `total-row` を付ける（`row-within`・`row-over`・`row-low` はなくした）。判定はしない（`BudgetColorJudge` で済んでいる）。**issue 020**：年と季節を選ぶ欄の下、表の上に、見込みの要約カード（`comparison-card`。5.13）。Controller が、カードの値（`landing`、棒の長さ `cardBarPermille`・`cardTodayPermille`、％、`countingFrom`）と、科目ごとの見込み（`rowLandings`。行と同じ並びで、出さない行は `null`）と、見込みとの差（`rowGaps`、`totalGap`）、`showForecast`（今の季節か）を渡す |
+| `comparison/index.html` | 予実比較 | `ComparisonController`。見出しと前後リンクは `fragments/season.html`。表は、科目、今の状況（チップ `.chip`。過去・未来の季節は「状況」。issue 024）、予算、実績、残り・見込み・見込みとの差（今の季節だけ。過去・未来の季節は差額）の列と、最下行の合計行。見出しの単位は「（円）」にまとめ、セルには「円」を付けない。残り〔差額〕のセルは、マイナスのとき `diff-over`（赤）。見込みとの差のセルに `gap-cell`、マイナスのとき `gap-over`（赤）と「超える見込み」のチップ。文言（「予算」「実績」「差額」「未設定」「合計」など）はテンプレートに直接書く（Q7-5）。色は差額のセルの CSS のクラス（赤：`diff-over`）で付け、`<tr>` には、合計行だけ `total-row` を付ける（`row-within`・`row-over`・`row-low` はなくした）。判定はしない（`BudgetColorJudge` で済んでいる）。**issue 020**：年と季節を選ぶ欄の下、表の上に、見込みの要約カード（`comparison-card`。5.13）。Controller が、カードの値（`landing`、棒の長さ `cardBarPermille`・`cardTodayPermille`、％、`countingFrom`）と、科目ごとの見込み（`rowLandings`。行と同じ並びで、出さない行は `null`）と、見込みとの差（`rowGaps`、`totalGap`）、`showForecast`（今の季節か）を渡す。**issue 023**：科目の行の実績（0 円以外）を、取引一覧の絞り込みへのリンクにする（2.3） |
 | `top/index.html` | トップ（issue 010） | `TopController`。季節のメーター、今週の円グラフ（`conic-gradient`）、きょうのひとこと、今週の科目ごとのメーター（2.3、5.11、5.12）。JavaScript は使わない。`style` 属性には、数字と固定の文字だけを入れる（7.5）。**issue 018**：季節のメーターの見込みの一文（5.11、5.13） |
 | `error/404.html` | 404 画面（B7、章2） | Spring Boot が 404 のときに自動で使う。`GlobalExceptionHandler` からも使う。**4 つのエラー画面は同じ形**（ロゴだけのヘッダー、1 行の見出し、失敗のお知らせ、「トップへ」のボタン。2.5、issue 030） |
 | `error/403.html` | 403 画面（CSRF のトークン不正など、7.7、S3。ログインが切れたとき〔古いセッションID〕は、この画面ではなくログイン画面へ移る。7.10、issue 030） | Spring Boot が 403 のときに自動で使う |
@@ -1065,7 +1066,7 @@ flowchart LR
 
 | クラス | 役割（1行） |
 |---|---|
-| `ComparisonRow` | 予実比較の1行分：科目のID（**issue 027 で足した**。合計行は `null`。同じ科目の行を探すときに、名前ではなく ID で探すため。画面には出さない）、科目名、予算（**未設定のときは空**）、実績、差額（**予算が空なら空**）、色。合計行にも使う。**形**（Phase 7、Q7-4 の A）：`record ComparisonRow(Long categoryId, String categoryName, Long budget, long actual, Long difference, BudgetColor color, boolean withinBudget)`（`withinBudget` は Phase 8 の issue 005 で足した。予算内のチップ（旧 💮）を出すかどうか。`BudgetColorJudge.isWithinBudget` の結果）。`null` が未設定・空欄。合計行の科目名は `null`（画面で「合計」を出す） |
+| `ComparisonRow` | 予実比較の1行分：科目のID（**issue 027 で足した**。合計行は `null`。同じ科目の行を探すときに、名前ではなく ID で探すため。**issue 023 から、実績のリンクの URL に出す**〔issue 027（コミット `f8bb325`）で、同じ科目の行を ID で探すために足し、そのとき「画面には出さない」と書いた。もともとは画面で使っていなかった。今回は、出すのは自分の科目の ID だけで、科目の画面の URL（`/categories/{id}/edit`）にもすでに出ている。リンク先の取引一覧が ID と `user_id` で確かめて、他人・存在しない科目は 404 にするので、守りは変わらない〕）、科目名、予算（**未設定のときは空**）、実績、差額（**予算が空なら空**）、色。合計行にも使う。**形**（Phase 7、Q7-4 の A）：`record ComparisonRow(Long categoryId, String categoryName, Long budget, long actual, Long difference, BudgetColor color, boolean withinBudget)`（`withinBudget` は Phase 8 の issue 005 で足した。予算内のチップ（旧 💮）を出すかどうか。`BudgetColorJudge.isWithinBudget` の結果）。`null` が未設定・空欄。合計行の科目名は `null`（画面で「合計」を出す） |
 | `ComparisonResult` | 予実比較の画面全体：見出し（年・季節・期間）、行の並び、合計行、前・次の季節のリンク先（範囲の端では「なし」）。**形**：`record ComparisonResult(SeasonPeriod period, SeasonPeriod previous, SeasonPeriod next, List<ComparisonRow> rows, ComparisonRow total)`。前・次は範囲の端で `null`。科目が0件のとき `rows` は空（画面は表と合計行を出さない。合計行の値は作る：予算 `null`・実績0・差額 `null`・色なし）。画面が読む値はすべてこの中に入れて渡す（`open-in-view=false`） |
 | `ComparisonView`（issue 027） | 予実比較の画面が読む値の全部。`ComparisonService.view` が作る。**形**：`record ComparisonView(ComparisonResult comparison, boolean showForecast, List<Line> lines, Line total, Card card)`。`Line(ComparisonRow row, LandingForecast.Result forecast, Long gap)` は表の 1 行（今の行と、その見込み・見込みとの差。出さないときは `null`）。`Card(LandingForecast.Result forecast, LandingVerdict verdict, Integer usedPercent, int elapsedPercent, MeterScale.Meter meter, LocalDate countingFrom)` は要約カード。**`showForecast` と `card` は条件が違う**：`showForecast` は「表示している季節が、今日の季節」（表を 7 列にする）。`card` が `null` でないのは、それに加えて「合計の予算が設定されていて 0 円より大きい」とき。今の季節でも、予算が未設定・0 円なら、表は 7 列（見込みは「—」）で、カードは出ない。`countingFrom` は、最初の取引の日から数えたとき（その日が季節の初日より後）だけ、その日（ほかは `null`） |
 | `CategoryActual` | 科目ごとの実績（科目IDと合計）。Repository の集計結果（P4）。**形**：`record CategoryActual(Long categoryId, Long total)` |
@@ -1704,7 +1705,7 @@ flowchart TD
 
 ### 5.17 取引一覧の絞り込み（issue 023）
 
-`GET /transactions?category=…&year=…&season=…`（どれも任意。2.2）。確かめる順番は「**季節 → 科目 → 検索**」で、どこかで 404 なら、検索しない。
+`GET /transactions?category=…&year=…&season=…`（どれも任意。2.2）。入口は、予実比較の科目の行の実績のリンク（2.3）と、URL。確かめる順番は「**季節 → 科目 → 検索**」で、どこかで 404 なら、検索しない。
 
 ```mermaid
 flowchart TD
@@ -2014,6 +2015,7 @@ Spring 標準の変換（`Integer` の項目に何も足さない場合）は、
 - **きょうのひとこと（issue 016）**：文面はアプリの中のファイルの文だけ（利用者の入力ではない）。科目名はグラフへのひとことの部品として `th:text`（`#{…}` の引数）で出し、`th:utext` は使わない。`style` 属性には何も入れない。
 - **アイコン（issue 017）**：固定の `<svg>`（アプリの中の `fragments/icons.html`）だけ。名前は固定の文字だけで渡す。利用者の入力は入れない。`<script>`・`<use>`・外部の指定・`style` 属性・`xmlns` を含めない（テストで確かめる）。`check` も同じ。**取引一覧の件数は、数値を整形して出す（利用者の入力は混ざらない）。**
 - **CSP（Content-Security-Policy）の注意（issue 031）**：今は CSP を設定していない。CSP を入れるときは、`fragments/common.html` の head の `<style>`（画面の切りかえの指定。2.3「画面の切りかえ」）を許す指定（その中身のハッシュを `style-src` に足す、など）が要る。許さないと、切りかえが動かなくなる。また、`style` 属性（上の項目）を使っている画面があるので、`style` 属性の扱いも合わせて決める。
+- **予実比較の実績のリンクの title（issue 023）**：科目名を含むので、`th:title` と `messages.properties` の文で出す（Thymeleaf が属性の値として無害化する）。
 - **`th:utext` は使わない。** `th:utext` は無害化せずにそのまま出力するため、`<script>` が動いてしまう。
 - 値を HTML の属性（`value` など）に入れるときも、Thymeleaf の標準の書き方（`th:value`、`th:field` など）を使う。
 - 利用者の入力を JavaScript の中に埋め込まない。削除の確認ダイアログ（章2）の文は、HTML の属性 `data-confirm` に入れ（名前は利用者の入力。Thymeleaf が無害化する）、固定のファイル `confirm-submit.js` が読む（issue 025、026）。**`onsubmit`・`onclick` などのイベントの属性と、`javascript:` の URL は、テンプレートに書かない**（`TemplateSafetyTest`）。自作の JavaScript では、`innerHTML`・`outerHTML`・`insertAdjacentHTML`・`document.write`・`eval`・`new Function` を使わない（`static/js` の全ファイルを見るテストで確かめる。issue 026）。

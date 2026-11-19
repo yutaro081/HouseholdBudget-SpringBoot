@@ -54,7 +54,15 @@
          <tr> のクラスは、合計行の total-row だけ（行の背景の row-within は、なくした）。
          見込みの列は、今の季節だけ（showForecast）。見込みを出さない科目（予算が未設定・0円）は「—」。見込みが予算を上回る科目だけ、見込みとの差の数字の左に、同じ行のチップ「超える見込み」。表の下に文は出さない。
          文言はテンプレートに直接書く（Q7-5）。科目名は th:text で出す。th:utext は使わない（7.5） */-->
-    <th:block th:unless="${#lists.isEmpty(comparison.rows)}">
+    <!--/* 実績のリンク（issue 023 の段階 2。設計書 2.3）：科目の行の実績（0 円以外）だけを、その季節・その科目の取引一覧へのリンクにする。
+         年と季節は、今日の季節ではなく、表示している季節（comparison.period）。合計行と要約カードはリンクにしない。見た目は、ふつうのリンクの決まり（新しい CSS は足さない）。
+         title は「2026年 秋・食費の取引を見る」。季節の書き方は取引一覧の絞り込みの見出しと同じで、冬は期間を添える。年は文字で渡す（数字だと「2,026」になる）。科目名は th:title で無害化される（7.5） */-->
+    <th:block th:unless="${#lists.isEmpty(comparison.rows)}"
+              th:with="p=${comparison.period},
+                       seasonName=#{|season.${comparison.period.season.urlName}|},
+                       seasonLabel=${p.season.urlName == 'winter'}
+                           ? #{transaction.filter.season.winter(${'' + p.year}, ${seasonName}, ${'' + p.startDate.year}, ${'' + p.startDate.monthValue}, ${'' + p.endDateExclusive.minusMonths(1).year}, ${'' + p.endDateExclusive.minusMonths(1).monthValue})}
+                           : #{transaction.filter.season(${'' + p.year}, ${seasonName})}">
         <div class="table-card table-responsive">
             <table class="list comparison-table table table-hover align-middle" th:classappend="${showForecast} ? 'has-forecast'">
             <thead>
@@ -76,7 +84,7 @@
                 <td th:text="${row.categoryName}">食費</td>
                 <td class="status-cell"><th:block th:replace="~{fragments/chip :: status(${row.color.name()}, ${row.withinBudget})}"></th:block></td>
                 <td class="num" th:text="${row.budget != null} ? ${#numbers.formatInteger(row.budget, 1, 'COMMA')} : '未設定'">30,000</td>
-                <td class="num" th:text="${#numbers.formatInteger(row.actual, 1, 'COMMA')}">1,500</td>
+                <td class="num" th:with="actual=${#numbers.formatInteger(row.actual, 1, 'COMMA')}"><a th:if="${row.actual > 0}" th:href="@{/transactions(category=${row.categoryId}, year=${p.year}, season=${p.season.urlName})}" th:title="#{comparison.actual.link.title(${seasonLabel}, ${row.categoryName})}" th:text="${actual}">1,500</a><th:block th:unless="${row.actual > 0}" th:text="${actual}">0</th:block></td>
                 <td class="num remain-cell" th:if="${showForecast}" th:classappend="${row.color.name() == 'RED'} ? 'diff-over'">
                     <th:block th:if="${row.difference != null}"><span th:text="${#numbers.formatInteger(row.difference, 1, 'COMMA')}">28,500</span></th:block>
                 </td>

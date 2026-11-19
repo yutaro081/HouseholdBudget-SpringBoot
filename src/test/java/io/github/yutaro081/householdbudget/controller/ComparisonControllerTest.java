@@ -382,13 +382,14 @@ class ComparisonControllerTest {
 		assertThat(body.indexOf("雑費")).isLessThan(body.indexOf("予算なし"));
 		assertThat(body.indexOf("予算なし")).isLessThan(body.indexOf("合計"));
 
-		assertThat(rowOf(body, "交通費")).contains("<td class=\"num\">5,000</td>", "<td class=\"num\">6,000</td>", ">-1,000<", "予算超え");
+		// 実績は、取引一覧へのリンク（issue 023 の段階 2）なので、セルの中は <a>
+		assertThat(rowOf(body, "交通費")).contains("<td class=\"num\">5,000</td>", ">6,000</a></td>", ">-1,000<", "予算超え");
 		assertThat(rowOf(body, "食費")).contains(">20,000<", ">1,500<", ">18,500<");
 		assertThat(rowOf(body, "雑費")).contains(">10,000<", ">5,000<", ">5,000<");
 
 		// 予算が未設定の行：予算「未設定」、実績は表示、差額は空欄
 		String unset = rowOf(body, "予算なし");
-		assertThat(unset).contains("<td class=\"num\">未設定</td>", "<td class=\"num\">700</td>").containsPattern("<td class=\"num diff-cell\">\\s*</td>");
+		assertThat(unset).contains("<td class=\"num\">未設定</td>", ">700</a></td>").containsPattern("<td class=\"num diff-cell\">\\s*</td>");
 
 		// 合計行：予算は設定済みの科目の合計、実績は全科目の合計、差額は予算 − 実績
 		assertThat(rowOf(body, "合計")).contains("total-row", ">35,000<", ">13,200<", ">21,800<");
@@ -481,7 +482,7 @@ class ComparisonControllerTest {
 		for (String name : new String[] { "ふつう", "余裕", "合計" }) {
 			assertThat(count(rowOf(body, name), "<td")).as(name).isEqualTo(5);
 		}
-		assertThat(rowOf(body, "ふつう")).contains("<td class=\"num\">10,000</td>", "<td class=\"num\">5,000</td>");
+		assertThat(rowOf(body, "ふつう")).contains("<td class=\"num\">10,000</td>", ">5,000</a></td>");
 		assertThat(lastCellOf(rowOf(body, "余裕"))).doesNotContain("💮", "visually-hidden", "chip");
 	}
 
@@ -708,6 +709,174 @@ class ComparisonControllerTest {
 		assertThat(body).contains("先に科目を追加してください", "href=\"/categories\">科目の画面へ");
 		assertThat(body).doesNotContain("<table", "合計", "赤：予算超過");
 		assertThat(body).contains("2026年 秋", "前の季節", "次の季節");
+	}
+
+	// ================================================================
+	// 実績のリンク（issue 023 の段階 2。要件4.4、設計書 2.3、4.7、5.17）
+	// ================================================================
+
+	/** 取引一覧へのリンク（a 要素）：href の中身（&amp; を & に戻す）、title、リンクの文字 */
+	private record Link(String href, String title, String text) {
+	}
+
+	private static final java.util.regex.Pattern LINK = java.util.regex.Pattern.compile(
+			"<a[^>]*\\bhref=\"(/transactions\\?[^\"]*)\"[^>]*\\btitle=\"([^\"]*)\"[^>]*>([^<]*)</a>");
+
+	private static java.util.List<Link> linksIn(String html) {
+		java.util.List<Link> links = new java.util.ArrayList<>();
+		java.util.regex.Matcher m = LINK.matcher(html);
+		while (m.find()) {
+			links.add(new Link(m.group(1).replace("&amp;", "&"), m.group(2), m.group(3)));
+		}
+		return links;
+	}
+
+	/** 取引一覧への href の数（リンクの形に関係なく数える） */
+	private static int transactionLinkCount(String html) {
+		int n = 0;
+		for (int i = html.indexOf("href=\"/transactions?"); i >= 0; i = html.indexOf("href=\"/transactions?", i + 1)) {
+			n++;
+		}
+		return n;
+	}
+
+	private static String hrefOf(Category c, String year, String season) {
+		return "/transactions?category=" + c.getId() + "&year=" + year + "&season=" + season;
+	}
+
+	/** 要約カード（section.comparison-card）の HTML。なければ空 */
+	private static String cardOf(String body) {
+		int at = body.indexOf("class=\"comparison-card\"");
+		return at < 0 ? "" : body.substring(at, body.indexOf("</section>", at));
+	}
+
+	/**
+	 * テスト案 1：実績がある科目の行だけがリンク。0 円の行・合計行・要約カードはリンクにしない。
+	 * 今の季節（7 列。2026 年冬。要約カードが出るように予算を入れる）と、過去の季節（5 列。2026 年秋）の両方
+	 */
+	@ParameterizedTest(name = "year={0} season={1}：実績のある行だけがリンク")
+	@CsvSource(nullValues = "none", value = { "none,none,2027-01-10", "2026,winter,2027-01-10", "2026,autumn,2026-10-29" })
+	void onlyCategoryRowsWithAnActualAreLinks(String year, String season, LocalDate spentOn) throws Exception {
+		Owner a = createOwner("cmplnk1");
+		Category food = category(a, "食費");
+		Category daily = category(a, "日用品");
+		budget(a, food, 2026, Season.WINTER, 30000);
+		budget(a, daily, 2026, Season.WINTER, 5000);
+		spend(a, food, spentOn, 1200);
+
+		String body = open(a, year, season);
+
+		String foodRow = rowOf(body, ">食費<");
+		assertThat(linksIn(foodRow)).singleElement().extracting(Link::text).isEqualTo("1,200");
+		assertThat(transactionLinkCount(rowOf(body, ">日用品<"))).isZero();
+		assertThat(rowOf(body, ">日用品<")).contains(">0<");
+		assertThat(transactionLinkCount(rowOf(body, "class=\"total-row\""))).isZero();
+		assertThat(transactionLinkCount(cardOf(body))).isZero();
+		assertThat(transactionLinkCount(body)).isEqualTo(1);
+	}
+
+	/** 要約カードが出ていることの確かめ（上のテストが、カードのない画面でだけ通っていないこと） */
+	@Test
+	void theCardIsShownInTheCurrentSeasonWithoutLinks() throws Exception {
+		Owner a = createOwner("cmplnk2");
+		Category food = category(a, "食費");
+		budget(a, food, 2026, Season.WINTER, 30000);
+		spend(a, food, LocalDate.of(2027, 1, 10), 1200);
+
+		String card = cardOf(open(a, null, null));
+
+		assertThat(card).isNotEmpty().contains("1,200円");
+		assertThat(transactionLinkCount(card)).isZero();
+	}
+
+	/**
+	 * テスト案 2：リンクの年と季節は、表示している季節（今日の季節ではない）。今の季節（指定なし・指定あり）、前の季節、次の季節、
+	 * 年をまたぐ冬（2025 年冬 ＝ 2025年12月〜2026年2月。year は季節の年）
+	 */
+	@ParameterizedTest(name = "year={0} season={1} の画面のリンクは year={3}&season={4}")
+	@CsvSource(nullValues = "none", value = {
+			"none, none,   2027-01-10, 2026, winter",
+			"2026, winter, 2027-01-10, 2026, winter",
+			"2026, autumn, 2026-10-29, 2026, autumn",
+			"2027, spring, 2027-04-01, 2027, spring",
+			"2025, winter, 2026-02-01, 2025, winter" })
+	void theLinkUsesTheDisplayedSeason(String year, String season, LocalDate spentOn, String linkYear, String linkSeason) throws Exception {
+		Owner a = createOwner("cmplnk3");
+		Category food = category(a, "食費");
+		spend(a, food, spentOn, 500);
+
+		java.util.List<Link> links = linksIn(open(a, year, season));
+
+		assertThat(links).singleElement().extracting(Link::href).isEqualTo(hrefOf(food, linkYear, linkSeason));
+	}
+
+	/** テスト案 3：2 人とも同じ名前の科目と実績があっても、リンクに出るのは自分の科目の ID だけ */
+	@Test
+	void linksCarryOnlyMyOwnCategoryIds() throws Exception {
+		Owner a = createOwner("cmplnk4");
+		Owner b = createOwner("cmplnk5");
+		Category mine = category(a, "食費");
+		Category theirs = category(b, "食費");
+		autumn(a, mine, null, 100);
+		autumn(b, theirs, null, 200);
+
+		String body = open(a, "2026", "autumn");
+
+		assertThat(linksIn(body)).extracting(Link::href).containsExactly(hrefOf(mine, "2026", "autumn"));
+		assertThat(body).doesNotContain("category=" + theirs.getId() + "&amp;");
+	}
+
+	/** テスト案 4：title は「2026年 秋・食費の取引を見る」。冬は期間を添える。科目名は無害化して出す */
+	@Test
+	void theLinkTitleSaysWhatOpensAndIsEscaped() throws Exception {
+		Owner a = createOwner("cmplnk6");
+		Category food = category(a, "食費");
+		Category odd = category(a, "<b>x</b>");
+		autumn(a, food, null, 100);
+		spend(a, food, LocalDate.of(2027, 1, 10), 200);
+		autumn(a, odd, null, 300);
+
+		String autumnBody = open(a, "2026", "autumn");
+		assertThat(linksIn(rowOf(autumnBody, ">食費<"))).singleElement().extracting(Link::title).isEqualTo("2026年 秋・食費の取引を見る");
+		assertThat(linksIn(autumnBody)).extracting(Link::title).contains("2026年 秋・&lt;b&gt;x&lt;/b&gt;の取引を見る");
+		assertThat(autumnBody).doesNotContain("<b>x</b>");
+
+		assertThat(linksIn(open(a, "2026", "winter"))).singleElement().extracting(Link::title)
+				.isEqualTo("2026年 冬（2026年12月〜2027年2月）・食費の取引を見る");
+	}
+
+	/**
+	 * テスト案 5：画面のリンクを開くと、行き先の見出しの合計が、そのセルの数字と同じ（科目の ID と季節の取り違えを止める）。
+	 * 科目ごと・季節ごとに金額を変えておく（取り違えると、合計が変わる）。季節の境目の日付も入れる
+	 */
+	@ParameterizedTest(name = "year={0} season={1}：リンク先の合計 ＝ セルの数字")
+	@CsvSource(nullValues = "none", value = { "none,none", "2026,winter", "2026,autumn" })
+	void followingEachLinkShowsTheSameTotalAsTheCell(String year, String season) throws Exception {
+		Owner a = createOwner("cmplnk7");
+		Owner b = createOwner("cmplnk8");
+		Category food = category(a, "食費");
+		Category daily = category(a, "日用品");
+		Category fun = category(a, "娯楽");
+		spend(a, food, LocalDate.of(2026, 9, 1), 1000);
+		spend(a, food, LocalDate.of(2026, 11, 30), 20);
+		spend(a, daily, LocalDate.of(2026, 10, 1), 300);
+		spend(a, food, LocalDate.of(2026, 12, 1), 4000);
+		spend(a, food, LocalDate.of(2027, 2, 28), 5);
+		spend(a, daily, LocalDate.of(2027, 1, 1), 60000);
+		spend(a, fun, LocalDate.of(2027, 2, 1), 700);
+		spend(a, fun, LocalDate.of(2027, 3, 1), 99999);
+		spend(b, category(b, "食費"), LocalDate.of(2026, 12, 1), 8888);
+
+		java.util.List<Link> links = linksIn(open(a, year, season));
+
+		assertThat(links).hasSizeGreaterThanOrEqualTo(2);
+		java.util.regex.Pattern heading = java.util.regex.Pattern.compile(">[^<>]*の取引（[0-9,]+ 件・合計 ([0-9,]+)円）<");
+		for (Link link : links) {
+			String list = mockMvc.perform(get(link.href()).with(a.login())).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+			java.util.regex.Matcher m = heading.matcher(list);
+			assertThat(m.find()).as(link.href() + " の見出し").isTrue();
+			assertThat(m.group(1)).as(link.href() + " の合計 ＝ セルの数字").isEqualTo(link.text());
+		}
 	}
 
 }
