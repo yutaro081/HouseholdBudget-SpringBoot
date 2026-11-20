@@ -34,7 +34,7 @@
 | 技術 | 版 | 役割 | 選んだ理由 |
 |---|---|---|---|
 | Java（JDK） | 25（Eclipse Temurin 25.0.2） | プログラムを書く言語と実行環境 | 要件で指定。導入済みの長期サポート版（Phase 0 で確認済み） |
-| Spring Boot | 4.1.2 | アプリの土台。Web サーバー（組み込み）、設定、起動 | 要件で指定。4.1.1 が Java 17〜26 に対応していることは公式ドキュメントで確認済み（Q18）。4.1.2 は 4.1.1 の不具合修正版で、Spring Initializr で選べる安定版のため、こちらを使う |
+| Spring Boot | 4.1.3 | アプリの土台。Web サーバー（組み込み）、設定、起動 | 要件で指定。4.1.1 が Java 17〜26 に対応していることは公式ドキュメントで確認済み（Q18）。4.1.2 は 4.1.1 の不具合修正版で、Spring Initializr で選べる安定版のため、こちらを使った。その後、不具合修正版の 4.1.3 に上げた（3 番目の数字だけの版上げで、機能は変えない。4.2 には上げない） |
 | Maven（`mvnw`） | プロジェクト付属の Maven Wrapper が使う版 | 部品の管理とビルド | 別にインストールせず、`mvnw` で動かせる（Phase 0）。実行計画書の方針 |
 | Thymeleaf | Spring Boot が管理する版 | 画面（HTML）の作成。表示する値は自動で無害化される | Spring Boot の標準的な画面の仕組み。入門者向けで、XSS 対策（章7）が標準で入っている |
 | Thymeleaf Extras Spring Security（`thymeleaf-extras-springsecurity6`） | Spring Boot が管理する版 | 画面にログイン中のユーザー名を出す（ヘッダー、2.3） | Spring Security の情報を Thymeleaf から読める。Initializr が Spring Security と Thymeleaf の組み合わせで自動で足す部品で、ユーザー名を出すのに使うため残す（Phase 3 で決定） |

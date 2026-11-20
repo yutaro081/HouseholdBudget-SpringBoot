@@ -99,7 +99,7 @@ AI（Claude Code）を使って作りましたが、判断は自分で握りた�
 | 種類 | 名前（版） | 使い方 |
 |---|---|---|
 | 言語 | Java 25 | |
-| 土台 | Spring Boot 4.1.2 | Web アプリの土台 |
+| 土台 | Spring Boot 4.1.3 | Web アプリの土台 |
 | 画面 | Thymeleaf | 画面の HTML。表示する値は自動で無害化 |
 | 見た目 | Bootstrap 5.3.8（CSS のみ） | アプリの中に置く。CDN は使わない |
 | フォント | Zen Kaku Gothic New | アプリの中に置く。CDN は使わない |
