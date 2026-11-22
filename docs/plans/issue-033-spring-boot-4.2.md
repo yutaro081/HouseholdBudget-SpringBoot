@@ -2,7 +2,7 @@
 
 全体の位置づけは [実行計画書](execution-plan.md) を見てください。この文書は、[issue 033](../issues/033-Spring-Bootを4.2に上げる.md)（Spring Boot 4.1.3 → 4.2.0）を進めるための手順書です。
 
-> **状態（2026年11月22日）**：◐ **段階 0〔文書〕と段階 1〔`server.error` の設定の名前の直し〕を行った**〔確認待ち。コミット〔本人〕が残っている〕。
+> **状態（2026年11月22日）**：◐ **段階 0・1 はコミット済み。段階 2〔4.2.0 への版上げ〕を行った**〔確認待ち。ブラウザでの確かめ〔段階 3〕と、コミット〔本人〕が残っている〕。`.\mvnw clean test` は 2,921 件成功。
 
 - ブランチ：`feature/issue-033-spring-boot-4.2`。秘密情報：パスワード・接続先の値は、どこにも書かない。
 - 進め方：1 つの段階が終わったら止まって、確認を待つ。変更は、文書が先〔設計書 → この手順書〕、コードは後。**テストが先**〔失敗を確かめてから直す〕。コミットと push は本人。
@@ -140,7 +140,7 @@
 
 | 番号 | 決めること | 案 | おすすめ | 決定 |
 |---|---|---|---|---|
-| Q033-1 | `ErrorSettingsTest` の確かめ方〔段階 1〕 | A：設定の出どころ〔本体の `application.properties`〕と、古い名前がないことと、読み込んだ値の 3 つ<br>B：読み込んだ値だけ〔標準の値と同じなので、読まれていないことを見分けられない〕 | **A** | 段階 1 は A で作った〔確認待ち〕 |
+| Q033-1 | `ErrorSettingsTest` の確かめ方〔段階 1〕 | A：設定の出どころ〔本体の `application.properties`〕と、古い名前がないことと、読み込んだ値の 3 つ<br>B：読み込んだ値だけ〔標準の値と同じなので、読まれていないことを見分けられない〕 | **A** | ☑ **A**〔2026年11月22日・本人〕 |
 
 ## 7. 記録
 
@@ -152,3 +152,15 @@
   - 関係するテストは、`ErrorSettingsTest` 9 件、`ErrorScreensTest` 35 件、`SecurityBehaviorTest` 50 件が、すべて成功。
   - わざと壊した：古い名前に戻すと、`ErrorSettingsTest` の 8 件が失敗した〔VS Code も、その 4 行に「Deprecated」の警告を出した〕。確かめたあと、元に戻した。
   - `.\mvnw clean test` は **2,921 件成功**〔2,912 件 ＋ `ErrorSettingsTest` 9 件〕。
+- **段階 2〔2026年11月22日〕**：
+  - 決めたこと〔本人〕：版上げのあいだだけ、Spring Boot の公式の道具 `spring-boot-properties-migrator`〔scope は runtime〕を `pom.xml` に足し、名前が変わった・使えなくなった設定がないかを確かめる。確かめたら外す〔コミットする形には残さない〕。理由：`ErrorSettingsTest` は「ファイルに書いてある」ことは確かめるが、Spring が将来また名前を変えたときは見つけられないため。
+  - 文書を先に直した：設計書 1.2〔5 章の下書きのとおり〕→ 実行計画書の共通事項〔23 行〕。次に `pom.xml` の `<parent>` の版を 4.2.0 にした。
+  - 実際に使われる版〔`dependency:list`〕：Spring Boot 4.2.0、Spring Framework 7.1.0、Spring Security 7.2.0、Spring Data JPA 4.2.0、Hibernate 7.4.15、Tomcat 11.0.27、Thymeleaf 3.1.7、HikariCP 7.1.0、JUnit 6.1.3〔2.1 の表のとおり〕。
+  - `.\mvnw clean test-compile -Dmaven.compiler.showDeprecation=true`〔本体 93 ファイル・テスト 128 ファイル〕：**使われなくなる API の警告は 0 件**。
+  - 関係するテスト〔security、form、repository、`MessagesTest`、`ErrorScreensTest`、`ErrorSettingsTest`。Framework #37655 に当たる `BudgetControllerTest` も足した〕：**732 件、すべて成功**。
+  - properties-migrator の報告：**なし**〔本体とテスト用の `application.properties` に、名前が変わった・使えなくなった設定はない〕。道具が動いていることは、ファイルを変えずに、古い名前を 1 回だけ `-Dserver.error.include-stacktrace=never` で渡して確かめた〔`MessagesTest` だけを流した。「名前が変わった設定：`server.error.include-stacktrace` → `spring.web.error.include-stacktrace`」と報告が出た〕。
+  - properties-migrator を `pom.xml` から外した〔`pom.xml` の差分は、版の 1 行だけ〕。
+  - `.\mvnw clean test` は **2,921 件成功**〔段階 1 のあとと同じ。増減なし〕。
+  - テストが通ったので、設計書 7.10〔2101 行〕に「Spring Security 7.2.0〔Spring Boot 4.2.0〕でも、テストで確かめた」を足した。
+  - ログに出る、前からの注意〔4.1.3 でも出ていた。版上げとは別〕：Mockito が「自分で自分を読み込んでいる。将来の JDK では動かなくなるので、Mockito を agent として設定する」と出す。今は動く。
+  - 残り：段階 3〔ブラウザでの確認、4 章〕、段階 4〔README・CLAUDE.md〕。

@@ -34,7 +34,7 @@
 | 技術 | 版 | 役割 | 選んだ理由 |
 |---|---|---|---|
 | Java（JDK） | 25（Eclipse Temurin 25.0.2） | プログラムを書く言語と実行環境 | 要件で指定。導入済みの長期サポート版（Phase 0 で確認済み） |
-| Spring Boot | 4.1.3 | アプリの土台。Web サーバー（組み込み）、設定、起動 | 要件で指定。4.1.1 が Java 17〜26 に対応していることは公式ドキュメントで確認済み（Q18）。4.1.2 は 4.1.1 の不具合修正版で、Spring Initializr で選べる安定版のため、こちらを使った。その後、不具合修正版の 4.1.3 に上げた（3 番目の数字だけの版上げで、機能は変えない。4.2 には上げない） |
+| Spring Boot | 4.2.0 | アプリの土台。Web サーバー（組み込み）、設定、起動 | 要件で指定。4.1.1 が Java 17〜26 に対応していることは公式ドキュメントで確認済み（Q18）。4.1.2 は 4.1.1 の不具合修正版で、Spring Initializr で選べる安定版のため、こちらを使った。その後、不具合修正版の 4.1.3 に上げ、issue 033 で 4.2.0 に上げた（2 番目の数字の版上げ。移行の手引きで、このアプリに関わる変更を確かめた。機能は変えない） |
 | Maven（`mvnw`） | プロジェクト付属の Maven Wrapper が使う版 | 部品の管理とビルド | 別にインストールせず、`mvnw` で動かせる（Phase 0）。実行計画書の方針 |
 | Thymeleaf | Spring Boot が管理する版 | 画面（HTML）の作成。表示する値は自動で無害化される | Spring Boot の標準的な画面の仕組み。入門者向けで、XSS 対策（章7）が標準で入っている |
 | Thymeleaf Extras Spring Security（`thymeleaf-extras-springsecurity6`） | Spring Boot が管理する版 | 画面にログイン中のユーザー名を出す（ヘッダー、2.3） | Spring Security の情報を Thymeleaf から読める。Initializr が Spring Security と Thymeleaf の組み合わせで自動で足す部品で、ユーザー名を出すのに使うため残す（Phase 3 で決定） |
@@ -2101,7 +2101,7 @@ Spring 標準の変換（`Integer` の項目に何も足さない場合）は、
 - **ログインが切れるとき（issue 030）**：セッションは、**30 分**操作がないと切れる（Spring Boot の標準の値。`server.servlet.session.timeout` は書かず、標準のまま使う）。アプリを再起動したときも切れる（セッションを保存して持ち越す設定はしない）。ログインの状態と CSRF のトークンは、どちらもセッションに入っているので、両方が消える。
 - **ログインが切れたあとの動き（issue 030、S10）**：ブラウザは、サーバーにもうないセッションID（古い `JSESSIONID`）を送ってくる。これを「古いセッションID で来た」（`request.getRequestedSessionId() != null` かつ `!request.isRequestedSessionIdValid()`）と判定し、次のように `/login?expired` へ移動する。ログイン画面は「ログインが切れました。もう一度ログインしてください。」を案内の形で出す（2.3）。
   - 画面を開く（GET）：ログイン必須の確認で止まったとき、`SecurityConfig` の `exceptionHandling` の `authenticationEntryPoint` を、標準の `DelegatingAuthenticationEntryPoint` にする。古いセッションID なら `LoginUrlAuthenticationEntryPoint("/login?expired")`、それ以外は今までどおり `/login`。
-  - ボタンを押す（POST）：CSRF の確認が、ログイン必須の確認より**先に**動く（Spring Security のフィルターの順）。そのため、切れたあとの POST はトークンが合わず、それまでは 403 の画面になっていた。`exceptionHandling` の `accessDeniedHandler` を、標準の `RequestMatcherDelegatingAccessDeniedHandler` にする。古いセッションID なら `/login?expired` へ移動、それ以外は標準の `AccessDeniedHandlerImpl`（403。7.6・7.7）。CSRF の確認は、この `accessDeniedHandler` を使う（Spring Security 7.1.2 で確かめた）。
+  - ボタンを押す（POST）：CSRF の確認が、ログイン必須の確認より**先に**動く（Spring Security のフィルターの順）。そのため、切れたあとの POST はトークンが合わず、それまでは 403 の画面になっていた。`exceptionHandling` の `accessDeniedHandler` を、標準の `RequestMatcherDelegatingAccessDeniedHandler` にする。古いセッションID なら `/login?expired` へ移動、それ以外は標準の `AccessDeniedHandlerImpl`（403。7.6・7.7）。CSRF の確認は、この `accessDeniedHandler` を使う（Spring Security 7.1.2 で確かめた）。Spring Security 7.2.0（Spring Boot 4.2.0）でも、テストで確かめた（issue 033）。
   - 自分で書くのは「古いセッションID か」の判定 1 つだけ。部品は Spring Security の標準のもの。CSRF 対策は無効にしない。
   - ログインし直したあとは、いつもトップへ（U5 のまま）。元の画面には戻さない。理由：ボタンを押した操作（POST）は、戻しても入力が消えているため。いつも同じ移り先のほうが分かりやすいため。
   - **送った内容は保存しない。入力していた値も残らない**（要件定義書 4.1・8 章）。CSRF の確認で止まり、Controller まで届かないため。値を守る方法（ブラウザに値を残す JavaScript、ログイン後の送り直し、時間を長くする）は使わない。理由：JavaScript の決まり（1.1、7.5）の考えに合わない、共用のパソコンで値が残る、標準のしくみがない、再起動では効かない。

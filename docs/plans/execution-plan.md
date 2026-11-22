@@ -20,7 +20,7 @@
    - 照合順序は、データベース全体・すべてのテーブルで `utf8mb4_0900_as_ci`（設計書 3.12）。新しいテーブルを足すときも `COLLATE` を明記する。
    - DB の接続は環境変数 `HB_DB_URL`、`HB_DB_USER`、`HB_DB_PASSWORD` から読む（設計書 1.5）。アプリ専用の DB ユーザー `hb_app` で接続し、`root` は使わない。環境変数を設定したあとは VS Code を開き直す。環境変数が空だと、起動も `.\mvnw test` も失敗する。
    - `schema.sql` は `CREATE TABLE IF NOT EXISTS` で、既存のテーブルを変更しない。`schema.sql` を直したときは、`root` でデータベースを作り直す（Phase 3 以降は、データが消えることに注意）。
-   - Spring Boot は 4.1.3（設計書 1.2。当初は 4.1.2）。
+   - Spring Boot は 4.2.0（設計書 1.2。当初は 4.1.2、その後 4.1.3。issue 033）。
    - Phase 3 で決まった共通事項：
      - ログイン中のユーザーIDは、`LoginUser.getUserId()` から取り出して Service に渡す（設計書 3.9）。
      - エラー画面は 404 / 403 / その他の 4xx / 5xx の4つ（S3、S9）。セッションIDは Cookie だけで受け渡す（S8）。
