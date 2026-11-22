@@ -9,16 +9,20 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -52,6 +56,12 @@ import jakarta.persistence.EntityManager;
  * 画面（HTTP）から確かめる：守り（404・他人のデータ）、見出しの文、予実比較の実績との一致（季節の境目）、
  * 同じレシートの取引を科目で絞ったときの削除の確認の文、並び。
  * 印（receipt_group）は SQL で付ける（TransactionReceiptTest と同じ。登録の作りに頼らない）。
+ * <p>
+ * <b>取引の CSV 出力（issue 004）</b>は、一覧と同じ確かめ（TransactionController.filterOf）を使う。守りのテスト（ログイン・404・他人のデータ）は、
+ * 一覧（{@link #LIST}）と CSV（{@link #EXPORT}）の<b>両方の URL で、同じ入力のまま</b>流す（手順書 issue-004-csv-export の Q004-6。
+ * 2 つの決まりがずれたら、同じテストで気づくため）。行が出ているかは {@link #shows} で、画面とファイルのどちらでも同じ形で確かめる。
+ * CSV のファイルの形は TransactionCsvExportTest が確かめる。
+ * <p>
  * 開発用の DB につなぐが、各テストはトランザクションで包まれ、終わると取り消される（行は残らない）。
  * テストの準備（ApplicationContext）を増やさないため、自分の @TestConfiguration は作らない。
  */
@@ -59,6 +69,11 @@ import jakarta.persistence.EntityManager;
 @AutoConfigureMockMvc
 @Transactional
 class TransactionFilterTest {
+
+	/** 取引一覧 */
+	private static final String LIST = "/transactions";
+	/** 取引の CSV 出力（issue 004）。一覧と同じ確かめを使う */
+	private static final String EXPORT = "/transactions/export";
 
 	private static final LocalDate DAY = LocalDate.of(2026, 11, 9);
 	private static final String NONE_MESSAGE = "この条件に当てはまる取引はありません。";
@@ -152,15 +167,34 @@ class TransactionFilterTest {
 	}
 
 	private MockHttpServletRequestBuilder list(String... params) {
-		MockHttpServletRequestBuilder builder = get("/transactions");
+		return at(LIST, params);
+	}
+
+	/** path（一覧か CSV）に、名前と値の組の引数を付ける */
+	private static MockHttpServletRequestBuilder at(String path, String... params) {
+		MockHttpServletRequestBuilder builder = get(path);
 		for (int i = 0; i < params.length; i += 2) {
 			builder.param(params[i], params[i + 1]);
 		}
 		return builder;
 	}
 
+	/** 画面（HTML）またはファイル（CSV）の中身。CSV は UTF-8 で読む */
 	private String page(MockHttpServletRequestBuilder request) throws Exception {
-		return mockMvc.perform(request.with(asA)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+		return mockMvc.perform(request.with(asA)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+	}
+
+	/**
+	 * その取引（摘要の文字で探す）が出ているか。一覧は「&gt;摘要&lt;」のセル、CSV は「,"摘要",」の値（摘要の列の前後はカンマ。
+	 * 支払方法と金額の間。設計書 5.18）
+	 */
+	private static boolean shows(String path, String body, String description) {
+		return EXPORT.equals(path) ? body.contains(",\"" + description + "\",") : body.contains(">" + description + "<");
+	}
+
+	/** CSV の取引の行の数（見出しの行を除く。どの行も CRLF で終わる） */
+	private static int csvRows(String body) {
+		return body.split("\r\n").length - 1;
 	}
 
 	private void notFound(MockHttpServletRequestBuilder request) throws Exception {
@@ -211,92 +245,124 @@ class TransactionFilterTest {
 	// ---------------------------------------------------------------
 
 	@ParameterizedTest(name = "未ログインで GET {0} は、ログイン画面へ移動する")
-	@ValueSource(strings = { "/transactions?category=1", "/transactions?year=2026&season=autumn", "/transactions?category=1&year=2026&season=autumn" })
+	@ValueSource(strings = { "/transactions?category=1", "/transactions?year=2026&season=autumn", "/transactions?category=1&year=2026&season=autumn",
+			"/transactions/export", "/transactions/export?category=1", "/transactions/export?year=2026&season=autumn",
+			"/transactions/export?category=1&year=2026&season=autumn" })
 	void notLoggedInIsRedirected(String path) throws Exception {
 		mockMvc.perform(get(path))
 				.andExpect(status().is3xxRedirection())
 				.andExpect(result -> assertThat(result.getResponse().getRedirectedUrl()).endsWith("/login"));
 	}
 
-	/** 他人の科目・存在しない科目・数字でない値・範囲外の値は、科目だけでも、季節と一緒でも、同じ 404 */
-	@Test
-	void otherUsersMissingAndInvalidCategoriesAreTheSame404() throws Exception {
+	/** 他人の科目・存在しない科目・数字でない値・範囲外の値は、科目だけでも、季節と一緒でも、同じ 404（一覧も CSV も） */
+	@ParameterizedTest(name = "{0}：他人の科目・存在しない科目・数字でない値は、同じ 404")
+	@ValueSource(strings = { LIST, EXPORT })
+	void otherUsersMissingAndInvalidCategoriesAreTheSame404(String path) throws Exception {
 		saveRow(b, DAY, b.food(), 999, "他人の行");
 		for (String category : List.of(id(b.food()), "999999999", "abc", "1.5", "-", "99999999999999999999", "0", "-1")) {
-			notFound(list("category", category));
-			notFound(list("category", category, "year", "2026", "season", "autumn"));
+			notFound(at(path, "category", category));
+			notFound(at(path, "category", category, "year", "2026", "season", "autumn"));
 		}
 	}
 
-	/** 年・季節が不正・範囲外・空のときは、予実比較と同じく 404（科目があってもなくても） */
-	@ParameterizedTest(name = "year=[{0}] season=[{1}] は 404")
-	@CsvSource(delimiter = '|', value = {
-			"1999|winter", "2101|spring", "abc|spring", "02026|spring", "+2026|spring", "20260|spring", "0|spring", "-2026|spring",
-			"2026|Spring", "2026|SPRING", "2026|haru", "2026|' spring'", "2026|'spring '", "' 2026'|spring", "''|''", "2026|''", "''|spring" })
-	void badYearOrSeasonIsNotFound(String year, String season) throws Exception {
-		notFound(list("year", year, "season", season));
-		notFound(list("category", id(a.food()), "year", year, "season", season));
+	/** 不正・範囲外・空の年と季節（予実比較と同じ入力）を、一覧と CSV の両方の URL で */
+	private static Stream<Arguments> badYearsAndSeasons() {
+		List<String[]> pairs = List.of(
+				new String[] { "1999", "winter" }, new String[] { "2101", "spring" }, new String[] { "abc", "spring" },
+				new String[] { "02026", "spring" }, new String[] { "+2026", "spring" }, new String[] { "20260", "spring" },
+				new String[] { "0", "spring" }, new String[] { "-2026", "spring" }, new String[] { "2026", "Spring" },
+				new String[] { "2026", "SPRING" }, new String[] { "2026", "haru" }, new String[] { "2026", " spring" },
+				new String[] { "2026", "spring " }, new String[] { " 2026", "spring" }, new String[] { "", "" },
+				new String[] { "2026", "" }, new String[] { "", "spring" });
+		return Stream.of(LIST, EXPORT).flatMap(path -> pairs.stream().map(pair -> Arguments.of(path, pair[0], pair[1])));
 	}
 
-	/** 年と季節の片方だけは 404（科目があってもなくても） */
-	@Test
-	void onlyOneOfYearAndSeasonIsNotFound() throws Exception {
-		notFound(list("year", "2026"));
-		notFound(list("season", "autumn"));
-		notFound(list("category", id(a.food()), "year", "2026"));
-		notFound(list("category", id(a.food()), "season", "autumn"));
+	/** 年・季節が不正・範囲外・空のときは、予実比較と同じく 404（科目があってもなくても。一覧も CSV も） */
+	@ParameterizedTest(name = "{0}：year=[{1}] season=[{2}] は 404")
+	@MethodSource("badYearsAndSeasons")
+	void badYearOrSeasonIsNotFound(String path, String year, String season) throws Exception {
+		notFound(at(path, "year", year, "season", season));
+		notFound(at(path, "category", id(a.food()), "year", year, "season", season));
 	}
 
-	/** 年・季節が 2 回来たら 404（文字でつながり、4 桁の数字・季節の名前にならない。予実比較と同じ） */
-	@Test
-	void sameYearOrSeasonTwiceIsNotFound() throws Exception {
-		notFound(get("/transactions").param("year", "2026", "2027").param("season", "autumn"));
-		notFound(get("/transactions").param("year", "2026").param("season", "autumn", "winter"));
-		notFound(get("/transactions").param("year", "2026", "2026").param("season", "autumn", "autumn"));
-		notFound(get("/transactions").param("category", id(a.food())).param("year", "2026", "2027").param("season", "autumn"));
+	/** 年と季節の片方だけは 404（科目があってもなくても。一覧も CSV も） */
+	@ParameterizedTest(name = "{0}：年と季節の片方だけは 404")
+	@ValueSource(strings = { LIST, EXPORT })
+	void onlyOneOfYearAndSeasonIsNotFound(String path) throws Exception {
+		notFound(at(path, "year", "2026"));
+		notFound(at(path, "season", "autumn"));
+		notFound(at(path, "category", id(a.food()), "year", "2026"));
+		notFound(at(path, "category", id(a.food()), "season", "autumn"));
+	}
+
+	/** 年・季節が 2 回来たら 404（文字でつながり、4 桁の数字・季節の名前にならない。予実比較と同じ。一覧も CSV も） */
+	@ParameterizedTest(name = "{0}：年・季節が 2 回なら 404")
+	@ValueSource(strings = { LIST, EXPORT })
+	void sameYearOrSeasonTwiceIsNotFound(String path) throws Exception {
+		notFound(get(path).param("year", "2026", "2027").param("season", "autumn"));
+		notFound(get(path).param("year", "2026").param("season", "autumn", "winter"));
+		notFound(get(path).param("year", "2026", "2026").param("season", "autumn", "autumn"));
+		notFound(get(path).param("category", id(a.food())).param("year", "2026", "2027").param("season", "autumn"));
 	}
 
 	/**
 	 * category が 2 回来たとき（設計書 7.8：どちらの値でも、自分の科目でなければ 404）。
-	 * Long で受けるので、Spring は最初の値を使う（このテストで確かめた動き）。他人のデータは、どの順でも見えない。
+	 * Long で受けるので、Spring は最初の値を使う（このテストで確かめた動き）。他人のデータは、どの順でも見えない（一覧も CSV も）。
 	 */
-	@Test
-	void categoryTwiceUsesTheFirstValueAndNeverShowsOthersData() throws Exception {
+	@ParameterizedTest(name = "{0}：category が 2 回なら最初の値。他人のデータは見えない")
+	@ValueSource(strings = { LIST, EXPORT })
+	void categoryTwiceUsesTheFirstValueAndNeverShowsOthersData(String path) throws Exception {
 		saveRow(a, DAY, a.food(), 100, "自分の食費");
 		saveRow(a, DAY, a.daily(), 200, "自分の日用品");
 		saveRow(b, DAY, b.food(), 999, "他人の行");
 
-		String body = page(get("/transactions").param("category", id(a.food()), id(a.daily())));
-		assertThat(body).contains(">自分の食費<").doesNotContain(">自分の日用品<", ">他人の行<");
-		assertThat(body).contains(">食費の取引（全期間・1 件・合計 100円）<");
+		String body = page(get(path).param("category", id(a.food()), id(a.daily())));
+		assertThat(shows(path, body, "自分の食費")).isTrue();
+		assertThat(shows(path, body, "自分の日用品")).isFalse();
+		assertThat(body).doesNotContain("他人の行");
+		if (LIST.equals(path)) {
+			assertThat(body).contains(">食費の取引（全期間・1 件・合計 100円）<");
+		}
 
-		body = page(get("/transactions").param("category", id(a.food()), id(b.food())));
-		assertThat(body).contains(">自分の食費<").doesNotContain(">他人の行<", ">自分の日用品<");
+		body = page(get(path).param("category", id(a.food()), id(b.food())));
+		assertThat(shows(path, body, "自分の食費")).isTrue();
+		assertThat(shows(path, body, "自分の日用品")).isFalse();
+		assertThat(body).doesNotContain("他人の行");
 
-		notFound(get("/transactions").param("category", id(b.food()), id(a.food())));
-		notFound(get("/transactions").param("category", "abc", id(a.food())));
+		notFound(get(path).param("category", id(b.food()), id(a.food())));
+		notFound(get(path).param("category", "abc", id(a.food())));
 	}
 
-	/** 空の category は「指定なし」（copyFrom と同じ）。季節と一緒なら、季節だけの絞り込み */
-	@Test
-	void emptyCategoryIsUnspecified() throws Exception {
+	/** 空の category は「指定なし」（copyFrom と同じ）。季節と一緒なら、季節だけの絞り込み（一覧も CSV も） */
+	@ParameterizedTest(name = "{0}：空の category は指定なし")
+	@ValueSource(strings = { LIST, EXPORT })
+	void emptyCategoryIsUnspecified(String path) throws Exception {
 		saveRow(a, DAY, a.food(), 100, "秋の食費");
 		saveRow(a, LocalDate.of(2026, 12, 1), a.daily(), 200, "冬の日用品");
 
-		String all = page(list("category", ""));
-		assertThat(all).contains(">秋の食費<", ">冬の日用品<", "日付の新しい順に、2 件を表示しています。");
-		assertThat(CLEAR_LINK.matcher(all).find()).isFalse();
+		String all = page(at(path, "category", ""));
+		assertThat(shows(path, all, "秋の食費")).isTrue();
+		assertThat(shows(path, all, "冬の日用品")).isTrue();
+		if (LIST.equals(path)) {
+			assertThat(all).contains("日付の新しい順に、2 件を表示しています。");
+			assertThat(CLEAR_LINK.matcher(all).find()).isFalse();
+		}
 
-		String autumn = page(list("category", "", "year", "2026", "season", "autumn"));
-		assertThat(autumn).contains(">秋の食費<", ">2026年 秋の取引（1 件・合計 100円）<").doesNotContain(">冬の日用品<");
+		String autumn = page(at(path, "category", "", "year", "2026", "season", "autumn"));
+		assertThat(shows(path, autumn, "秋の食費")).isTrue();
+		assertThat(shows(path, autumn, "冬の日用品")).isFalse();
+		if (LIST.equals(path)) {
+			assertThat(autumn).contains(">2026年 秋の取引（1 件・合計 100円）<");
+		}
 	}
 
 	/**
 	 * 他人の行に、自分の科目の ID や、同じ期間の日付が入っていても（アプリでは作れない。SQL で作る）、絞り込んだ一覧に出ない。
-	 * 科目だけ・季節だけ・両方のどれでも。見出しの件数と合計にも入らない
+	 * 科目だけ・季節だけ・両方のどれでも。見出しの件数と合計にも入らない。CSV にも入らない（取引の行は 1 つだけ）
 	 */
-	@Test
-	void otherUsersRowsAreNeverShownEvenWithMyCategoryId() throws Exception {
+	@ParameterizedTest(name = "{0}：他人の行は、自分の科目の ID が入っていても出ない")
+	@ValueSource(strings = { LIST, EXPORT })
+	void otherUsersRowsAreNeverShownEvenWithMyCategoryId(String path) throws Exception {
 		saveRow(a, DAY, a.food(), 100, "自分の食費");
 		Long theirs = saveRow(b, DAY, b.food(), 999, "他人の行");
 		setCategory(theirs, a.food().getId());
@@ -304,9 +370,14 @@ class TransactionFilterTest {
 		for (String[] params : List.of(new String[] { "category", id(a.food()) },
 				new String[] { "year", "2026", "season", "autumn" },
 				new String[] { "category", id(a.food()), "year", "2026", "season", "autumn" })) {
-			String body = page(list(params));
-			assertThat(body).contains(">自分の食費<").doesNotContain("他人の行");
-			assertThat(headingNumbers(body)).containsExactly(1, 100);
+			String body = page(at(path, params));
+			assertThat(shows(path, body, "自分の食費")).isTrue();
+			assertThat(body).doesNotContain("他人の行");
+			if (LIST.equals(path)) {
+				assertThat(headingNumbers(body)).containsExactly(1, 100);
+			} else {
+				assertThat(csvRows(body)).isEqualTo(1);
+			}
 		}
 	}
 

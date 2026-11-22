@@ -88,7 +88,7 @@ class SessionExpiredTest {
 	// ---- 古いセッションID：ログイン画面へ（/login?expired） ----
 
 	@ParameterizedTest(name = "古いセッションID で GET {0} を開くと、/login?expired へ移る")
-	@ValueSource(strings = { "/", "/transactions", "/transactions/new", "/budgets", "/comparison", "/categories" })
+	@ValueSource(strings = { "/", "/transactions", "/transactions/new", "/budgets", "/comparison", "/categories", "/transactions/export" })
 	void getWithOldSessionGoesToLoginWithExpired(String path) throws Exception {
 		MvcResult result = mockMvc.perform(get(path).with(oldSession()))
 				.andExpect(status().is3xxRedirection()).andReturn();

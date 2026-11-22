@@ -93,9 +93,7 @@ public class TransactionService {
 		if (filter.isEmpty()) {
 			months = listByMonth(userId);
 		} else {
-			SeasonPeriod period = filter.period();
-			List<Transaction> rows = transactionRepository.findForListByUserIdAndFilter(userId, filter.categoryId(),
-					period == null ? null : period.startDate(), period == null ? null : period.endDateExclusive());
+			List<Transaction> rows = findFiltered(userId, filter);
 			months = byMonth(rows, wholeReceiptsOf(userId, rows));
 		}
 		int count = 0;
@@ -105,6 +103,26 @@ public class TransactionService {
 			total += month.total();
 		}
 		return new TransactionListView(filter, months, count, total);
+	}
+
+	/**
+	 * 取引の CSV 出力の行（issue 004。設計書 4.5、5.18）：自分の取引を、取引一覧と同じ並びで全部返す（科目・取引先・支払方法も読み込み済み）。
+	 * 読むだけ。検索は、<b>絞り込みがないときも</b>、取引一覧の絞り込みの検索の 1 本（条件の値が null なら絞らない。
+	 * 全部 null のとき、絞らない一覧と同じ行・同じ並びになることは TransactionRepositoryFilterTest で確かめ済み。Q004-1）。
+	 * CSV の形にするのは TransactionCsvWriter。
+	 *
+	 * @param filter 絞り込みの条件。Controller が確かめてから作ったもの（科目は自分の科目）。user_id は持たない
+	 */
+	@Transactional(readOnly = true)
+	public List<Transaction> listForExport(Long userId, TransactionFilter filter) {
+		return findFiltered(userId, filter);
+	}
+
+	/** 絞り込みの検索（user_id で必ず絞る。科目・期間は、指定がなければ null で、絞らない）。listView と listForExport で共有する */
+	private List<Transaction> findFiltered(Long userId, TransactionFilter filter) {
+		SeasonPeriod period = filter.period();
+		return transactionRepository.findForListByUserIdAndFilter(userId, filter.categoryId(),
+				period == null ? null : period.startDate(), period == null ? null : period.endDateExclusive());
 	}
 
 	/** 並びを保ったまま、月ごとに分ける。月の件数と合計は、渡した行から。レシートの合計と行の数は whole（レシート全体の値）から */

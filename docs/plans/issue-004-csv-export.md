@@ -2,7 +2,7 @@
 
 全体の位置づけは [実行計画書](execution-plan.md) を見てください。この文書は、[issue 004](../issues/004-CSV出力.md)（取引一覧に表示している取引を、CSV ファイルとして保存し、Google スプレッドシートや Excel で開けるようにする）を進める手順書です。
 
-> **状態（2026年11月22日）**：◐ **進行中（段階 1：文書）**。要件定義書〔3 章、4.2、6 章〕と設計書を直した。コードとテストは変えていない。**段階 2 の前に、6 章の Q004-1〜Q004-6 を決める**。
+> **状態（2026年11月22日）**：◐ **進行中（段階 2 の実装まで済み。本人の確かめ待ち）**。段階 1〔文書〕は済み〔本人がコミットした〕。Q004-1〜Q004-6 は本人が決めた〔1.1〕。段階 2 で CSV の出力〔絞り込みも含める〕を作った。`.\mvnw clean test` は 3,017 件成功。本人がブラウザ・スプレッドシート〔・Excel〕で確かめる〔4 章〕。
 
 - ブランチ：`feature/issue-004-csv-export`。秘密情報：パスワード・接続先の値は、どこにも書かない。
 - 進め方：1 つの段階が終わったら止まって、確認を待つ。変更は、文書が先〔要件定義書 → 設計書 → この手順書〕、コードは後。**テストが先**〔失敗を確かめてから実装〕。コミットと push は本人。
@@ -25,6 +25,20 @@
 | 10 | **件数**：上限は付けない。ファイルを全部作ってから返す〔`byte[]`〕 |
 | 11 | **段階**：1 文書 → 2 CSV の出力〔絞り込みも含める。分けない〕→ 3 仕上げ。理由：分けると `filterOf` への移しかえと CSV の入口を 2 回触ることになり、最初から同じ 404 の決まりを使うほうが安全なため |
 | 12 | **要件定義書**：3 章に 1 文、4.2 に 1 項、6 章に 1 行を足す〔前と後の文は、調べものの報告の 8 章のとおり。本人が承認した〕 |
+
+### 1.1 決まっていない点から移したもの〔2026年11月22日・本人〕
+
+番号は、決まっていない点のときの番号のまま。
+
+| 番号 | 決まったこと |
+|---|---|
+| Q004-1 | `TransactionService` にメソッドを 1 つ足す〔`listForExport(userId, filter)`。検索は、絞り込みがないときも、一覧の絞り込み用の検索 1 本〕。**値 1 つの書き方〔`"` で囲む・`'` を付ける〕は `domain` に置かず、ファイルにする所と同じ 1 つのクラスにまとめる**〔`service/TransactionCsvWriter`。値 1 つの書き方は static なメソッドにして単体テストする〕。理由：`domain` は `SeasonPeriod` のような家計の決まりの置き場で、`"` や `'` は CSV というファイルの形の決まりのため。013 で読み取りを作るとき、書き方と読み方を同じ場所に並べられるため〔おすすめと違う〕 |
+| Q004-2 | おすすめのとおり：Controller が、値のある条件だけを付けてリンクの URL を作る。値のない条件が URL に付かないことを、テストで確かめる |
+| Q004-3 | おすすめのとおり：見出しの行の右端に、「編集」「複写」と同じ小さい枠のボタン。`fragments/icons.html` にダウンロードの形のアイコンが元からあれば付けてよい。なければアイコンなし〔新しく描かない〕→ **なかったので、アイコンなし** |
+| Q004-4 | 最後の行の後ろにも CRLF を付ける |
+| Q004-5 | 段階 2 の最初に直す〔実行計画書の 004 の行、013 から 5 章へのリンク〕→ 直した |
+| Q004-6 | `TransactionFilterTest` を、一覧と CSV の両方の URL で流す形にする |
+| — | 設計書の「手順書の Q004-○ で決める」の所を、上の決まりに書きかえる → 書きかえた〔2.3、4.5、5.18〕 |
 
 ## 2. 調べた結果〔2026年11月22日。読むだけで調べた〕
 
@@ -98,12 +112,12 @@
 
 ### 3.2 段階 2：CSV の出力〔テストと実装。絞り込みも含める〕
 
-**変えるもの〔案。Q004-1〜Q004-4 が決まったら直す〕**
-- `TransactionController`：`list` の「季節 → 科目」の 2 行を、private メソッド `filterOf(userId, category, year, season)` に移す〔`list` の動きは変えない〕。`export`〔`@GetMapping("/export")`〕を足す：`filterOf` → Service から行を受け取る → CSV のバイトを作る → `Content-Type`・`Content-Disposition` を付けて返す。`Cache-Control` は付けない。
-- `TransactionService`：CSV の行を返すメソッド〔読むだけ。検索は 1 本。Q004-1〕。
-- CSV の形にする部品：セル 1 つの書き方〔囲む・`""` に重ねる・数式の印〕と、行を並べてバイトにする所〔BOM・見出しの行・CRLF・分割の番号〕〔Q004-1〕。
-- `transactions/list.html`：取引が 1 件以上のときだけ「CSV で出力」〔Q004-2・Q004-3〕。値は `th:text` などで出す〔`th:utext` は使わない〕。
-- `messages.properties`・`style.css`：Q004-3 しだい。
+**変えるもの**
+- `TransactionController`：`list` の「季節 → 科目」の 2 行を、private メソッド `filterOf(userId, category, year, season)` に移す〔`list` の動きは変えない〕。`list` は、`filter` から「CSV で出力」の URL を作って画面に渡す〔値のある条件だけ。Q004-2〕。`export`〔`@GetMapping("/export")`〕を足す：`filterOf` → `listForExport` → `TransactionCsvWriter.write` → `Content-Type`・`Content-Disposition` を付けて返す。`Cache-Control` は付けない。
+- `TransactionService`：`listForExport(userId, filter)`〔読むだけ。検索は 1 本。`listView` の絞り込みの検索と、呼び方を共有する。Q004-1〕。
+- `service/TransactionCsvWriter`〔新しいクラス〕：`cell`〔値 1 つの書き方〕と `write`〔BOM・見出しの行・CRLF・分割の番号〕。どちらも static〔Q004-1〕。
+- `transactions/list.html`：取引が 1 件以上のときだけ「CSV で出力」〔Q004-3〕。値は `th:text`・`th:title` で出す〔`th:utext` は使わない〕。
+- `messages.properties`：リンクの文字と `title`。`style.css` は変えない。
 
 **テスト〔見込み。件数は段階 2 の報告で書く。合わせて 60〜80 件増える見込み〕**
 - セル 1 つの書き方〔単体テスト。20〜25 件〕：ふつうの文字、空、`"` を含む、カンマ、途中の CR・LF・CRLF。先頭が `=`・`+`・`-`・`@`・タブ・CR・LF・`＝`・`＋`・`－`・`＠`・`'` のそれぞれ〔`'` が 1 つ付く〕。途中にあるだけの `=`、先頭がほかの記号〔`#` など〕〔付かない〕。絵文字〔そのまま〕。
@@ -118,12 +132,15 @@
 - SQL の本数〔`ScreenStatementCountTest` の形〕：取引の行の数・分割の数で、SQL が増えない〔1〜2 件〕。
 - 今のまま：一覧の動き〔`TransactionFilterTest`、`TransactionListSingleSearchTest`、`ScreenStatementCountTest` の今のテスト〕は変えない。
 
-**わざと壊して確かめる候補**
+**わざと壊して確かめる候補**〔5〜8 は、2026年11月22日に本人が足した。候補 2・3 は、本人の足したものと分けて、2 つずつにした〕
 1. 絞り込みの検索から `user_id` の条件を外す → 他人の取引が入らないテストが失敗すること〔一覧のテストも失敗する。検索を共有しているため〕。
-2. CSV のほうで `filterOf` を通さない〔例：科目の ID を確かめずに条件にする〕→ 他人の科目・存在しない科目の 404 のテストが失敗すること。
-3. 数式の印をなくす。全角の 4 文字だけを対象から外す → それぞれのテストが失敗すること。
+2. CSV の入口で `filterOf` を呼ばず、絞り込みなしで全部を出す → CSV の 404 のテストと、絞り込みのテストが失敗すること。
+3. 数式の印をなくす → 数式のテストが失敗すること。
 4. 応答に自分で `Cache-Control` を付ける〔例：`max-age`〕→ `CacheControlHeaderTest` が失敗すること。
 5. ファイル名に科目名を入れる → ファイル名のテストが失敗すること。
+6. CSV の入口で `filterOf` を通さず、届いた `category` をそのまま使う → 他人の科目の 404 のテストが失敗すること。
+7. 全角の `＝＋－＠` だけを、数式の対象から外す → 全角のテストが失敗すること。
+8. BOM を付けない → BOM のテストが失敗すること。
 
 **完了の条件**：関係するテストが通る。全体のテスト〔`clean` 付き〕が通る。本人がブラウザ・スプレッドシート〔使うなら Excel も〕で確かめる〔4 章〕。
 
@@ -134,16 +151,23 @@
 
 ## 4. 本人が確かめること
 
+### 4.0 準備：テスト用のアカウント〔本当の家計に混ざらないように〕
+
+- 確かめるための取引は、**新しく作るテスト用のアカウント**で作る。本当の家計のアカウントと、デモ用のアカウント `demo` には入れない。
+- アカウント登録の画面〔`/register`〕で、テスト用のアカウントを 2 つ作る〔例：ユーザー名 `csvtest1`・`csvtest2`。半角英数字 10 文字以内。パスワードは自分で決め、どこにも書かない〕。登録すると、初期の科目・取引先・支払方法〔3 つ・3 つ・2 つ〕が自動でできる。
+- `csvtest1` でログインして、確かめるための取引〔4.1 の 1 つ目〕を登録する。`csvtest2` にも、取引を 1〜2 件登録する〔2 人のユーザーの確かめ用〕。
+- 確かめが終わったら：取引は、画面から削除できる。**アカウントそのものは、画面からは消せない**〔要件定義書 8 章、設計書 4.8〕。残すか、SQL で片付けるかを本人が決める〔Phase 8 は、確かめのデータを SQL で片付けた〕。
+
 ### 4.1 ブラウザ
 
-- 確かめるための取引を、画面から作っておく：摘要が `=1+1`、`＝1+1`、`-1+2`、`+1+1`、`@SUM(1,1)`、`'abc`、カンマや `"` を含むもの〔例 `a,b"c`〕、絵文字を含むもの。科目で絞ると一部の行だけが出る、分けて登録したレシート〔例：食費 ＋ 日用品〕。**外のサイトの URL を含む式は使わない**。
+- 確かめるための取引を、テスト用のアカウント〔4.0〕で、画面から作っておく：摘要が `=1+1`、`＝1+1`、`-1+2`、`+1+1`、`@SUM(1,1)`、`'abc`、カンマや `"` を含むもの〔例 `a,b"c`〕、絵文字を含むもの。科目で絞ると一部の行だけが出る、分けて登録したレシート〔例：食費 ＋ 日用品〕。**外のサイトの URL を含む式は使わない**。
 - 取引一覧の「CSV で出力」を押す → ファイル名が `transactions-（今日の日付）.csv`。
 - 絞り込んだ一覧〔予実比較の実績のリンクから入る、など〕から出す → 画面に出ている行と同じ行だけが、同じ並びで出る。
 - 取引が 0 件の一覧、絞り込んで 0 件の一覧では、「CSV で出力」が出ない。
 - ログアウトしてから、CSV の URL を開く → ログイン画面に移る。
 - 他人の科目の ID・数字でない値・`year` だけを付けた CSV の URL → 404 の画面。
 - 開発者ツールの「ネットワーク」で、CSV の応答の `Cache-Control`〔`no-store` を含む〕・`Content-Type`・`Content-Disposition` を見る。
-- 2 人のユーザーで、相手の取引が入っていないことを見る。
+- 2 人のユーザー〔`csvtest1`・`csvtest2`〕で、相手の取引が入っていないことを見る。
 
 ### 4.2 Google スプレッドシート
 
@@ -179,16 +203,29 @@ CSV の取り込み〔[issue 013](../issues/013-CSVの取り込み.md)〕を決�
 
 ## 6. 決まっていない点
 
-| 番号 | 決めること | おすすめ | 理由 |
-|---|---|---|---|
-| Q004-1 | **作りの置き場所**：Service のメソッドの形、条件がないときに使う検索、CSV の形にする部品の置き場所と名前 | `TransactionService` に、行の並び〔`List<Transaction>`〕を返すメソッドを足す〔例 `listForExport(userId, filter)`〕。検索は、条件がないときも `findForListByUserIdAndFilter` の 1 本〔null は「絞らない」〕。セル 1 つの書き方〔文字 → 文字〕は `domain` の新しいクラス〔例 `CsvCell`〕。行を並べてバイトにする所〔BOM・見出し・CRLF・分割の番号〕は `service` の新しいクラス〔例 `TransactionCsv`〕 | 検索の道が 1 つで済む〔同じことは `allNullGivesTheUnfilteredList` で確かめ済み〕。セルの書き方は画面にも DB にも頼らない計算なので、`domain` に置くと単体テストしやすい。行を並べる所は Entity〔`Transaction`〕を読むので、`domain` には置けない |
-| Q004-2 | **リンクの URL を誰が組み立てるか** | Controller が、確かめたあとの `TransactionFilter` から、値のある引数だけを付けて組み立て〔Spring の `UriComponentsBuilder`〕、画面に渡す | テンプレートで「値があるときだけ付ける」を書くと、組み合わせ〔なし・科目だけ・季節だけ・両方〕の分かれ道が増える。2.1 の推測〔null の引数が `?year` の形で出る〕を避けられる |
-| Q004-3 | **リンクの見た目と置き場所** | 見出しの行〔「取引一覧」の行〕の右端に、行の「編集」「複写」と同じ小さい枠のボタンの見た目で「CSV で出力」。`title` は「表示している取引を、CSV ファイルに保存する」。アイコンは付けない。文字は `messages.properties` に置く | 今ある見た目を使い、新しい色・アイコンを足さない。title は、ほかのボタンと同じく、押すと何が起きるかを書く |
-| Q004-4 | **最後の行の後ろの CRLF** | 付ける〔どの行も CRLF で終える〕 | RFC 4180 ではどちらでもよい。決まりを 1 つにすると、作りもテストも単純になる |
-| Q004-5 | **頼まれていないので変えていない文書**：実行計画書の進捗表の 004 の行〔今は「☐ 未着手」〕、issue 013 から「013 に送ること」〔5 章〕へのリンク | どちらも、段階 1 のコミットの前に直す〔004 の行は「◐ 作業中」と手順書へのリンク。013 は 1 行〕 | 004 の状態と、013 を始めるときの材料が、文書から辿れるようにするため |
-| Q004-6 | **404 のテストの持ち方** | 今の `TransactionFilterTest` の 404 のテストを、`/transactions` と `/transactions/export` の両方の URL で流す形にする〔同じ入力の表を使う〕 | 2 つの URL の決まりがずれたら、同じテストで気づける。CSV 用に写すと、入力の表が 2 つになり、片方だけ直す間違いが起きうる〔今のテストの形を直すので、件数は `TransactionFilterTest` で増える〕 |
+なし〔Q004-1〜Q004-6 は、2026年11月22日に本人が決めた。1.1 に移した〕。
 
 ## 7. 記録
 
 - 2026年11月22日：調べものを報告した〔ファイルは変えなかった。2 章のもと〕。
 - 2026年11月22日：決まったこと 1〜12 が、本人から示された〔1 章〕。**段階 1**：この手順書を作り、issue 004 を今のアプリ〔issue 032・023 のあと〕に合わせて書き直した。要件定義書〔3 章、4.2、6 章〕と、設計書〔2.2、2.3、2.5、2.7、3.9、4.4.1、4.4.2、4.5、4.8、5.18〔新しい節〕、7.2、7.8、7.10、7.11、7.12〕を直した。コードとテストは変えていない。
+- 2026年11月22日：本人が Q004-1〜Q004-6 を決めた〔1.1〕。**段階 2 の文書**：実行計画書の 004 の行〔◐ 作業中〕、issue 013 から 5 章へのリンク〔Q004-5〕。設計書の「手順書の Q004-○ で決める」の所を、決まった中身に書きかえた〔2.3、4.5〔`TransactionCsvWriter` の行を足した〕、5.18〕。この手順書の 3.2・4 章〔4.0 テスト用のアカウント〕・6 章。
+- 2026年11月22日：**段階 2 のテストを先に書いた**〔コミットしない〕。
+  - HTTP で送るだけのテスト〔今のコードでもコンパイルできる〕を、今のコードで流した：新しい `TransactionCsvExportTest` は **22 件中 21 件が失敗**〔理由：CSV の URL がまだないので 404、一覧にリンクがない〕。通った 1 件は、0 件のときにリンクを出さないテスト〔今はリンクそのものがないので、通ってしまう〕。`TransactionFilterTest` は、CSV の URL で流す分〔27 件増えた〕のうち **23 件が失敗**〔理由：404 の画面ではなく、URL がないための 404〔`No ModelAndView found`〕、200 にならない〕。通った 4 件は、CSV の URL の未ログインのテスト〔URL がなくても、ログインの守りが先に効く〕。`CacheControlHeaderTest` に足した 2 件、`SessionExpiredTest` に足した 1 件も、今のコードで通った〔URL がなくても、守りのヘッダーと移動は効く。4 は、わざと壊す 4 で確かめた〕。
+  - まだないクラス・メソッドを呼ぶテスト〔新しい `TransactionCsvWriterTest` 43 件、`ScreenStatementCountTest` に足した 1 件〕は、`TransactionCsvWriter`・`listForExport` がなく、**コンパイルできないことで失敗を確かめた**。
+- 2026年11月22日：**段階 2 を実装した**〔コミットしない〕。
+  - `service/TransactionCsvWriter`〔新しいクラス。`cell`・`write`。どちらも static〕。`TransactionService.listForExport`〔`listView` の絞り込みの検索と、private メソッド `findFiltered` を共有した。`listView` の動きは変えていない〕。`TransactionController`〔`list` の確かめを `filterOf` に移した。`exportUrlOf` でリンクの URL を作って `exportUrl` として渡す。`export` を足した〕。`transactions/list.html`〔見出しの行に「CSV で出力」〕。`messages.properties`〔`transaction.export.link`・`transaction.export.title`〕。`style.css`・`TransactionRepository`・`TransactionFilter` は変えていない。
+  - アイコン：`fragments/icons.html` にダウンロードの形のアイコンがなかったので、付けていない〔Q004-3〕。
+  - テストの直し：`TransactionCsvExportTest` で、同じユーザーに「`=食費`」と「`＝食費`」を作ろうとして、全角と半角は同じ名前とみなされる〔設計書 3.12〕ことに気づき、全角の行を別の名前〔`＝日用` など〕にした〔流す前に直した〕。
+  - **テスト**：関係するテスト〔11 クラス・340 件〕を流して通ったあと、わざと壊して確かめ、最後に `.\mvnw clean test` を 1 回流した：**2,921 件 → 3,017 件**〔＋96：`TransactionCsvWriterTest` 43〔新〕、`TransactionCsvExportTest` 22〔新〕、`TransactionFilterTest` 45 → 72〔＋27〕、`CacheControlHeaderTest` 17 → 19〔＋2〕、`SessionExpiredTest` 31 → 32〔＋1〕、`ScreenStatementCountTest` 8 → 9〔＋1〕〕、失敗 0。
+  - **わざと壊して確かめた**〔3.2 の候補 1〜8。一時ファイルは作らず、壊す前に 4 つのファイル〔`TransactionRepository`・`TransactionController`・`TransactionCsvWriter`・`TransactionService`〕の SHA-256 を画面に出して控え、戻したあとに同じことを確かめた。「sabotage」の文字が残っていないことも確かめた。全体のテストは、戻したあとの最後の 1 回〕：
+    1. 絞り込みの検索から `user_id` の条件を外す → `TransactionCsvExportTest` 12 件、`TransactionFilterTest` 7 件が失敗〔`otherUsersRowsAreNeverInTheFile`、`otherUsersRowsAreNeverShownEvenWithMyCategoryId` の一覧と CSV の両方など。開発用の DB の、ほかのユーザーの行が混ざって失敗したものも含む〕。
+    2. CSV の入口で `filterOf` を呼ばず、絞り込みなしで全部を出す → `TransactionFilterTest` 22 件〔CSV の URL の 404 のテストの全部と、空の category・category が 2 回のテスト〕、`TransactionCsvExportTest` 3 件が失敗。
+    3. 数式の印をなくす → `TransactionCsvWriterTest` 23 件、`TransactionCsvExportTest` 1 件〔`theFormulaMarkIsOnlyOnTheFourTextColumns`〕が失敗。
+    4. 応答に自分で `Cache-Control`〔`max-age`〕を付ける → `CacheControlHeaderTest` の 2 件〔CSV の URL の 2 つ〕が失敗。**自分で付けると、Spring Security の `no-store` が付かなくなる**ことも、これで確かめた〔2.4 の推測〕。
+    5. ファイル名に科目名を入れる → `TransactionCsvExportTest` 1 件〔`theFileNameNeverContainsUserInput`〕が失敗。
+    6. CSV の入口で `filterOf` を通さず、届いた `category` をそのまま検索に使う〔一時的に Service に、ID のまま検索するメソッドを足した〕→ `TransactionFilterTest` 2 件〔CSV の URL の `otherUsersMissingAndInvalidCategoriesAreTheSame404`、`categoryTwiceUsesTheFirstValueAndNeverShowsOthersData`〕が失敗。
+    7. 全角の `＝＋－＠` だけを、数式の対象から外す → `TransactionCsvWriterTest` 9 件〔全角の 4 文字のテスト 8 件と、4 列のテスト 1 件〕、`TransactionCsvExportTest` 1 件が失敗。
+    8. BOM を付けない → `TransactionCsvWriterTest` 4 件、`TransactionCsvExportTest` 1 件〔`theFileStartsWithTheUtf8BomAndThenTheHeaderLine`〕が失敗〔`TransactionFilterTest` は失敗しない。中身を文字として読むため〕。
+  - 2.1 の推測〔Thymeleaf は値が null の引数を `?year` の形で出す〕は、確かめていない〔Controller が値のある条件だけで URL を作るので、その書き方を使っていない〕。値のない条件が URL に付かないことは、`theLinkCarriesTheSameFilterWithOnlyTheGivenValues` で確かめた。
+  - README・`docs/testing.md` の件数は、段階 3 で直す〔今回は直していない〕。

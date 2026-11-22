@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import io.github.yutaro081.householdbudget.domain.ProposalChoice;
 import io.github.yutaro081.householdbudget.domain.Season;
 import io.github.yutaro081.householdbudget.domain.SeasonPeriod;
+import io.github.yutaro081.householdbudget.dto.TransactionFilter;
 import io.github.yutaro081.householdbudget.entity.Budget;
 import io.github.yutaro081.householdbudget.entity.Category;
 import io.github.yutaro081.householdbudget.entity.PaymentMethod;
@@ -269,6 +270,30 @@ class ScreenStatementCountTest {
 			counts[i] = statistics.getPrepareStatementCount();
 		}
 		assertThat(counts[1]).isEqualTo(counts[0]).isEqualTo(1);
+	}
+
+	// ---- 取引の CSV 出力（issue 004。設計書 5.18） ----
+
+	/**
+	 * CSV の出力（行を読んで、ファイルにする）の SQL は 1 本。レシートの行が 2 行でも 5 行でも、絞り込まなくても、科目と季節で絞っても同じ
+	 * （科目・取引先・支払方法は、一覧と同じ検索でまとめて読む。ファイルにする所で、行ごとに読みに行かない）
+	 */
+	@Test
+	void theCsvExportIsOneStatementForMoreLinesAndWithAFilter() {
+		int[] sizes = { 2, 5 };
+		for (int i = 0; i < 2; i++) {
+			ReceiptOwner owner = receiptOf("stmtcsv" + i, sizes[i]);
+			Category first = categoryRepository.findByIdAndUserId(owner.categoryIds().get(0), owner.userId()).orElseThrow();
+			entityManager.clear();
+			for (TransactionFilter filter : List.of(TransactionFilter.NONE, new TransactionFilter(first, AUTUMN_2026))) {
+				var statistics = statistics();
+				byte[] csv = TransactionCsvWriter.write(transactionService.listForExport(owner.userId(), filter));
+				assertThat(new String(csv, java.nio.charset.StandardCharsets.UTF_8)).contains("\"科目0\"");
+				assertThat(statistics.getPrepareStatementCount()).as("%d 行のレシート、%s", sizes[i], filter.isEmpty() ? "絞り込みなし" : "科目と季節で絞る")
+						.isEqualTo(1);
+				entityManager.clear();
+			}
+		}
 	}
 
 	/** 登録と更新で、確かめのための検索の本数（JPQL・名前付きの検索）は、行の数で増えない（科目は 1 回で読んで照らし合わせる） */

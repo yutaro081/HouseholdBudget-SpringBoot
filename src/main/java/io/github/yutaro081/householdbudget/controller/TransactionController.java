@@ -1,8 +1,14 @@
 package io.github.yutaro081.householdbudget.controller;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -16,6 +22,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import io.github.yutaro081.householdbudget.domain.SeasonPeriod;
 import io.github.yutaro081.householdbudget.dto.TransactionFilter;
@@ -27,12 +34,13 @@ import io.github.yutaro081.householdbudget.form.TransactionFormBinding;
 import io.github.yutaro081.householdbudget.security.LoginUser;
 import io.github.yutaro081.householdbudget.service.CategoryService;
 import io.github.yutaro081.householdbudget.service.PaymentMethodService;
+import io.github.yutaro081.householdbudget.service.TransactionCsvWriter;
 import io.github.yutaro081.householdbudget.service.TransactionService;
 import io.github.yutaro081.householdbudget.service.VendorService;
 import jakarta.validation.Valid;
 
 /**
- * 取引の一覧・登録・編集・複写・削除の画面と処理（設計書 4.4.1、2.2、2.3、2.6）。
+ * 取引の一覧・登録・編集・複写・削除の画面と処理、取引の CSV 出力（issue 004）（設計書 4.4.1、2.2、2.3、2.6、5.18）。
  * <p>
  * 【決まり】ログイン中のユーザーのIDは、LoginUser から取り出して、Service に必ず渡す。
  * 画面から送られたユーザーIDは使わない（Form にも持たせない、設計書 3.9、6.1）。
@@ -44,6 +52,12 @@ import jakarta.validation.Valid;
 @Controller
 @RequestMapping("/transactions")
 public class TransactionController {
+
+	/** CSV 出力の応答の種類（issue 004。設計書 5.18）：text/csv; charset=UTF-8 */
+	private static final MediaType CSV = new MediaType("text", "csv", StandardCharsets.UTF_8);
+
+	/** CSV 出力の URL（一覧のリンクの行き先。issue 004） */
+	private static final String EXPORT_PATH = "/transactions/export";
 
 	private final TransactionService transactionService;
 	private final CategoryService categoryService;
@@ -87,7 +101,9 @@ public class TransactionController {
 	 * 2 回来たときは、Spring が最初の値を使う。どちらの値でも、自分の科目でなければ 404（CategoryService.get が ID と user_id で探す）</li>
 	 * </ul>
 	 * 取引の検索は 1 回だけ（絞らないときは今までと同じ。絞り込んだときは、分割の行があれば、レシート全体の合計を読む検索がもう 1 回）。
-	 * 件数・合計・月のまとまりは、Service が作る（ここでもテンプレートでも足し算しない）。「取引がまだない」の判定は、まとまりが空かどうか
+	 * 件数・合計・月のまとまりは、Service が作る（ここでもテンプレートでも足し算しない）。「取引がまだない」の判定は、まとまりが空かどうか。
+	 * <p>
+	 * 「CSV で出力」のリンクの URL（issue 004）は、確かめたあとの条件から作って渡す（{@link #exportUrlOf}。届いた文字列は使わない）
 	 */
 	@GetMapping
 	public String list(@AuthenticationPrincipal LoginUser loginUser,
@@ -96,15 +112,71 @@ public class TransactionController {
 			@RequestParam(required = false) String season,
 			Model model) {
 		Long userId = loginUser.getUserId();
-		SeasonPeriod period = SeasonPeriod.isUnspecified(year, season) ? null
-				: SeasonPeriod.parse(year, season).orElseThrow(NotFoundException::new);
-		Category own = category == null ? null : categoryService.get(userId, category);
-		TransactionListView view = transactionService.listView(userId, new TransactionFilter(own, period));
+		TransactionListView view = transactionService.listView(userId, filterOf(userId, category, year, season));
 		model.addAttribute("filter", view.filter());
 		model.addAttribute("months", view.months());
 		model.addAttribute("transactionCount", view.count());
 		model.addAttribute("transactionTotal", view.total());
+		model.addAttribute("exportUrl", exportUrlOf(view.filter()));
 		return "transactions/list";
+	}
+
+	/**
+	 * 取引の CSV 出力（issue 004。設計書 2.2、5.18）。取引一覧と同じ {@code category}・{@code year}・{@code season} で絞り、
+	 * 一覧に表示する取引と同じ行・同じ並びを、CSV ファイル（transactions-yyyyMMdd.csv）として返す。データを変えないので GET。
+	 * <ul>
+	 * <li>確かめは、取引一覧と同じ {@link #filterOf}（季節 → 科目。どこかで 404 なら、検索しない）。404 のときは、CSV ではなく
+	 * 404 の画面（GlobalExceptionHandler）</li>
+	 * <li>ファイル名の日付は、出力した日（日本時間の Clock）。<b>利用者の入力（科目名など）は、ファイル名に入れない</b>（7.12 の S11）</li>
+	 * <li><b>Cache-Control は付けない</b>。Spring Security の標準のヘッダー（no-store など）に任せる（自分で付けると、上書きされない。7.10）</li>
+	 * <li>ファイルは全部作ってから返す（途中で失敗したとき、半分だけのファイルが「成功」で届かないように）</li>
+	 * </ul>
+	 */
+	@GetMapping("/export")
+	public ResponseEntity<byte[]> export(@AuthenticationPrincipal LoginUser loginUser,
+			@RequestParam(name = "category", required = false) Long category,
+			@RequestParam(required = false) String year,
+			@RequestParam(required = false) String season) {
+		Long userId = loginUser.getUserId();
+		byte[] csv = TransactionCsvWriter.write(transactionService.listForExport(userId, filterOf(userId, category, year, season)));
+		String fileName = "transactions-" + LocalDate.now(clock).format(DateTimeFormatter.BASIC_ISO_DATE) + ".csv";
+		return ResponseEntity.ok()
+				.contentType(CSV)
+				.header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename(fileName).build().toString())
+				.body(csv);
+	}
+
+	/**
+	 * 取引一覧と CSV 出力の絞り込みの確かめ（issue 023・004。設計書 5.17、5.18、7.8）。一覧と CSV の両方から呼ぶ（写しを作らない）。
+	 * <ul>
+	 * <li>季節：年も季節もなければ、期間で絞らない（全期間。予実比較と違い、今の季節にはしない）。それ以外は SeasonPeriod.parse
+	 * （予実比較と同じ決まり）で、片方だけ・不正・範囲外・空・2 回なら NotFoundException（404）</li>
+	 * <li>科目：数字でない・範囲外の値は型変換のエラーで 404（GlobalExceptionHandler）。空は「指定なし」（copyFrom と同じ）。
+	 * 2 回来たときは、Spring が最初の値を使う。どちらの値でも、自分の科目でなければ 404（CategoryService.get が ID と user_id で探す）</li>
+	 * </ul>
+	 *
+	 * @return 確かめたあとの条件（科目は自分の科目。user_id は持たない）
+	 */
+	private TransactionFilter filterOf(Long userId, Long category, String year, String season) {
+		SeasonPeriod period = SeasonPeriod.isUnspecified(year, season) ? null
+				: SeasonPeriod.parse(year, season).orElseThrow(NotFoundException::new);
+		Category own = category == null ? null : categoryService.get(userId, category);
+		return new TransactionFilter(own, period);
+	}
+
+	/**
+	 * 「CSV で出力」のリンクの URL（issue 004。設計書 2.3、Q004-2）。確かめたあとの条件から、<b>値のある条件だけ</b>を付けて作る
+	 * （値のない year などを付けると、一覧と同じ決まりで 404 になるため）。値は、自分の科目の ID と、確かめた年・季節（数字と小文字の英字）だけ
+	 */
+	private static String exportUrlOf(TransactionFilter filter) {
+		UriComponentsBuilder url = UriComponentsBuilder.fromPath(EXPORT_PATH);
+		if (filter.category() != null) {
+			url.queryParam("category", filter.categoryId());
+		}
+		if (filter.period() != null) {
+			url.queryParam("year", filter.period().year()).queryParam("season", filter.period().season().getUrlName());
+		}
+		return url.build().toUriString();
 	}
 
 	/**

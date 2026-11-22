@@ -29,6 +29,10 @@
                 <a class="filter-clear" th:href="@{/transactions}" th:text="#{transaction.filter.clear}">絞り込みを外す</a>
             </p>
         </div>
+        <!--/* CSV で出力（issue 004。設計書 2.3、Q004-2・Q004-3）：取引が 1 件以上のときだけ。見出しの行の右端（.page-head は 2 つ目の要素を右端に寄せる）。
+             見た目は行の「編集」「複写」と同じ小さい枠のボタン（row-btn）。アイコンはない（ダウンロードの形のアイコンがないため。新しく描かない）。
+             行き先の URL は Controller が、確かめたあとの条件の値だけで作って渡す（exportUrl。届いた文字列は使わない。値のない条件は付けない） */-->
+        <a class="row-btn" th:unless="${#lists.isEmpty(months)}" th:title="#{transaction.export.title}" th:href="@{${exportUrl}}" th:text="#{transaction.export.link}">CSV で出力</a>
     </div>
 
     <p th:if="${#lists.isEmpty(months) and filter.empty}">取引はまだありません</p>
