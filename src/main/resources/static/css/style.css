@@ -388,6 +388,14 @@ main.form-wide {
     margin-left: var(--hb-space-1);
 }
 
+/* 金額の欄の式が計算できないときの文（issue 035。設計書 2.3、Q035-1）：エラーの文（.field-error）と同じ赤と大きさ。
+   .field-error はテストが数えるので、同じクラスは使わない */
+.calc-error {
+    margin: 0.25rem 0 0;
+    color: var(--bs-danger, #c00);
+    font-size: var(--hb-font-size-small);
+}
+
 .amount-note {
     margin: 0;
     color: var(--hb-text-sub);

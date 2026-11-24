@@ -226,7 +226,8 @@ class TransactionAmountButtonsTest {
 			assertThat(box).contains("<p class=\"amount-note\" data-amount-tax-note hidden>" + NOTE + "</p>");
 			assertThat(box).doesNotContain("税率", "端数は切り捨て");
 
-			String explanation = "「税込にする」のボタンは、欄の金額を税抜として計算します（端数は切り捨て）。8%と10%が混ざるレシートは、税率ごとに明細の行を分けて登録してください。";
+			String explanation = "「税込にする」のボタンは、欄の金額を税抜として計算します（端数は切り捨て）。8%と10%が混ざるレシートは、税率ごとに明細の行を分けて登録してください。"
+					+ "金額の欄には、1280+398-300 のような式も打てます（Enter で計算）。"; // issue 035 の段階 2 で、式の 1 文を足した
 			assertThat(count(body, explanation)).as(path + "：説明は 1 回だけ").isEqualTo(1);
 			assertThat(body).containsPattern("<p class=\"amount-note\" data-amount-explain hidden>" + java.util.regex.Pattern.quote(explanation) + "</p>");
 			int at = body.indexOf("data-amount-explain");

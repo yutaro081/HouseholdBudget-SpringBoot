@@ -62,7 +62,7 @@
         </div>
 
         <!--/* 金額ボタンの説明（全部の組で同じ文なので、明細の上に 1 回だけ。issue 032）。JavaScript が動いたときだけ見せる（amount-buttons.js が hidden を外す）。文は固定 */-->
-        <p class="amount-note" data-amount-explain hidden>「税込にする」のボタンは、欄の金額を税抜として計算します（端数は切り捨て）。8%と10%が混ざるレシートは、税率ごとに明細の行を分けて登録してください。</p>
+        <p class="amount-note" data-amount-explain hidden>「税込にする」のボタンは、欄の金額を税抜として計算します（端数は切り捨て）。8%と10%が混ざるレシートは、税率ごとに明細の行を分けて登録してください。金額の欄には、1280+398-300 のような式も打てます（Enter で計算）。</p>
 
         <!--/* 「明細を 1 行以上入力してください」（空でない行が 1 つもないとき） */-->
         <div class="field-error" th:each="message : ${#fields.errors('lines')}" th:text="${message}">エラー</div>
@@ -85,6 +85,9 @@
                     <input class="form-control amount-input" type="text" inputmode="numeric" th:field="*{lines[__${stat.index}__].amount}" data-split-amount>
                     <div class="field-hint">1〜1,000,000 の整数</div>
                     <div class="field-error" th:each="message : ${#fields.errors('lines[__${stat.index}__].amount')}" th:text="${message}">エラー</div>
+                    <!--/* 金額の欄の式が計算できないときの固定の文（issue 035。設計書 2.3）。hidden のまま書き、calculator.js が見せる・隠すだけ。
+                         どの欄の文かは data-calc-target で指す（その行の金額の欄）。赤い文だが、class は field-error にしない（テストが数えるため。Q035-1） */-->
+                    <p class="calc-error" data-calc-error th:attr="data-calc-target=|lines${stat.index}.amount|" hidden>計算できない式です。使えるのは、数字と ＋ − だけです（カンマ・小数点・×・÷ は使えません）。</p>
                     <!--/* 金額の入力を助けるボタン（設計書 2.3、issue 009。issue 032 で行ごとに 1 組）。JavaScript が動いたときだけ見せる（hidden を外す）。
                          ボタンは type="button"（送信しない）。どの欄に効くかは data-amount-target で指す（その行の金額の欄）。
                          文は固定で、JavaScript は見せる・隠すだけ。利用者の入力は使わない（7.5） */-->
@@ -144,5 +147,7 @@
      同じ金額ボタンを押したとき、amount-buttons.js が欄を書き換えたあとで、split-lines.js が明細の合計を計算し直すため（ボタンが欄を書き換えても input のできごとは起きない） */-->
 <script defer th:src="@{/js/amount-buttons.js}"></script>
 <script defer th:src="@{/js/split-lines.js}"></script>
+<!--/* 金額の欄の式（issue 035）。読む順には頼らない（計算した結果を書いたあと、input のできごとで、ほかの 2 つに知らせるため） */-->
+<script defer th:src="@{/js/calculator.js}"></script>
 </body>
 </html>
