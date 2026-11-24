@@ -106,7 +106,7 @@ class AuthAndListStyleSheetTest {
 		String css = css();
 
 		assertThat(rule(css, "main.container")).contains("max-width: 960px");
-		assertThat(rule(css, "main.narrow")).as("科目などの変更画面・エラー画面が使うので残す").contains("max-width: 420px");
+		assertThat(rule(css, "main.narrow")).as("科目などの変更画面・エラー画面が使うので残す。issue 034 で 600px に広げた").contains("max-width: 600px");
 		assertThat(css).as("ログインの本体の幅の規則は新しく作らない").doesNotContainPattern("main\\.auth-main\\s*\\{[^}]*max-width");
 	}
 

@@ -193,8 +193,10 @@ main.container {
     padding-bottom: 1rem;
 }
 
+/* 科目・取引先・支払方法の変更画面と、エラー画面の幅。上限だけを決める（狭い画面では、画面の幅に合わせて縮む）。
+   issue 034 で 420px から 600px に広げた（30 文字の取引先名が、変更画面の欄に全部入るように） */
 main.narrow {
-    max-width: 420px;
+    max-width: 600px;
 }
 
 /* トップの本体の幅（issue 017。issue 020 で 1120px から 1280px に広げた）。2 列（左 440px + 右）が入る。ほかの画面は 960px のまま */
@@ -203,7 +205,7 @@ main.top-wide {
 }
 
 /*
- * 取引の登録・編集画面の本体の幅（issue 015 の 3 回目）。992px（Bootstrap の lg）より小さいときは 1 列で、今の narrow と同じ 420px まで。
+ * 取引の登録・編集画面の本体の幅（issue 015 の 3 回目）。992px（Bootstrap の lg）より小さいときは 1 列で、420px まで（前の narrow と同じ値。narrow は issue 034 で 600px にしたが、ここは変えていない）。
  * 992px 以上は 2 列（HTML の row / col-lg-6）で、960px。
  */
 main.form-wide {
