@@ -2,7 +2,7 @@
 
 全体の位置づけは [実行計画書](execution-plan.md) を見てください。この文書は、[issue 034](../issues/034-取引先名を30文字に広げる.md)（取引先名の上限を 20 文字から 30 文字に広げる）を進めるための手順書です。
 
-> **状態（2026年11月23日）**：◐ **作業中**。段階 1〔文書〕を行った。次は段階 2〔本人が `root` で `ALTER`〕。
+> **状態（2026年11月23日）**：◐ **作業中**。段階 1〔文書〕、段階 2〔本人の `ALTER`〕、段階 3〔テストとコード。`.\mvnw clean test` は 3,019 件成功〕を行った。次は段階 4〔仕上げと、本人のブラウザでの確かめ〕。
 
 - ブランチ：`feature/issue-034-vendor-name-30`。秘密情報：パスワード・接続先の値は、どこにも書かない。DB のパスワードを入力する作業〔`mysqldump`、`root` での `ALTER`〕は本人が行う。
 - 進め方：1 つの段階が終わったら止まって、確認を待つ。変更は、文書が先〔要件定義書 → 設計書 → この手順書〕、コードは後。**テストが先**〔失敗を確かめてから直す〕。コミットと push は本人。
@@ -93,7 +93,7 @@
 - `ALTER` は、その場で確定する〔`ROLLBACK` で戻せない〕。先に控えを取る。
 - アプリを止めてから行う〔`.\mvnw spring-boot:run` を動かしていれば、止める〕。
 - 控えのファイルは、**リポジトリの外**に置く〔demo のデータとユーザー名・パスワードのハッシュが入るため〕。
-- Phase 9 で作った「まっさらな環境」の DB がまだあれば、そちらにも同じ `ALTER` が要る〔または作り直す〕。
+- Phase 9 で作った「まっさらな環境」の DB は、もう残っていない〔2026年11月23日・本人が `SHOW DATABASES` で確かめた。`householdbudget` だけ〕。`ALTER` は `householdbudget` の 1 つだけでよい。新しく作る環境は、段階 3 で直した `schema.sql` で、最初から `VARCHAR(30)` になる。
 
 **① 控えを取る**〔PowerShell。リポジトリの外で。`root` で行う〕
 
@@ -201,7 +201,7 @@ ALTER TABLE vendors
 | `みどりが丘ショッピングセンター二階フードコート東口前の売店ＡＢ` | 31 | 「取引先名は30文字以内で入力してください」。入力が残る |
 | `ヒダマリ商店街中央通り二丁目ハナマル青果店本店東側売場前ノ店` | 30 | 「その取引先名はすでにあります」〔1 つ目の名前の、ひらがなをカタカナにしたもの。ひらがなとカタカナは同じ名前とみなす。2.3〕 |
 
-1. demo ではない確認用のアカウントでログインする〔demo のデータを変えないため〕。
+1. 確かめ用のアカウント `csvtest1` でログインする〔`yutaro` と `demo` は使わない。データを変えないため〕。
 2. 取引先の画面：上の表の 4 つを、上から順に追加する。一覧で 1 行に入るか。追加の欄で、30 文字がどこまで見えるか。
 3. 変更の画面：30 文字の取引先を開き、欄でどこまで見えるかを見る〔決まったこと 3〕。そのまま「保存」できる。
 4. 取引の登録：取引先を選び、閉じた欄でどこまで見えるかと、開いた一覧で全部見えるかを見る。明細を 2 行に分け、摘要も 30 文字にして保存する。
@@ -236,7 +236,30 @@ ALTER TABLE vendors
 
 - 2026年11月23日：調べもの〔2 章〕。本人が決まったこと 1〜5 を決めた。
 - 2026年11月23日：**段階 1 を行った**〔4 章。コード・テスト・`schema.sql` は変えていない〕。調べものの報告の「ひらがなとカタカナ」の書き方の食い違いを確かめ、「同じ名前」が正しいことを 2.3 に書いた。
+- 2026年11月23日：**段階 2 を本人が行った**〔7 章〕。
+- 2026年11月23日：**段階 3 を行った**〔8 章〕。
 
-## 7. 段階 2 の記録
+## 7. 段階 2 の記録〔2026年11月23日・本人〕
 
-〔段階 2 のあとで、②と④の数、⑤の件数を書く〕
+- 控え：`hb-backup` のフォルダーに `householdbudget-before-issue034.sql`〔リポジトリの外〕。
+- ②と④の数は同じ：`vendor_count` 26、`longest` 20、`fingerprint` 1646731234、`transaction_count` 189。
+- `ALTER` は「Query OK, 0 rows affected」〔表を作り直さずに済んだ。2.2 の推測のとおり〕。
+- 列は `varchar(30)`・`NO`・`utf8mb4`・`utf8mb4_0900_as_ci`。`uk_vendors_user_name (user_id, name)` と `fk_vendors_user` は前と同じく残っている。
+- ⑤ `.\mvnw clean test`：3,017 件・失敗 0。
+- Phase 9 の「まっさらな環境」の DB は残っていない〔`SHOW DATABASES` で `householdbudget` だけ〕。3.2 の注意を、これに合わせて直した。
+
+## 8. 段階 3 の記録〔2026年11月23日〕
+
+**テストを先に直した**〔コードを直す前〕
+- 中身を変えた：`VendorFormTest`〔境目を 30・31 文字に、空白を取ったあとの 30 文字〕、`VendorControllerTest`〔`TOO_LONG` を 31 文字に、エラーの文、30 文字で追加〕、`VendorServiceTest`〔30 文字で追加〕、`MessagesTest`〔文〕、`MasterListLayoutTest`〔「30 文字以内」〕。
+- 足した：`VendorControllerTest.editWithTheMaximumLengthSucceeds`〔変更で 30 文字に変えて保存できる〕、`VendorServiceTest.updateAcceptsTheMaximumLength`〔更新で 30 文字が DB に保存される〕。
+- コードの前に流した結果〔関係する 5 クラス、140 件〕：**9 件が失敗**。見込みどおり。
+  - 30 文字が入力チェックで止められた：`VendorFormTest` 2 件、`VendorControllerTest` の追加・変更の 30 文字 2 件〔移動先がない〕。
+  - 文が「20文字」のまま：`VendorControllerTest` の文字数超過 2 件、`MessagesTest` 1 件、`MasterListLayoutTest` 2 件〔一覧と変更の画面〕。
+  - `VendorServiceTest`〔25 件〕は全部通った。段階 2 で DB が広がっていて、Service は文字数を確かめないため〔3.3 の見込みどおり〕。
+
+**コード**：`schema.sql`〔`VARCHAR(30)` と、広げたことのコメント〕、`Vendor.java`〔`length = 30`〕、`VendorForm.java`〔`@Size(max = 30)` とコメント〕、`messages.properties`、`vendors/list.html`・`vendors/edit.html`〔「30 文字以内」〕。関係する 5 クラスの 140 件が通った。
+
+**わざと壊した**：`@Size(max = 31)` にすると、31 文字を使う 3 件が失敗した〔`VendorFormTest.lengthBoundary`、`VendorControllerTest.editWithBlankOrTooLongNameKeepsTheInputAndShowsError`、`addWithTooLongNameKeepsTheInputAndShowsError`〕。追加の 1 件は、入力チェックをすり抜けた 31 文字を **DB が拒んで**エラーになった〔`VARCHAR(30)` が 2 つ目の守りとして効いている〕。`@Size(max = 30)` に戻した。
+
+**全体のテスト**：`.\mvnw clean test` は **3,019 件・失敗 0**〔前 3,017 件。`VendorControllerTest` +1〔38 → 39〕、`VendorServiceTest` +1〔24 → 25〕〕。

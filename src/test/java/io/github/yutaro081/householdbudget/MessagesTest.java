@@ -25,7 +25,7 @@ class MessagesTest {
 			"NotBlank.categoryForm.name|科目名を入力してください",
 			"Size.categoryForm.name|科目名は10文字以内で入力してください",
 			"NotBlank.vendorForm.name|取引先名を入力してください",
-			"Size.vendorForm.name|取引先名は20文字以内で入力してください",
+			"Size.vendorForm.name|取引先名は30文字以内で入力してください",
 			"NotBlank.paymentMethodForm.name|支払方法名を入力してください",
 			"Size.paymentMethodForm.name|支払方法名は10文字以内で入力してください",
 			"error.duplicate.category|その科目名はすでにあります",

@@ -49,7 +49,7 @@ class MasterListLayoutTest {
 
 	private static final List<Screen> SCREENS = List.of(
 			new Screen("/categories", "科目名", "10 文字以内", "科目"),
-			new Screen("/vendors", "取引先名", "20 文字以内", "取引先"),
+			new Screen("/vendors", "取引先名", "30 文字以内", "取引先"),
 			new Screen("/payment-methods", "支払方法名", "10 文字以内", "支払方法"));
 
 	@Autowired

@@ -22,7 +22,7 @@ public class Vendor {
 	@Column(name = "user_id", nullable = false)
 	private Long userId;
 
-	@Column(name = "name", nullable = false, length = 20)
+	@Column(name = "name", nullable = false, length = 30)
 	private String name;
 
 	/** JPA が使う。アプリのコードからは使わない。 */

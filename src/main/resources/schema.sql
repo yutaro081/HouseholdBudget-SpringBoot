@@ -33,11 +33,13 @@ CREATE TABLE IF NOT EXISTS categories (
 
 -- ---------------------------------------------------------------
 -- vendors（取引先）設計書 3.4
+-- name は issue 034 で VARCHAR(20) から VARCHAR(30) に広げた。すでにある DB は、本人が root で ALTER を流して広げた
+-- （手順は issue 034 の手順書 3.2。この CREATE TABLE は、新しい環境のため）。
 -- ---------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS vendors (
     id      BIGINT      NOT NULL AUTO_INCREMENT,
     user_id BIGINT      NOT NULL,
-    name    VARCHAR(20) NOT NULL,
+    name    VARCHAR(30) NOT NULL,
     CONSTRAINT pk_vendors PRIMARY KEY (id),
     CONSTRAINT uk_vendors_user_name UNIQUE (user_id, name),
     CONSTRAINT fk_vendors_user FOREIGN KEY (user_id) REFERENCES users (id)

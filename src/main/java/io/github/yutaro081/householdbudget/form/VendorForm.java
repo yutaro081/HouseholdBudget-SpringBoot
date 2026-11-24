@@ -5,7 +5,7 @@ import jakarta.validation.constraints.Size;
 
 /**
  * 取引先の追加・変更の入力を受け取るクラス（設計書 4.7、6.2）。
- * 名前は、必須、20文字以下（要件5章）。同じユーザーの中での重複は、Service が確認する（5.6）。
+ * 名前は、必須、30文字以下（要件5章。issue 034 で 20 から広げた）。同じユーザーの中での重複は、Service が確認する（5.6）。
  * 注釈の組み合わせは D4 の B のとおり（「必須」を他のエラーと重ねない。文字数は別の注釈）。
  * エラーメッセージのキーは、注釈の名前.vendorForm.name（messages.properties、G6）。
  * <p>
@@ -14,7 +14,7 @@ import jakarta.validation.constraints.Size;
 public class VendorForm {
 
 	@NotBlank
-	@Size(max = 20)
+	@Size(max = 30)
 	private String name;
 
 	public VendorForm() {

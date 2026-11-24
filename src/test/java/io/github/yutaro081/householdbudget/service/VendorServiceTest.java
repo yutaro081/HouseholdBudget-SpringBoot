@@ -112,7 +112,7 @@ class VendorServiceTest {
 	void addAcceptsTheMaximumLength() {
 		Long userId = createUser("vdrtest4");
 
-		assertThatCode(() -> service.add(userId, form("あ".repeat(20)))).doesNotThrowAnyException();
+		assertThatCode(() -> service.add(userId, form("あ".repeat(30)))).doesNotThrowAnyException();
 		assertThat(service.list(userId)).hasSize(1);
 	}
 
@@ -168,6 +168,20 @@ class VendorServiceTest {
 		service.update(userId, item.getId(), form("新しい名前"));
 
 		assertThat(service.get(userId, item.getId()).getName()).isEqualTo("新しい名前");
+	}
+
+	/** 更新でも、30 文字の名前が DB に保存される（issue 034。DB の列が VARCHAR(30) に広がっていること） */
+	@Test
+	void updateAcceptsTheMaximumLength() {
+		Long userId = createUser("vdrtest23");
+		var item = service.add(userId, form("コンビニ"));
+		String max = "あ".repeat(30);
+
+		service.update(userId, item.getId(), form(max));
+		entityManager.flush();
+		entityManager.clear();
+
+		assertThat(service.get(userId, item.getId()).getName()).isEqualTo(max);
 	}
 
 	@Test

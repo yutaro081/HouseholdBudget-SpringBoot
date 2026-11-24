@@ -11,7 +11,7 @@
     <!--/* 今の名前の入ったフォーム。入力エラー・重複のときは、この画面を表示し直し、入力値とエラーを入れる（設計書 6.9） */-->
     <form th:action="@{/vendors/{id}/edit(id=${vendorId})}" th:object="${vendorForm}" method="post" class="form-card" novalidate>
         <div class="field">
-            <label class="form-label" for="name">取引先名 <span class="field-chip">20 文字以内</span></label>
+            <label class="form-label" for="name">取引先名 <span class="field-chip">30 文字以内</span></label>
             <input class="form-control" type="text" th:field="*{name}" autofocus>
             <div class="field-error" th:each="message : ${#fields.errors('name')}" th:text="${message}">エラー</div>
         </div>

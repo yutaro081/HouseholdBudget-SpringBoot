@@ -14,7 +14,7 @@ import jakarta.validation.Validator;
 
 /**
  * VendorForm の入力チェックの単体テスト（設計書 6.2、6.4）。Spring もデータベースも使わない。
- * 名前は、必須、20文字以下。前後の空白は、全角の空白も含めて取り除く。
+ * 名前は、必須、30文字以下（issue 034 で 20 から広げた）。前後の空白は、全角の空白も含めて取り除く。
  */
 class VendorFormTest {
 
@@ -42,16 +42,16 @@ class VendorFormTest {
 
 	@Test
 	void lengthBoundary() {
-		assertThat(errorsOf("あ".repeat(20))).isEmpty();
-		assertThat(errorsOf("あ".repeat(20 + 1))).containsExactly("Size");
-		assertThat(errorsOf("a".repeat(20))).isEmpty();
-		assertThat(errorsOf("a".repeat(20 + 1))).containsExactly("Size");
+		assertThat(errorsOf("あ".repeat(30))).isEmpty();
+		assertThat(errorsOf("あ".repeat(30 + 1))).containsExactly("Size");
+		assertThat(errorsOf("a".repeat(30))).isEmpty();
+		assertThat(errorsOf("a".repeat(30 + 1))).containsExactly("Size");
 	}
 
 	/** 取り除いたあとの文字数で数える（前後の空白を含めて超えていても、取り除いて収まるなら通る） */
 	@Test
 	void lengthIsCountedAfterStripping() {
-		assertThat(errorsOf(" " + "あ".repeat(20) + " ")).isEmpty();
+		assertThat(errorsOf(" " + "あ".repeat(30) + " ")).isEmpty();
 	}
 
 	private static String stripped(String input) {

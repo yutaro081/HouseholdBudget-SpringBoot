@@ -41,7 +41,7 @@ import jakarta.persistence.EntityManager;
 
 /**
  * VendorController（取引先の画面）のテスト（設計書 2.2、2.3、2.6、3.9、7.8）。科目（CategoryControllerTest）と同じ内容。
- * 違う点：予算に関するテストはない。文字数の上限は20文字。
+ * 違う点：予算に関するテストはない。文字数の上限は30文字（issue 034 で 20 から広げた）。
  * 開発用の DB につなぐが、各テストはトランザクションで包まれ、終わると取り消される（行は残らない）。
  */
 @SpringBootTest
@@ -49,7 +49,7 @@ import jakarta.persistence.EntityManager;
 @Transactional
 class VendorControllerTest {
 
-	private static final String TOO_LONG = "あ".repeat(20 + 1);
+	private static final String TOO_LONG = "あ".repeat(30 + 1);
 
 	@Autowired
 	private MockMvc mockMvc;
@@ -245,7 +245,7 @@ class VendorControllerTest {
 				.andReturn();
 
 		String body = body(result);
-		assertThat(body).contains("取引先名は20文字以内で入力してください");
+		assertThat(body).contains("取引先名は30文字以内で入力してください");
 		assertThat(body).contains("value=\"" + TOO_LONG + "\"");          // 入力値が残る
 		assertThat(body).contains("コンビニ");                           // 一覧も表示される
 		assertThat(vendorService.list(aId)).hasSize(1);
@@ -253,7 +253,7 @@ class VendorControllerTest {
 
 	@Test
 	void addWithTheMaximumLengthSucceeds() throws Exception {
-		String max = "あ".repeat(20);
+		String max = "あ".repeat(30);
 
 		mockMvc.perform(post("/vendors").with(asA).with(csrf()).param("name", max))
 				.andExpect(redirectedUrl("/vendors"));
@@ -340,10 +340,22 @@ class VendorControllerTest {
 
 		String tooLong = body(mockMvc.perform(post(path).with(asA).with(csrf()).param("name", TOO_LONG))
 				.andExpect(status().isOk()).andExpect(view().name("vendors/edit")).andReturn());
-		assertThat(tooLong).contains("取引先名は20文字以内で入力してください");
+		assertThat(tooLong).contains("取引先名は30文字以内で入力してください");
 		assertThat(tooLong).contains("value=\"" + TOO_LONG + "\"");        // 入力値が残る
 
 		assertThat(nameOf(item.getId())).isEqualTo("コンビニ");           // 変更されていない
+	}
+
+	/** 変更でも、30 文字の名前に変えて保存できる（issue 034） */
+	@Test
+	void editWithTheMaximumLengthSucceeds() throws Exception {
+		var item = addFor(aId, "コンビニ");
+		String max = "あ".repeat(30);
+
+		mockMvc.perform(post("/vendors/" + item.getId() + "/edit").with(asA).with(csrf()).param("name", max))
+				.andExpect(redirectedUrl("/vendors"));
+
+		assertThat(nameOf(item.getId())).isEqualTo(max);
 	}
 
 	@Test
