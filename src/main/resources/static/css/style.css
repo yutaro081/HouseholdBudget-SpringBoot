@@ -295,12 +295,112 @@ main.form-wide {
     margin-top: var(--hb-space-3);
 }
 
-/* 明細の合計（JavaScript が動いたときだけ見せる）。数字の部分だけ太字 */
-.split-total {
-    margin: var(--hb-space-4) 0 0;
+/*
+ * 取引の登録・編集画面の下に固定する帯（issue 035 の段階 3-3。設計書 2.3）：明細の合計・キャンセル・保存。ページを下に動かしても、いつも画面の下に見える。
+ * sticky なので、帯はページの流れの中に自分の場所を持つ。いちばん下まで動かすと、最後の内容の下に収まり、隠さない（外側の要素に、はみ出しを隠す指定を置かないこと。置くと sticky が効かなくなる）。
+ * 見た目（段階 3-3 の直し。濃い地は強すぎて、まわりと調和しなかった）：地は白、上の端に区切りの線と、うすい影（本文の色 #24302F を透かしたもの。新しい色は増やさない）。
+ * 文字は本文の色。保存とキャンセルは、ほかの画面と同じふつうの見た目。中は右寄せ（合計 → 間 → キャンセル → 保存。合計が出ないときは、ボタンだけが右寄せ）。
+ * 白いカードの内側の余白の分だけ左右と下に広げ、カードの幅いっぱいの帯にする。電卓（z-index: 30）は帯（20）より上。
+ * 帯の高さの変数 --hb-form-bar-height は、この画面だけのページの規則（下）に置く
+ */
+html:has(.form-bar) {
+    --hb-form-bar-height: 4rem;
+    scroll-padding-bottom: var(--hb-form-bar-height);   /* Tab で移った欄が、帯の下に隠れないように */
+}
+
+.form-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    min-height: var(--hb-form-bar-height);
+    margin: var(--hb-space-5) calc(-1 * var(--hb-space-4)) calc(-1 * var(--hb-space-4));
+    padding: var(--hb-space-3) var(--hb-space-4);
+    background-color: var(--hb-input-bg);
+    color: var(--hb-text);
+    border-top: 1px solid var(--hb-line);
+    box-shadow: 0 -2px 8px rgba(36, 48, 47, 0.08);
+    border-radius: 0 0 var(--hb-radius-card) var(--hb-radius-card);
+}
+
+/* 帯の内側の左右の余白は、カードの内側の余白（.form-card）と同じ。そのため、帯の中の列と、明細の行の列の位置がそろう */
+@media (min-width: 992px) {
+    .form-bar {
+        margin: var(--hb-space-5) calc(-1 * var(--hb-space-5)) calc(-1 * var(--hb-space-5));
+        padding: var(--hb-space-3) var(--hb-space-5);
+    }
+}
+
+/*
+ * 帯の中の列（段階 3-3 の直し（4））：992px 以上は、明細の行と同じ列の分け方（HTML の row gx-3 と col-lg-4 × 3）。
+ * 明細の合計は金額の列（2 列目）に右寄せで入れ、数字の右の端を、金額の欄の右の端にそろえる（電卓は金額の欄の右に出るので、帯の右側だと隠れていた）。
+ * キャンセルと保存は 3 列目の右寄せ。JavaScript が無効で合計が出ないときも、合計の列は空のまま場所を取る
+ */
+.form-bar-row {
+    flex: 1 1 auto;
+    align-items: center;
+}
+
+.form-bar-total {
     text-align: right;
 }
 
+.form-bar-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--hb-space-2);
+}
+
+/* 992px 未満：Bootstrap の列は幅いっぱいになるので、中身の幅に戻して、今までの右寄せの並び（合計 → 間 32px → キャンセル → 保存）。
+   間は、列の左右の余白（8px ＋ 8px）と、合計の列の右の余白 16px で 32px。合計が hidden（JavaScript が無効）のときは、空の合計の列を出さない */
+@media (max-width: 991.98px) {
+    .form-bar-row {
+        justify-content: flex-end;
+    }
+
+    .form-bar-row > * {
+        width: auto;
+    }
+
+    .form-bar-total {
+        margin-right: var(--hb-space-4);
+    }
+
+    .form-bar-total:has(> [hidden]) {
+        display: none;
+    }
+}
+
+/* 576px 未満：帯をはじめから 2 行にする（上の行に明細の合計、下の行にキャンセルと保存。どちらも右寄せ）。段階 3-3 の直し（3）。
+   折り返すかどうかが合計の桁数で変わると、帯の高さが変わり、欄や電卓が帯の下に隠れない余白（scroll-padding-bottom・scroll-margin-bottom）が
+   そのときどきで合わなくなるため。合計が見えているときだけ、帯の高さの変数を 2 行の高さにする
+   （上下の余白 12px × 2 ＋ 合計の行 30px ＋ 行の間 8px〔gy-2〕＋ ボタン 約 38px ＝ 約 100px に、少し余裕を見て 6.5rem）。
+   JavaScript が無効で合計が hidden のときは、合計の列を出さず（上の規則）、ボタンの行だけ・高さ 4rem のまま。
+   この規則は、992px 未満の規則より後ろに置く（同じ強さの指定は、後ろが勝つ） */
+@media (max-width: 575.98px) {
+    html:has(.form-bar .split-total:not([hidden])) {
+        --hb-form-bar-height: 6.5rem;
+    }
+
+    .form-bar-total {
+        width: 100%;
+        margin-right: 0;
+    }
+}
+
+/* 明細の合計（JavaScript が動いたときだけ見せる。992px 以上は金額の列の下、未満はキャンセルの左）。「明細の合計」の言葉は本文の 16px のまま */
+.split-total {
+    margin: 0;
+}
+
+/* 金額の数字（と「円」）は 20px の太字（4 段の 2 番目。目立たせるため）。言葉と同じ行の中なので、ベースラインでそろう */
+.split-total strong {
+    font-size: var(--hb-font-size-h2);
+    font-weight: 700;
+}
+
+/* 数字でない欄があるときの文（合計の後ろ。補足の色。白の上で 6.3 対 1） */
 .split-total-note {
     margin-left: var(--hb-space-2);
     color: var(--hb-text-sub);
@@ -318,7 +418,7 @@ main.form-wide {
 /*
  * 金額の入力を助ける電卓（issue 035 の段階 3。設計書 2.3。issue 009 の金額ボタンの見た目を引きつぐ）。動きは calculator-keys.js（data- の印だけに頼る。クラス名には頼らない）。
  * 入れ物（段階 3-2）：金額の欄を選んだときだけ、その欄の入れ物（.calc-place）の下の端に、浮かせて重ねる。明細の並びは動かない。摘要や次の明細の上に重なってよい。
- * 位置はここで決める（JavaScript は、電卓を選んだ行の入れ物へ移して、見せる・隠すだけ。style は書かない）。z-index は「設定」のメニューと同じ 10。
+ * 位置はここで決める（JavaScript は、電卓を選んだ行の入れ物へ移して、見せる・隠すだけ。style は書かない）。z-index は 30（下に固定する帯より上）。
  * 幅は 18rem まで。入れ物の幅を超えない（max-width: 100%。約 375px の幅でも、横にはみ出さない）。白い地、細い線の枠と角丸。
  * ボタン：4 列の格子。白い地、灰色の枠、角丸。数字・記号は 20px、C と税込は 16px。押せない（税込）ときは、灰色の地と文字。新しい色は使わない。
  */
@@ -338,13 +438,14 @@ main.form-wide {
     position: absolute;
     top: 100%;
     left: 0;
-    z-index: 10;
+    z-index: 30;   /* 下に固定する帯（20）より上（手前）。画面が短いと、下に伸びた電卓が帯の下に隠れたため（段階 3-3 の直し） */
     width: 18rem;
     max-width: 100%;
     background-color: var(--hb-input-bg);
     border: 1px solid var(--hb-line);
     border-radius: var(--hb-radius-card);
     padding: var(--hb-space-4);
+    scroll-margin-bottom: var(--hb-form-bar-height);   /* 見せるときの scrollIntoView で、下に固定する帯（段階 3-3）の下に隠れないように */
 }
 
 /* 992px 以上：金額の欄のすぐ右（入れ物の右の端から 8px）。右の摘要の欄の上に重なる。幅は入れ物の幅を超えないので、摘要の欄の幅の中に収まる。

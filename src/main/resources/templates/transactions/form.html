@@ -139,13 +139,24 @@
         <!--/* 行を足す（登録・編集の画面。issue 032 の段階 3 で、編集にも出す）。JavaScript が動いたときだけ見せる。押すと、隠れている次の行を見せる（行は作らない） */-->
         <button type="button" class="row-btn split-add" data-split-add hidden>＋ 行を足す</button>
 
-        <!--/* 明細の合計（登録・編集の両方）。JavaScript が動いたときだけ見せる。数字は split-lines.js が書く（文は固定）。合計は入力しない・保存しない */-->
-        <p class="split-total" data-split-total-box hidden>明細の合計 <strong><span data-split-total>0</span>円</strong><span class="split-total-note" data-split-not-number hidden>（数字でない欄は、合計に入れていません）</span></p>
-
-        <!--/* 右下：キャンセル（取引一覧へのリンク。ボタンではないので、Enter キーでは送信されない）→ 送信ボタン */-->
-        <div class="form-actions">
-            <a class="btn btn-outline-secondary" th:href="@{/transactions}">キャンセル</a>
-            <button type="submit" class="btn btn-primary">保存</button>
+        <!--/* 画面の下に固定する帯（issue 035 の段階 3-3。設計書 2.3）：明細の合計・キャンセル・保存。ページを下に動かしても、いつも画面の下に見える（CSS の sticky）。
+             フォームの最後に置くので、いちばん下まで動かすと、帯は最後の内容の下に収まり、何も隠さない。HTML の順（＝ Tab の順）は今までどおり */-->
+        <div class="form-bar">
+            <!--/* 帯の中の列（段階 3-3 の直し（4））：992px 以上は、明細の行と同じ列の分け方（横の間は明細の行の g-3 と同じ gx-3、col-lg-4 × 3）。
+                 合計は金額の列（2 列目）に右寄せで入れ、数字の右の端を金額の欄の右の端にそろえる（電卓は金額の欄の右に出るので、帯の右側だと隠れていた）。
+                 ボタンは 3 列目。992px 未満は、CSS で列の幅を中身の幅に戻し、今までの右寄せの並び（576px 未満は 2 行。縦の間は gy-2） */-->
+            <div class="row gx-3 gy-2 form-bar-row">
+                <div class="col-lg-4 offset-lg-4 form-bar-total">
+                    <!--/* 明細の合計（登録・編集の両方）。JavaScript が動いたときだけ見せる。数字は split-lines.js が書く（文は固定）。合計は入力しない・保存しない。
+                         数字でない欄があるときの文は、帯を 1 行に保つため短くした */-->
+                    <p class="split-total" data-split-total-box hidden>明細の合計 <strong><span data-split-total>0</span>円</strong><span class="split-total-note" data-split-not-number hidden>（数字でない欄を除く）</span></p>
+                </div>
+                <!--/* キャンセル（取引一覧へのリンク。ボタンではないので、Enter キーでは送信されない）→ 送信ボタン */-->
+                <div class="col-lg-4 form-bar-actions">
+                    <a class="btn btn-outline-secondary" th:href="@{/transactions}">キャンセル</a>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </div>
         </div>
     </form>
 

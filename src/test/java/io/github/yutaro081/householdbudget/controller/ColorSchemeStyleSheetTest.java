@@ -94,6 +94,22 @@ class ColorSchemeStyleSheetTest {
 		assertThat(ratio(variable(css, "hb-text-sub"), hover)).as("補足の文字（日付・支払方法・摘要）").isGreaterThanOrEqualTo(4.5).isBetween(5.6, 5.7);
 	}
 
+	/**
+	 * 取引の登録・編集画面の下に固定する帯（issue 035 の段階 3-3。設計書 2.3 の色の決まり）。段階 3-3 の直しで、地を白に戻した
+	 * （濃い地は強すぎて、まわりと調和しなかったため）。白い帯の上で：本文の文字 13.6 対 1、補足の文字（数字でない欄を除く）6.3 対 1、
+	 * 保存ボタンの地と白い帯 4.8 対 1（ボタンの輪郭は 3 以上）、保存ボタンの白い文字 4.8 対 1、キャンセルの文字と枠 6.3 対 1
+	 */
+	@Test
+	void theBottomBarKeepsItsTextAndButtonOutlinesReadable() throws Exception {
+		String css = css("/css/style.css");
+		String bar = variable(css, "hb-input-bg");
+		assertThat(bar).as("帯の地は白").isEqualTo("#FFFFFF");
+		assertThat(ratio(variable(css, "hb-text"), bar)).as("帯の上の本文の文字（明細の合計）").isGreaterThanOrEqualTo(4.5).isBetween(13.5, 13.7);
+		assertThat(ratio(variable(css, "hb-text-sub"), bar)).as("補足の文字、キャンセルの文字と枠").isGreaterThanOrEqualTo(4.5).isBetween(6.3, 6.4);
+		assertThat(ratio(variable(css, "hb-teal-button"), bar)).as("保存ボタンの地と白い帯（ボタンの輪郭）").isGreaterThanOrEqualTo(3.0).isBetween(4.8, 4.9);
+		assertThat(ratio("#FFFFFF", variable(css, "hb-teal-button"))).as("保存ボタンの白い文字").isGreaterThanOrEqualTo(4.5);
+	}
+
 	/** 花のアイコンの中心の縁の色（#B4571A）は、変数 --hb-within-icon と、アイコンの部品（icons.html）の中の値が、同じ。花びら #F0A060 と中心 #FFF8EE は、飾りの色（意味は持たせない。比べない） */
 	@Test
 	void theFlowerRingColorInTheIconIsTheSameAsTheVariable() throws Exception {

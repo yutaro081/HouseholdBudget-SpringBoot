@@ -158,7 +158,7 @@ class TransactionSplitEntryTest {
 		return n;
 	}
 
-	/** index 番目の明細の行（data-split-line の入れ物）の HTML。次の行、または「キャンセル」「保存」の行の手前まで */
+	/** index 番目の明細の行（data-split-line の入れ物）の HTML。次の行、または「キャンセル」「保存」の帯（issue 035 の段階 3-3 で form-actions から form-bar に）の手前まで */
 	private static String lineBlock(String body, int index) {
 		int start = -1;
 		for (int i = 0; i <= index; i++) {
@@ -166,7 +166,7 @@ class TransactionSplitEntryTest {
 			assertThat(start).as((index + 1) + " 行目の入れ物がある").isPositive();
 		}
 		int next = body.indexOf("data-split-line", start + 1);
-		int end = next >= 0 ? next : body.indexOf("form-actions", start);
+		int end = next >= 0 ? next : body.indexOf("class=\"form-bar\"", start);
 		return body.substring(start, end);
 	}
 

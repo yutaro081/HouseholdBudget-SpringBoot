@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -435,7 +436,7 @@ class TransactionFormLayoutTest {
 		String css = css();
 		assertThat(rule(css, ".calc-place")).contains("position: relative");
 		String calc = rule(css, ".calc");
-		assertThat(calc).contains("position: absolute", "top: 100%", "left: 0", "z-index: 10", "width: 18rem", "max-width: 100%",
+		assertThat(calc).contains("position: absolute", "top: 100%", "left: 0", "z-index: 30", "width: 18rem", "max-width: 100%",
 				"background-color: var(--hb-input-bg)", "border: 1px solid var(--hb-line)", "border-radius: var(--hb-radius-card)", "padding: var(--hb-space-4)");
 		assertThat(css).as("右の列の sticky はやめた").doesNotContainPattern("\\.calc \\{[^}]*sticky");
 		assertThat(rule(css, ".calc-note")).contains("font-size: var(--hb-font-size-small)", "color: var(--hb-text-sub)");
@@ -474,9 +475,151 @@ class TransactionFormLayoutTest {
 		}
 	}
 
-	/** 「キャンセル」「保存」の上に区切り線（1px、--hb-line） */
+	/**
+	 * issue 035 の段階 3-3：明細の合計・キャンセル・保存は、画面の下に固定する帯（form-bar。この画面だけのクラス）の中。
+	 * 帯はフォームの最後。position: sticky で bottom: 0。段階 3-3 の直し：地は白、上の端に区切りの線とうすい影（本文の色を透かしたもの）、文字は本文の色、
+	 * 中は右寄せ（合計 → キャンセル → 保存）。保存とキャンセルは、ほかの画面と同じふつうの見た目（帯だけの色の上書きはしない）。
+	 * 科目などの変更画面のための .form-actions（区切り線の下に右寄せ）は残す
+	 */
 	@Test
-	void aSeparatorLineIsAboveTheCancelAndSaveButtons() throws Exception {
-		assertThat(rule(css(), ".form-actions")).contains("border-top: 1px solid var(--hb-line)", "padding-top: var(--hb-space-4)", "justify-content: flex-end");
+	void theTotalCancelAndSaveAreInTheStickyBarAtTheBottomOfTheForm() throws Exception {
+		for (String body : new String[] { newPage(), editPage(), errorPage() }) {
+			int bar = body.indexOf("<div class=\"form-bar\">");
+			assertThat(bar).as("帯がある").isPositive().isGreaterThan(body.indexOf("data-split-add"));
+			assertThat(body.indexOf("data-split-total-box")).as("合計は帯の中").isGreaterThan(bar);
+			assertThat(body.indexOf(">キャンセル</a>")).isGreaterThan(body.indexOf("data-split-total-box"));
+			assertThat(body.indexOf("<button type=\"submit\"", bar)).isGreaterThan(body.indexOf(">キャンセル</a>"));
+			assertThat(body.indexOf("</form>", bar)).as("帯はフォームの中（ヘッダーのログアウトのフォームは、帯より前）").isGreaterThan(body.indexOf("<button type=\"submit\"", bar));
+			assertThat(body).as("この画面では .form-actions を使わない").doesNotContain("class=\"form-actions\"");
+		}
+		String css = css();
+		String bar = rule(css, ".form-bar");
+		assertThat(bar).contains("position: sticky", "bottom: 0", "z-index: 20", "background-color: var(--hb-input-bg)", "color: var(--hb-text)",
+				"border-top: 1px solid var(--hb-line)", "box-shadow: 0 -2px 8px rgba(36, 48, 47, 0.08)",
+				"min-height: var(--hb-form-bar-height)");
+		assertThat(bar).doesNotContainPattern("#[0-9A-Fa-f]{3,6}");
+		assertThat(css).as("保存とキャンセルは、ほかの画面と同じふつうの見た目（帯だけの上書きをやめた）")
+				.doesNotContain(".form-bar .btn-primary", ".form-bar .btn-outline-secondary");
+		assertThat(rule(css, ".form-actions")).as("科目などの変更画面のために残す").contains("border-top: 1px solid var(--hb-line)", "justify-content: flex-end");
+	}
+
+	/**
+	 * 帯の外側に当たる要素（html、body、登録画面の main〔container・form-wide〕、フォームの白いカード〔form-card〕）の規則に、
+	 * はみ出しの指定（overflow）がないこと。外側に overflow があると、sticky の帯が画面の下に貼り付かなくなるため（段階 3-3）。
+	 * style.css 全体は禁止しない（帯と関係ない所、たとえば表の overflow-x は足してよい）。992px 以上などの @media の中の規則も見る
+	 */
+	@Test
+	void theElementsAroundTheBarHaveNoOverflowRule() throws Exception {
+		String css = stripComments(css());
+		List<String> around = List.of("html", "body", "main", "main.container", "main.form-wide", "form", ".form-card", "html:has(.form-bar)");
+		Matcher block = Pattern.compile("([^{}]+)\\{([^{}]*)\\}").matcher(css);
+		List<String> found = new java.util.ArrayList<>();
+		int checked = 0;
+		while (block.find()) {
+			for (String selector : block.group(1).split(",")) {
+				if (around.contains(selector.strip())) {
+					checked++;
+					if (block.group(2).contains("overflow")) {
+						found.add(selector.strip());
+					}
+				}
+			}
+		}
+		assertThat(checked).as("外側の要素の規則が見つかる（検索の形が合っている）").isGreaterThanOrEqualTo(4);
+		assertThat(found).as("帯の外側の要素に overflow の指定がある").isEmpty();
+	}
+
+	/** 帯の高さの変数を、この画面だけページに置き、Tab で移った欄（scroll-padding-bottom）と電卓（scroll-margin-bottom）が帯の下に隠れないようにする */
+	@Test
+	void theBarDoesNotHideTheFocusedFieldOrTheCalculator() throws Exception {
+		String css = css();
+		Matcher page = Pattern.compile("(?m)^html:has\\(\\.form-bar\\)\\s*\\{([^}]*)\\}").matcher(css);
+		assertThat(page.find()).as("この画面だけの規則").isTrue();
+		assertThat(page.group(1)).contains("--hb-form-bar-height:", "scroll-padding-bottom: var(--hb-form-bar-height)");
+		assertThat(rule(css, ".calc")).contains("scroll-margin-bottom: var(--hb-form-bar-height)");
+		// 段階 3-3 の直し：電卓は帯より上（手前）。画面が短いと、下に伸びた電卓が帯の下に隠れたため
+		assertThat(zIndex(rule(css, ".calc"))).as("電卓の z-index は、帯より大きい").isGreaterThan(zIndex(rule(css, ".form-bar")));
+	}
+
+	private static int zIndex(String rule) {
+		Matcher m = Pattern.compile("z-index:\\s*(\\d+)").matcher(rule);
+		assertThat(m.find()).as("z-index がある").isTrue();
+		return Integer.parseInt(m.group(1));
+	}
+
+	/** 数字でない欄があるときの文は、帯を 1 行に保つため短くした（「（数字でない欄を除く）」）。JavaScript が見せる・隠すだけ */
+	@Test
+	void theNotANumberNoteIsShortInTheBar() throws Exception {
+		String body = newPage();
+		assertThat(body).contains("<span class=\"split-total-note\" data-split-not-number hidden>（数字でない欄を除く）</span>")
+				.doesNotContain("合計に入れていません");
+		assertThat(rule(css(), ".split-total-note")).as("補足の色（白い帯の上。段階 3-3 の直し）").contains("color: var(--hb-text-sub)", "font-size: var(--hb-font-size-small)");
+	}
+
+	/**
+	 * 明細の合計を目立たせる（段階 3-3 の直し（2））：金額の数字は 20px の太字（4 段の 2 番目）。「明細の合計」の言葉は 16px のまま（数字の strong だけを大きくする）。
+	 * 合計とキャンセルの間は 32px（--hb-space-6。前の倍）にして、合計と操作のボタンを別のまとまりに見せる
+	 */
+	@Test
+	void theTotalAmountIs20pxBoldAndStandsApartFromTheButtons() throws Exception {
+		String css = css();
+		assertThat(rule(css, ".split-total strong")).contains("font-size: var(--hb-font-size-h2)", "font-weight: 700");
+		assertThat(rule(css, ".split-total")).as("言葉は本文の大きさのまま（大きさを変えない）").doesNotContain("font-size");
+		// 合計とキャンセルの間（992px 未満で 32px）は、帯の中の列の余白で作る（段階 3-3 の直し（4）。from992px… のテストが見る）
+		assertThat(newPage()).as("数字と「円」は strong の中").contains("明細の合計 <strong><span data-split-total>0</span>円</strong>");
+	}
+
+	/**
+	 * 576px 未満では、帯をはじめから 2 行にする（上の行に合計、下の行にボタン。どちらも右寄せ）。段階 3-3 の直し（3）。
+	 * 合計が見えているときだけ、帯の高さの変数を 2 行の高さ（6.5rem）にする（電卓とページの余白も、この変数を使う）。
+	 * 合計が hidden（JavaScript が無効）のときは、ボタンの行だけで、高さは 4rem のまま（空の行を作らない）
+	 */
+	@Test
+	void belowSmTheBarIsAlwaysTwoRowsWhenTheTotalIsShown() throws Exception {
+		Matcher narrow = Pattern.compile("(?s)@media \\(max-width: 575\\.98px\\) \\{\\s*(html:has\\(\\.form-bar \\.split-total:not\\(\\[hidden\\]\\)\\) \\{[^}]*\\}\\s*\\.form-bar-total \\{[^}]*\\})\\s*\\}")
+				.matcher(css());
+		assertThat(narrow.find()).as("576px 未満の帯の規則").isTrue();
+		assertThat(narrow.group(1)).as("合計の列は幅いっぱい（1 行目）").contains("--hb-form-bar-height: 6.5rem", "width: 100%", "margin-right: 0");
+		assertThat(newPage()).as("2 行の間は 8px（gy-2）。6.5rem の高さの計算と同じ").contains("<div class=\"row gx-3 gy-2 form-bar-row\">");
+		Matcher base = Pattern.compile("(?m)^html:has\\(\\.form-bar\\)\\s*\\{([^}]*)\\}").matcher(css());
+		assertThat(base.find()).isTrue();
+		assertThat(base.group(1)).as("ふだん（576px 以上、または合計が出ないとき）は 1 行の高さ").contains("--hb-form-bar-height: 4rem");
+	}
+
+	/**
+	 * 992px 以上では、帯の中を明細の行と同じ列の分け方にし、明細の合計を金額の列（2 列目）に右寄せで入れる（段階 3-3 の直し（4））。
+	 * 合計の数字の右の端が、金額の欄の右の端にそろう（電卓は金額の欄の右に出るので、帯の右側の合計が隠れていたため）。キャンセルと保存は 3 列目の右寄せ。
+	 * 横の間は、明細の行（g-3）と同じ 1rem（gx-3）。帯の内側の左右の余白は、カードの内側の余白と同じ（992px 以上は --hb-space-5）。
+	 * 992px 未満は、列の幅を中身の幅に戻して、今までの右寄せの並び。JavaScript が無効で合計が出ないときは、空の合計の列を出さない
+	 */
+	@Test
+	void from992pxTheTotalSitsUnderTheAmountColumnAndBelowItTheOldOrderStays() throws Exception {
+		for (String body : new String[] { newPage(), editPage(), errorPage() }) {
+			int bar = body.indexOf("<div class=\"form-bar\">");
+			Matcher row = Pattern.compile("(?s)<div class=\"form-bar\">\\s*<div class=\"row gx-3 gy-2 form-bar-row\">\\s*"
+					+ "<div class=\"col-lg-4 offset-lg-4 form-bar-total\">\\s*<p class=\"split-total\" data-split-total-box hidden>.*?</p>\\s*</div>\\s*"
+					+ "<div class=\"col-lg-4 form-bar-actions\">\\s*<a [^>]*>キャンセル</a>\\s*<button type=\"submit\"[^>]*>保存</button>\\s*</div>").matcher(body.substring(bar));
+			assertThat(row.find()).as("帯の中の列：合計は 2 列目、ボタンは 3 列目").isTrue();
+			assertThat(body).as("明細の行の列の分け方（横の間 1rem の g-3）").contains("<div class=\"row g-3\">");
+		}
+		String css = css();
+		assertThat(rule(css, ".form-bar-total")).as("合計は列の中で右寄せ（数字の右の端を、金額の欄の右の端にそろえる）").contains("text-align: right");
+		assertThat(rule(css, ".form-bar-actions")).contains("display: flex", "justify-content: flex-end");
+		Matcher wide = Pattern.compile("(?s)@media \\(min-width: 992px\\) \\{\\s*\\.form-bar \\{([^}]*)\\}").matcher(css);
+		assertThat(wide.find()).isTrue();
+		assertThat(wide.group(1)).as("帯の内側の左右の余白は、カードの内側の余白（992px 以上は --hb-space-5）と同じ").contains("padding: var(--hb-space-3) var(--hb-space-5)");
+		assertThat(rule(css, ".form-card")).contains("padding: var(--hb-space-4)");
+		Matcher below = Pattern.compile("(?s)@media \\(max-width: 991\\.98px\\) \\{(.*?\\})\\s*\\}").matcher(css);
+		boolean found = false;
+		while (below.find()) {
+			String block = below.group(1);
+			if (block.contains(".form-bar-row")) {
+				found = true;
+				assertThat(block).as("992px 未満：列の幅を中身の幅に戻し、右寄せ。合計とボタンの間は 32px").contains("justify-content: flex-end", "width: auto",
+						"margin-right: var(--hb-space-4)");
+				assertThat(block).as("合計が hidden のときは、空の列を出さない").contains(".form-bar-total:has(> [hidden])", "display: none");
+			}
+		}
+		assertThat(found).as("992px 未満の帯の規則").isTrue();
 	}
 }
