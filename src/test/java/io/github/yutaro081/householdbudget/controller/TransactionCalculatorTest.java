@@ -213,17 +213,23 @@ class TransactionCalculatorTest {
 		}
 	}
 
-	/** 並び：明細の行と「行を足す」は左の列（col-lg-8）、電卓は右の列（col-lg-4）。明細の合計と「保存」は、そのあと（全幅） */
+	/**
+	 * 段階 3-2：右の列はやめた（明細は 1 列の広さ）。金額の欄の入れ物は、どの行も、電卓を移す先の印（data-calc-place）と、CSS の目印（calc-place）を持つ。
+	 * 電卓は、はじめは明細 1 の金額の欄の入れ物の中（金額の欄のあと、その行の摘要の前）。そのため、Tab は 金額 → C → 税込 → 摘要 の順になる
+	 */
 	@Test
-	void theCalculatorIsInTheRightColumnAfterTheLinesAndBeforeTheTotal() throws Exception {
+	void theCalculatorStartsInsideTheFirstAmountPlaceAndThereIsNoRightColumn() throws Exception {
 		for (String body : formPages()) {
-			int left = body.indexOf("<div class=\"col-lg-8\">");
-			int right = body.indexOf("<div class=\"col-lg-4\">", left);
+			assertThat(body).as("右の列はない").doesNotContain("<div class=\"col-lg-8\">", "<div class=\"col-lg-4\">");
+			assertThat(count(body, "data-calc-place")).as("金額の欄の入れ物は 5 つ").isEqualTo(5);
+			for (int i = 0; i < 5; i++) {
+				Matcher place = Pattern.compile("<div class=\"col-lg-4 field calc-place\" data-calc-place>\\s*<label class=\"form-label\" for=\"lines" + i + "\\.amount\"")
+						.matcher(body);
+				assertThat(place.find()).as((i + 1) + " 行目の金額の欄の入れ物").isTrue();
+			}
 			int calc = body.indexOf("<div class=\"calc\" data-calc");
-			assertThat(left).as("左の列").isPositive().isLessThan(body.indexOf("data-split-line"));
-			assertThat(right).as("右の列は、最後の行と「行を足す」のあと").isGreaterThan(body.indexOf("id=\"lines4.description\""))
-					.isGreaterThan(body.indexOf("data-split-add"));
-			assertThat(calc).isGreaterThan(right).isLessThan(body.indexOf("data-split-total-box"));
+			assertThat(calc).as("明細 1 の金額の欄のあと、摘要の前").isGreaterThan(body.indexOf("id=\"lines0.amount\""))
+					.isLessThan(body.indexOf("id=\"lines0.description\""));
 		}
 	}
 

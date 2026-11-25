@@ -208,15 +208,16 @@ class TransactionFormLayoutTest {
 		}
 	}
 
+	/**
+	 * 金額の欄の下の範囲の補足（「1〜1,000,000 の整数」。issue 017）は、issue 035 で外した（欄に式も打てるので「整数」が合わない。
+	 * 上限は保存のときのエラーで分かる。5 行ぶん同じ文がくり返し出ていた）。.field-hint の CSS も外した。範囲のエラーの文は変えない（MessagesTest）
+	 */
 	@Test
-	void amountRangeHintIsBelowTheAmountFieldWithTheSameWords() throws Exception {
-		String body = newPage();
-		assertThat(body).contains("1〜1,000,000 の整数");
-		// issue 017：ラベルが「金額（円）」になったので、補足の頭の「円。」はなくした。カンマ付き
-		assertThat(body).doesNotContain("円。1〜1000000の整数", "円。1〜");
-		assertThat(count(body, "1〜1,000,000 の整数")).as("金額の欄ごとに 1 つ").isEqualTo(5);
-		assertThat(body.indexOf("id=\"lines0.amount\"")).isLessThan(body.indexOf("1〜1,000,000 の整数"));
-		assertThat(body.indexOf("1〜1,000,000 の整数")).as("計算できないときの文の前（issue 035。金額ボタンはなくした）").isLessThan(body.indexOf("data-calc-error"));
+	void theAmountRangeHintIsGoneFromEveryLine() throws Exception {
+		for (String body : new String[] { newPage(), editPage(), errorPage() }) {
+			assertThat(body).doesNotContain("1〜1,000,000 の整数", "1〜1000000", "field-hint");
+		}
+		assertThat(css()).doesNotContain(".field-hint");
 		assertThat(count(newPage(), "class=\"field-error\"")).as("エラーがない画面に field-error はない").isZero();
 	}
 
@@ -250,9 +251,10 @@ class TransactionFormLayoutTest {
 			}
 			assertThat(body.indexOf("id=\"lines" + lines + ".categoryId\"")).as("行は " + lines + " つ").isNegative();
 			int calc = body.indexOf("<div class=\"calc\" data-calc");
-			assertThat(calc).as("電卓は、最後の行と「行を足す」のあと（右の列。issue 035）").isGreaterThan(previous).isGreaterThan(body.indexOf("data-split-add"));
+			assertThat(calc).as("電卓は、はじめは明細 1 の金額の欄と摘要の間（issue 035 の段階 3-2。選んだ行へ JavaScript が移す）")
+					.isGreaterThan(body.indexOf("id=\"lines0.amount\"")).isLessThan(body.indexOf("id=\"lines0.description\""));
 			int total = body.indexOf("data-split-total-box");
-			assertThat(total).as("明細の合計は、電卓のあと").isGreaterThan(calc);
+			assertThat(total).as("明細の合計は、最後の行と「行を足す」のあと").isGreaterThan(previous).isGreaterThan(body.indexOf("data-split-add"));
 			assertThat(body.indexOf("<button type=\"submit\"", formStart(body))).as("送信ボタンは、合計のあと").isGreaterThan(total);
 		}
 	}
@@ -410,7 +412,8 @@ class TransactionFormLayoutTest {
 	@Test
 	void theCalculatorKeysAreAGridOfOutlinedButtonsWithTheExistingColors() throws Exception {
 		String css = css();
-		assertThat(rule(css, ".calc-keys")).contains("display: grid", "grid-template-columns: repeat(4, 1fr)", "gap: var(--hb-space-2)");
+		assertThat(rule(css, ".calc-keys")).contains("display: grid", "grid-template-columns: repeat(4, 1fr)", "gap: var(--hb-calc-gap)");
+		assertThat(rule(css, ".calc-key")).as("ボタンの高さは変数（右に出すときのずらす量の計算にも使う）").contains("height: var(--hb-calc-key-height)");
 		assertThat(rule(css, ".calc-tax")).contains("display: grid", "grid-template-columns: repeat(2, 1fr)");
 		String key = rule(css, ".calc-key");
 		assertThat(key).contains("border: 1px solid var(--hb-text-sub)", "border-radius: var(--hb-radius-control)", "background-color: var(--hb-input-bg)",
@@ -423,18 +426,52 @@ class TransactionFormLayoutTest {
 	}
 
 	/**
-	 * 電卓の入れ物：細い線の枠と角丸。992px 以上では、ページを下に動かしても見える（position: sticky。上から 16px）。
-	 * 電卓の中の文（押せないとき・説明）は 13px の補足の色
+	 * 電卓の入れ物（issue 035 の段階 3-2）：金額の欄の入れ物（.calc-place。position: relative）の下の端に、浮かせて重ねる（position: absolute、top: 100%、left: 0、
+	 * z-index は「設定」のメニューと同じ 10）。並びは動かない。白い地、細い線の枠と角丸。幅は 18rem まで、入れ物の幅を超えない（max-width: 100%。約 375px でも横にはみ出さない）。
+	 * 右の列の sticky はやめた。電卓の中の文（押せないとき・説明）は 13px の補足の色
 	 */
 	@Test
-	void theCalculatorSticksFrom992pxAndItsNotesAre13pxGray() throws Exception {
+	void theCalculatorFloatsBelowTheAmountFieldWithinItsPlaceAndItsNotesAre13pxGray() throws Exception {
 		String css = css();
-		assertThat(rule(css, ".calc")).contains("border: 1px solid var(--hb-line)", "border-radius: var(--hb-radius-card)", "padding: var(--hb-space-4)");
-		Matcher media = Pattern.compile("(?s)@media \\(min-width: 992px\\) \\{\\s*\\.calc \\{([^}]*)\\}").matcher(css);
-		assertThat(media.find()).as("992px 以上の規則").isTrue();
-		assertThat(media.group(1)).contains("position: sticky", "top: var(--hb-space-4)");
-		assertThat(rule(css, ".calc").contains("sticky")).as("992px 未満では sticky にしない").isFalse();
+		assertThat(rule(css, ".calc-place")).contains("position: relative");
+		String calc = rule(css, ".calc");
+		assertThat(calc).contains("position: absolute", "top: 100%", "left: 0", "z-index: 10", "width: 18rem", "max-width: 100%",
+				"background-color: var(--hb-input-bg)", "border: 1px solid var(--hb-line)", "border-radius: var(--hb-radius-card)", "padding: var(--hb-space-4)");
+		assertThat(css).as("右の列の sticky はやめた").doesNotContainPattern("\\.calc \\{[^}]*sticky");
 		assertThat(rule(css, ".calc-note")).contains("font-size: var(--hb-font-size-small)", "color: var(--hb-text-sub)");
+	}
+
+	/**
+	 * 992px 以上では、電卓は金額の欄のすぐ右（入れ物の右の端から 8px。「1 2 3 ＋」の段の中心を、欄の中心にそろえる。段階 3-2 の直し（3））。
+	 * 992px 未満は、上の規則のまま、すぐ下（段階 3-2 の直し。本人が使ってみて、右のほうが打ちやすいため）
+	 */
+	@Test
+	void from992pxTheCalculatorIsRightOfTheAmountFieldWithItsThirdRowBesideTheField() throws Exception {
+		Matcher media = Pattern.compile("(?s)@media \\(min-width: 992px\\) \\{\\s*\\.calc \\{([^}]*)\\}").matcher(css());
+		assertThat(media.find()).as("992px 以上の .calc の規則").isTrue();
+		assertThat(media.group(1)).contains("left: 100%", "margin-left: var(--hb-space-2)");
+		// 段階 3-2 の直し（3）：「1 2 3 ＋」の段（上から 3 段目）の上下の中心を、金額の欄の上下の中心にそろえる。ずらす量は決め打ちにせず、変数から calc() で求める
+		assertThat(media.group(1)).doesNotContain("top: 2rem").containsPattern("top: calc\\(var\\(--hb-amount-field-top\\) \\+ var\\(--hb-amount-input-height\\) / 2 - .*\\);");
+		Matcher top = Pattern.compile("top: (calc\\(.*\\));").matcher(media.group(1));
+		assertThat(top.find()).isTrue();
+		assertThat(top.group(1)).as("ボタンの高さ・すき間・電卓の内側の余白から計算する（2 段分＋半段）")
+				.contains("2 * (var(--hb-calc-key-height) + var(--hb-calc-gap))", "var(--hb-calc-key-height) / 2", "var(--hb-space-4)");
+		String place = rule(css(), ".calc-place");
+		assertThat(place).as("変数は、金額の欄の入れ物に置く（電卓が引きつぐ）")
+				.contains("--hb-calc-key-height:", "--hb-calc-gap: var(--hb-space-2)", "--hb-amount-field-top:", "--hb-amount-input-height:");
+	}
+
+	/** 金額の欄は、ブラウザの入力の候補（前に打った値の一覧）を出さない（全部の行。電卓と重なり、前の値は役に立たないため。段階 3-2 の直し） */
+	@Test
+	void everyAmountFieldTurnsOffTheBrowsersSuggestions() throws Exception {
+		for (String body : new String[] { newPage(), editPage(), errorPage() }) {
+			for (int i = 0; i < 5; i++) {
+				Matcher input = Pattern.compile("<input [^>]*id=\"lines" + i + "\\.amount\"[^>]*>").matcher(body);
+				assertThat(input.find()).isTrue();
+				assertThat(input.group()).as((i + 1) + " 行目の金額の欄").contains("autocomplete=\"off\"");
+			}
+			assertThat(count(body, "autocomplete=\"off\"")).as("金額の欄の 5 つだけ（ほかの欄は変えない）").isEqualTo(5);
+		}
 	}
 
 	/** 「キャンセル」「保存」の上に区切り線（1px、--hb-line） */

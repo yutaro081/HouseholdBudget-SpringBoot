@@ -41,14 +41,64 @@ class CalculatorKeysScriptTest {
 				"localStorage", "sessionStorage", "document.cookie", "FormData", ".submit(");
 	}
 
-	/** ボタンも文も、HTML にはじめからある。ここでは作らない・写さない。見せる・隠すと、押せる・押せないだけ */
+	/**
+	 * ボタンも文も、HTML にはじめからある。ここでは作らない・写さない。見せる・隠すと、押せる・押せないと、
+	 * 決まった場所（選んだ行の金額の欄の入れ物）へ電卓を移すことだけ（段階 3-2。要件定義書 7 章）。移すのは 1 か所だけ
+	 */
 	@Test
-	void scriptDoesNotCreateTextOrElements() throws IOException {
+	void scriptDoesNotCreateTextOrElementsAndOnlyMovesTheCalculator() throws IOException {
 		String code = code();
-		assertThat(code).doesNotContain("createElement", "createTextNode", "textContent", "innerText", "cloneNode", "appendChild",
-				"insertBefore", ".remove(", "<template");
+		assertThat(code).doesNotContain("createElement", "createTextNode", "textContent", "innerText", "cloneNode", "importNode",
+				"insertBefore", ".remove(", "removeChild", "replaceChild", ".append(", ".prepend(", "<template");
+		assertThat(code.split(java.util.regex.Pattern.quote("appendChild("), -1)).as("要素を移すのは 1 か所だけ").hasSize(2);
+		assertThat(code).contains("place.appendChild(calc)");
 		assertThat(code).as("文をここに書かない").doesNotContain("税をかけられません", "計算できない");
-		assertThat(code).contains("calc.hidden = false", "button.disabled = locked");
+		assertThat(code).contains("calc.hidden = false", "calc.hidden = true", "button.disabled = locked");
+	}
+
+	/** 位置と見た目は CSS だけで決める。JavaScript で style を書かない（インライン CSS の例外は 1 つだけ。段階 3-2） */
+	@Test
+	void scriptDoesNotWriteInlineStyles() throws IOException {
+		assertThat(code()).doesNotContain(".style", "'style'", "cssText", "getBoundingClientRect", "offsetTop");
+	}
+
+	/** 消すとき：カーソルが欄と電卓の外へ出たとき（focusout の移る先で見分ける）と、Esc キー。Esc ではカーソルを欄に残す */
+	@Test
+	void theCalculatorHidesWhenTheCursorLeavesBothOrOnEscape() throws IOException {
+		String code = code();
+		assertThat(code).contains("'focusout'", "relatedTarget", "calc.contains(", "'Escape'");
+	}
+
+	/**
+	 * Esc キー：先にカーソルを欄に戻してから隠す。逆の順だと、電卓の C・税込にカーソルがあるとき、欄に戻ったときの focus のできごとで
+	 * 電卓がまた出てしまう（段階 3-2 の直し）
+	 */
+	@Test
+	void escapeMovesTheCursorBackToTheFieldBeforeHiding() throws IOException {
+		String code = code();
+		int start = code.indexOf("function hideOnEscape");
+		String handler = code.substring(start, code.indexOf("\n    }", start));
+		assertThat(handler).contains("current.focus()", "hide()");
+		assertThat(handler.indexOf("current.focus()")).as("欄に戻すのが先、隠すのが後").isLessThan(handler.indexOf("hide()"));
+	}
+
+	/**
+	 * 出し直し：電卓が隠れているときに金額の欄を押すと（click）、また出す。Esc のあとは、カーソルがもう欄にあるので focus のできごとが起きないため
+	 * （段階 3-2 の直し（2））
+	 */
+	@Test
+	void clickingTheFieldShowsTheHiddenCalculatorAgain() throws IOException {
+		String code = code();
+		int start = code.indexOf("field.addEventListener('click'");
+		assertThat(start).as("金額の欄を押したときの処理がある").isPositive();
+		String handler = code.substring(start, code.indexOf("});", start));
+		assertThat(handler).contains("if (calc.hidden)", "show(field)");
+	}
+
+	/** 画面からはみ出すときは、いつも下に出したまま、ページを動かして全部見せる（上に出す決まりは作らない） */
+	@Test
+	void theCalculatorIsScrolledIntoViewWhenShown() throws IOException {
+		assertThat(code()).contains("calc.scrollIntoView({ block: 'nearest' })");
 	}
 
 	/** data- の印だけに頼る（クラス名・見た目に頼らない） */
@@ -56,7 +106,7 @@ class CalculatorKeysScriptTest {
 	void scriptUsesOnlyDataMarks() throws IOException {
 		String code = code();
 		assertThat(code).contains("[data-calc]", "[data-calc-key]", "[data-calc-back]", "[data-calc-clear]", "[data-calc-tax]",
-				"[data-calc-tax-note]", "[data-split-amount]", "[data-calc-error]");
+				"[data-calc-tax-note]", "[data-split-amount]", "[data-calc-error]", "[data-calc-place]");
 		assertThat(code).doesNotContain("classList", "className", "getElementsByClassName", "querySelector('.", "querySelectorAll('.");
 	}
 
@@ -68,11 +118,14 @@ class CalculatorKeysScriptTest {
 		assertThat(code).as("式の形の正規表現は、ここに書かない").doesNotContain("[+-][0-9]+");
 	}
 
-	/** 電卓のボタンは、押してもカーソルを欄から動かさない（押す瞬間の決まった動きを止める）。押したあと、入れる先の欄にカーソルを置く */
+	/**
+	 * 電卓の全体（ボタン、すき間、説明の文）は、押してもカーソルを欄から動かさない（電卓の入れ物で、押す瞬間の決まった動きを止める。段階 3-2）。
+	 * 押しそこねても、「電卓の外を押した」扱いにならない。ボタンを押したあと、入れる先の欄にカーソルを置く
+	 */
 	@Test
-	void buttonsDoNotTakeTheCursorAwayFromTheField() throws IOException {
+	void theWholeCalculatorDoesNotTakeTheCursorAwayFromTheField() throws IOException {
 		String code = code();
-		assertThat(code).contains("'mousedown'", "event.preventDefault()", "current.focus()");
+		assertThat(code).contains("calc.addEventListener('mousedown'", "event.preventDefault()", "current.focus()");
 	}
 
 	/** 入れる先：最後にカーソルを置いた金額の欄（focus）。その行が隠れたら（行を消す）、明細 1 に戻す */

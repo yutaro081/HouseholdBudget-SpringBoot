@@ -317,37 +317,65 @@ main.form-wide {
 
 /*
  * 金額の入力を助ける電卓（issue 035 の段階 3。設計書 2.3。issue 009 の金額ボタンの見た目を引きつぐ）。動きは calculator-keys.js（data- の印だけに頼る。クラス名には頼らない）。
- * 入れ物：細い線の枠と角丸。992px 以上では、ページを下に動かしても見える（sticky。上から 16px）。992px 未満は、明細の下にふつうに並ぶ。
+ * 入れ物（段階 3-2）：金額の欄を選んだときだけ、その欄の入れ物（.calc-place）の下の端に、浮かせて重ねる。明細の並びは動かない。摘要や次の明細の上に重なってよい。
+ * 位置はここで決める（JavaScript は、電卓を選んだ行の入れ物へ移して、見せる・隠すだけ。style は書かない）。z-index は「設定」のメニューと同じ 10。
+ * 幅は 18rem まで。入れ物の幅を超えない（max-width: 100%。約 375px の幅でも、横にはみ出さない）。白い地、細い線の枠と角丸。
  * ボタン：4 列の格子。白い地、灰色の枠、角丸。数字・記号は 20px、C と税込は 16px。押せない（税込）ときは、灰色の地と文字。新しい色は使わない。
  */
+/* 金額の欄の入れ物。電卓の位置の計算に使う変数をここに置く（電卓は、この入れ物の中に移されるので、変数を引きつぐ）。
+   --hb-amount-field-top：入れ物の上の端から欄の上の端まで（ラベルの高さ 24px〔16px × 行の高さ 1.5〕と、その下の余白 8px〔Bootstrap の .form-label〕）。
+   --hb-amount-input-height：欄の高さ（文字 20px × 行の高さ 1.5、Bootstrap の上下の余白 6px × 2、枠 2px × 2。.amount-input）。
+   --hb-calc-key-height・--hb-calc-gap：電卓のボタンの高さと、ボタンのすき間 */
+.calc-place {
+    position: relative;
+    --hb-amount-field-top: calc(var(--hb-font-size-body) * 1.5 + 0.5rem);
+    --hb-amount-input-height: calc(var(--hb-font-size-h2) * 1.5 + 0.75rem + 4px);
+    --hb-calc-key-height: 3rem;
+    --hb-calc-gap: var(--hb-space-2);
+}
+
 .calc {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 10;
+    width: 18rem;
+    max-width: 100%;
+    background-color: var(--hb-input-bg);
     border: 1px solid var(--hb-line);
     border-radius: var(--hb-radius-card);
     padding: var(--hb-space-4);
 }
 
+/* 992px 以上：金額の欄のすぐ右（入れ物の右の端から 8px）。右の摘要の欄の上に重なる。幅は入れ物の幅を超えないので、摘要の欄の幅の中に収まる。
+   高さ：「1 2 3 ＋」の段（上から 3 段目）の上下の中心を、金額の欄の上下の中心にそろえる（よく使う段が欄の横に来る。段階 3-2 の直し（3））。
+   ＝ 欄の中心（欄の上の端 ＋ 欄の高さの半分）から、電卓の上の端から 3 段目の中心まで（枠 1px ＋ 内側の余白 ＋ 2 段分 ＋ 半段）を引いた位置。
+   上の 2 段は、欄より上の見出しや上の欄に重なってよい。992px 未満は、上の規則のまま、すぐ下（ずらすと欄そのものが隠れるため） */
 @media (min-width: 992px) {
     .calc {
-        position: sticky;
-        top: var(--hb-space-4);
+        top: calc(var(--hb-amount-field-top) + var(--hb-amount-input-height) / 2 - (1px + var(--hb-space-4) + 2 * (var(--hb-calc-key-height) + var(--hb-calc-gap)) + var(--hb-calc-key-height) / 2));
+        left: 100%;
+        margin-left: var(--hb-space-2);
     }
 }
 
 .calc-keys {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: var(--hb-space-2);
+    gap: var(--hb-calc-gap);
 }
 
 .calc-tax {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: var(--hb-space-2);
-    margin-top: var(--hb-space-2);
+    gap: var(--hb-calc-gap);
+    margin-top: var(--hb-calc-gap);
 }
 
+/* ボタンの高さは変数で決める（右に出すときの位置の計算と、そろえるため） */
 .calc-key {
-    padding: var(--hb-space-2) 0;
+    height: var(--hb-calc-key-height);
+    padding: 0;
     border: 1px solid var(--hb-text-sub);
     border-radius: var(--hb-radius-control);
     background-color: var(--hb-input-bg);
@@ -390,13 +418,6 @@ main.form-wide {
     margin: 0.25rem 0 0;
     color: var(--bs-danger, #c00);
     font-size: var(--hb-font-size-small);
-}
-
-/* 金額の範囲の補足（欄の下） */
-.field-hint {
-    color: var(--hb-text-sub);
-    font-size: var(--hb-font-size-small);
-    margin-top: var(--hb-space-1);
 }
 
 /* ヘッダー（メニュー、ユーザー名、ログアウト）。幅が足りないときは折り返す。メニューの <a> にはクラスを付けない（テストが確かめている） */
