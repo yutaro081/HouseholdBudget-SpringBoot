@@ -2,7 +2,7 @@
 
 全体の位置づけは [実行計画書](execution-plan.md) を見てください。この文書は、[issue 035](../issues/035-入力補助の電卓.md)（今の金額ボタンを、電卓に置きかえる）を進めるための手順書です。
 
-> **状態（2026年11月24日）**：◐ **作業中**。段階 1〔文書〕と段階 2〔キーボードの式。`calculator.js`〕を行った。`.\mvnw clean test` は 3,041 件成功。次は、本人のブラウザでの確かめ〔6 章の段階 2〕と Console の確かめ〔5 章〕。そのあと段階 3。
+> **状態（2026年11月24日）**：◐ **作業中**。段階 1〜3 を行った〔段階 3：行ごとの金額ボタンを、明細の右の共有の電卓に置きかえた〕。`.mvnw clean test` は 3,043 件成功。次は、本人のブラウザでの確かめ〔6 章の段階 3〕と Console の確かめ〔5 章。OK 29 件〕。そのあと段階 4。
 
 - ブランチ：`feature/issue-035-calculator`。秘密情報：パスワード・接続先の値は、どこにも書かない。
 - 進め方：1 つの段階が終わったら止まって、確認を待つ。変更は、文書が先〔要件定義書 → 設計書 → この手順書〕、コードは後。**テストが先**〔失敗を確かめてから直す〕。コミットと push は本人。
@@ -132,7 +132,7 @@ var parts = s.split(/([+-])/);                        // ['1280', '+', '398', '-
 1. アプリを起動し、`csvtest1` でログインして、取引の登録画面を開く〔`calculator.js` を読む画面〕。
 2. ブラウザの開発者ツール〔F12〕の Console を開く。
 3. 下の数行を貼り付けて Enter を押す〔初めて貼り付けるとき、ブラウザが「allow pasting」と打つよう求めることがある〕。
-4. `OK 21 件 / NG 0 件` と出れば合格。NG があれば、出た式と、期待した値・実際の値を Claude Code に見せる。
+4. `OK 29 件 / NG 0 件` と出れば合格〔段階 2 は式の 21 件。段階 3 で税込の 8 件を足した〕。NG があれば、出た式と、期待した値・実際の値を Claude Code に見せる。
 
 ```js
 (function () {
@@ -145,13 +145,23 @@ var parts = s.split(/([+-])/);                        // ['1280', '+', '398', '-
     ];
     var ng = cases.filter(function (c) { return Calculator.evaluate(c[0]) !== c[1]; })
         .map(function (c) { return c[0] + ' → 期待 ' + c[1] + '、実際 ' + Calculator.evaluate(c[0]); });
-    console.log('OK ' + (cases.length - ng.length) + ' 件 / NG ' + ng.length + ' 件');
+    // 段階 3 で足した：税込〔式, 110 か 108, 期待する値〕
+    var taxCases = [
+        ['1280+398-300', 110, 1515], ['1280+398-300', 108, 1488], ['1000', 108, 1080], ['999', 110, 1098],
+        ['0', 110, null], ['', 110, null], ['300-500', 110, null], ['1,000', 110, null]
+    ];
+    taxCases.forEach(function (c) {
+        var actual = Calculator.withTax(c[0], c[1]);
+        if (actual !== c[2]) { ng.push(c[0] + '（' + c[1] + '）→ 期待 ' + c[2] + '、実際 ' + actual); }
+    });
+    var all = cases.length + taxCases.length;
+    console.log('OK ' + (all - ng.length) + ' 件 / NG ' + ng.length + ' 件');
     ng.forEach(function (line) { console.log(line); });
 })();
 ```
 
 - `Calculator.evaluate(式)` は、計算できれば整数、できなければ `null` を返す〔画面の部品には触れない〕。
-- 段階 3 で、税込の確かめを足す〔例：`Calculator.withTax('1280+398-300', 110)` → 1515、`108` → 1488、`'0'` → `null`、`''` → `null`〕。
+- `Calculator.withTax(式, 110 か 108)` は、式を計算してから税込にした整数を返す。空・0 以下・計算できない式なら `null`〔段階 3 で足した。上の一覧の税込の 8 件〕。
 
 ## 6. テストの見込みと、わざと壊す候補〔推測〕
 
@@ -186,6 +196,8 @@ var parts = s.split(/([+-])/);                        // ['1280', '+', '398', '-
   - ページを下に動かしても電卓が見えること、992px 未満の並び。
   - Tab の順番、JavaScript が無効のときに電卓が出ないこと。
   - Console の確かめ〔税込も〕。
+  - 〔2026年11月24日に足した〕登録・編集・複写の画面の上に「← 取引一覧に戻る」が出ないこと。見出しの上の空きが変でないこと。電卓のボタンの下に 2 つの短い説明の文が出ること〔JavaScript が無効のときは出ない〕。
+  - 〔2026年11月24日に足した〕**科目が 0 件のとき**：新しく確かめ用のアカウント〔例：`csvtest3`〕を登録し、その科目〔初期の交通費・食費・雑費〕を全部消してから、ヘッダーの「取引を登録」で登録画面を開く。`csvtest1` は科目が取引に使われていて消せないので使わない。見ること：① 案内のお知らせ〔「先に科目を追加してください。」と「科目の画面へ」のリンク。今まで一度もブラウザで見ていない〕が出て、フォーム・電卓・「保存」は出ない。② ヘッダーの「取引一覧」から一覧へ戻れる。③「科目の画面へ」で科目の画面に移れる。確かめたあと、`csvtest3` は残してよい〔ほかのデータに混ざらない〕。
 
 ## 7. 段階 3 で直す文書の下書き
 
@@ -222,12 +234,15 @@ var parts = s.split(/([+-])/);                        // ['1280', '+', '398', '-
 - 2026年11月24日：本人が、要件定義書〔段階 2 の分〕の案を承認し、Q035-1〔赤〕、Q035-2〔段階 3 で決める〕、整数だけの値は式と見なさない、段階 3 の下書きに書くこと〔7 章の「はっきりさせておくこと」〕を決めた。
 - 2026年11月24日：**段階 1 を行った**。要件定義書〔3 章に 1 文、4.2 に式の 1 項目〕、設計書〔2.3 に「金額の欄の式」の項目、4.3 のファイルの表に `calculator.js`、4.4.2 の `form.html`、7.5〕、この手順書〔8 章の決定、7 章の「はっきりさせておくこと」〕。
 - 2026年11月24日：**段階 2 を行った**〔10 章〕。
+- 2026年11月24日：本人がブラウザで、段階 2 を確かめた〔6 章の段階 2 の全部と、Console の OK 21 件 / NG 0 件。すべて期待どおり〕。段階 2 をコミットした。
+- 2026年11月24日：**段階 3 を始めた**〔11 章〕。
 
 **Console の確かめの記録**〔`calculator.js` を変えるたびに書く〕
 
 | 日 | 段階 | 結果 |
 |---|---|---|
-| 2026年11月24日 | 2〔`calculator.js` を作った〕 | 〔本人が流して書く：OK ○ 件 / NG ○ 件〕 |
+| 2026年11月24日 | 2〔`calculator.js` を作った〕 | **OK 21 件 / NG 0 件**〔本人〕 |
+| 2026年11月24日 | 3〔`withTax` を足した〕 | 〔本人が流して書く：期待は OK 29 件 / NG 0 件〕 |
 
 ## 10. 段階 2 の記録〔2026年11月24日〕
 
@@ -248,3 +263,76 @@ var parts = s.split(/([+-])/);                        // ['1280', '+', '398', '-
 **わざと壊した**：`calculator.js` に一時的に `innerHTML` を書くと、`CalculatorScriptTest.scriptDoesNotBuildHtmlOrRunStrings` と `StaticScriptSafetyTest.noScriptBuildsHtmlFromStringsOrRunsStrings` の 2 件が失敗した〔新しいファイルも見張られている〕。元に戻した。
 
 **全体のテスト**：`.\mvnw clean test` は **3,041 件・失敗 0**〔前 3,019 件。`CalculatorScriptTest` +10、`TransactionFormulaTest` +12〕。6 章の見込み〔約 3,034 件〕より 7 件多い〔見張り役の式を 6 つにした、画面のテストを 5 件にした〕。
+
+## 11. 段階 3 の記録〔2026年11月24日〕
+
+**文書〔7 章の下書きを使って直した〕**
+- 要件定義書：3 章〔金額ボタンの文を、電卓の文に〕、4.2〔金額ボタンの項目を電卓の項目に置きかえ。式の項目の「式が入った欄で金額を助けるボタンを押すと…」を、電卓の文に〕、8 章。
+- 下書きから変えた所〔本人の決めたことと、作り方を詰めて足した所〕：
+  - 4.2：電卓は「明細の右。ページを下に動かしても見える」、「その行を消したときは明細 1」、「電卓のボタンを押しても、カーソルは欄から動かない」を足した。
+  - 4.2：「＋」「−」は「欄の式を先に計算してから、最後に付け足す。欄が空のときは何もしない」〔下書きは「欄の最後に付け足す」だけ〕。
+  - 4.2：「税込」は「欄が空・0 以下のときは何もしない」を足した。「＋」「−」「税込」で式が計算できないときは、計算できないときの文を出す、を足した。
+  - 4.2：押せない状態を戻す「空にする」に、「←」で空にしたときを含めた。「押せる・押せないは、欄ごとに持ち、電卓は、いま入れる先の欄の状態を表示する」を足した。
+  - 4.2〔式の項目〕：「式が入った欄で金額を助けるボタンを押すと、先に式を計算してから、ボタンが効く。」→「電卓の「＋」「−」「税込」は、欄の式を先に計算してから効く（電卓のボタンではカーソルが欄から動かないので、欄から離れたときの計算は起きない）。」
+- 設計書：2.3〔並び、複写の税込、金額ボタンの節を「金額の入力を助ける電卓」の節に置きかえ、式の節の「電卓との関係」「説明」〕、1.1〔JavaScript の一覧〕、2.1〔JavaScript のファイル〕、2.3 の予算額の合計の読み方、4.3〔`amount-buttons.js` の行を `calculator-keys.js` に、`split-lines.js` と `budget-total.js` の説明〕、4.4.2、7.5。
+
+**ファイルを分けた〔手順書の指示 5：200 行の上限を上げずに済むように〕**
+- 段階 2 の `calculator.js` は 129 行。電卓のボタンの動き〔入れる先、数字・記号・←・C・税込、税込の押せない状態を欄ごとに〕を足すと、約 230 行になり、テストの上限〔200 行〕を超える見込みだった。
+- そこで、**`calculator.js`〔式と税込の計算、キーボードの式〕と、`calculator-keys.js`〔電卓のボタン〕の 2 つに分けた**。`calculator-keys.js` は、`calculator.js` が出す `window.Calculator`〔`evaluate`・`withTax`〕を使うので、**`calculator.js` の後に読む**〔読む順に頼ることを、`form.html` と両方のファイルのコメントに書いた〕。
+- 2 つのファイルの間のやりとり：電卓が欄を書いたら `input` のできごとを起こす。`calculator-keys.js` は、自分で起こした `input` を見分けて、税込を押せるようにしない。
+
+**電卓の説明の文**：行ごとのボタンの組と一緒に、明細の上の説明の段落〔`data-amount-explain`〕もなくした。説明の文〔「税込」の端数、税率が混ざるレシート、キーボードの式〕は、電卓の中の下に移した〔設計書 2.3〕。
+
+**テストを先に書いた**〔コードの前〕
+- 新しく作った：`CalculatorKeysScriptTest`〔9 件。禁止の書き方、通信しない、文と要素を作らない、`data-` の印だけ、計算は `window.Calculator` に任せる、押してもカーソルを動かさない〔`mousedown`〕、入れる先〔`focus`、隠れた行は明細 1〕、税込の押せない状態を欄ごとに持つ〔最初の状態、自分で起こした `input` は手で書き換えたことにしない〕〕。
+- 新しく作った：`TransactionCalculatorTest`〔10 件。`TransactionAmountButtonsTest` を置きかえる：電卓は 1 つで `hidden`、ボタンの並び〔構想どおり〕、税込 10%・8%、全部 `type="button"` で 18 個・Tab で止まるのは C と税込だけ、押せないときの文は電卓の中に 1 つ、説明は電卓の中、行ごとの金額ボタンがない、JS を読む順、ほかの画面は読まない、右の列に置く〕。
+- 足した：`CalculatorScriptTest` +1〔税込の計算〕、`SplitLinesScriptTest` +1〔合計は `input` だけで計算し直す〕。
+- 直した〔件数は同じ〕：`CalculatorScriptTest`〔出す関数に `withTax`〕、`TransactionFormLayoutTest` 3 件〔並び：計算できないときの文と電卓の位置。CSS：金額ボタンの 2 件を、電卓のボタンの格子と、電卓の sticky・文の 2 件に置きかえた〕、`TransactionFormulaTest` 2 件〔金額ボタンがないこと、説明の文は電卓の中〕。
+- コードの前に流した結果〔関係する 7 クラス、80 件〕：**26 件が失敗**。`CalculatorKeysScriptTest` 9 件〔ファイルがない〕、`TransactionCalculatorTest` 9 件〔電卓がない。ほかの画面が読まない 1 件は通った〕、`CalculatorScriptTest` 2 件〔`withTax` がない〕、`TransactionFormLayoutTest` 3 件、`TransactionFormulaTest` 2 件、`SplitLinesScriptTest` 1 件〔ボタンを押したときの計算し直しが残っている〕。
+
+**コード**
+- `calculator.js`〔140 行〕：`withTax` を足し、`window.Calculator = { evaluate, withTax }`。コメントを段階 3 に合わせた。
+- `calculator-keys.js`〔新しく作った。142 行〕：電卓のボタン。
+- `transactions/form.html`：明細の行と「行を足す」を左の列〔`col-lg-8`〕、電卓を右の列〔`col-lg-4`〕に。行の 3 項目は `col-lg-4` ずつ〔前は 3・5・4。金額の下のボタンがなくなったので〕。行ごとの金額ボタンの組と、明細の上の説明の段落をなくした。読む JS は `split-lines.js`、`calculator.js`、`calculator-keys.js`〔この順。コメントに書いた〕。
+- `style.css`：`.amount-buttons`・`.amount-row`・`.amount-row-label`・`.amount-group`・`.amount-btn`〔4 つ〕・`.amount-clear`・`.amount-note`・`.form-common + .amount-note` をなくし、`.calc`〔992px 以上で sticky〕・`.calc-keys`・`.calc-tax`・`.calc-key`〔hover・focus-visible・disabled〕・`.calc-key-small`・`.calc-note` を足した。`.amount-input` と `.calc-error` は残した。
+- `split-lines.js`：行の中のボタンを押したときの計算し直しをやめた〔`input` だけ〕。コメントを直した。
+- `BudgetTotalScriptTest` のコメント 1 行〔読み方の比べる相手〕。
+
+**関係するテスト**：13 クラス・210 件が通った。
+
+**消したファイル**〔決まったこと 6。本人の許しを得て、Claude Code が `git rm` を打った〕
+```
+git rm src/main/resources/static/js/amount-buttons.js src/test/java/io/github/yutaro081/householdbudget/AmountButtonsScriptTest.java src/test/java/io/github/yutaro081/householdbudget/controller/TransactionAmountButtonsTest.java
+```
+
+**全体のテスト**：`.\mvnw clean test` は **3,043 件・失敗 0**〔前 3,041 件。減った：`AmountButtonsScriptTest` −7、`TransactionAmountButtonsTest` −12。増えた：`CalculatorKeysScriptTest` +9、`TransactionCalculatorTest` +10、`CalculatorScriptTest` +1、`SplitLinesScriptTest` +1。差は +2〕。
+
+**Console の確かめ**：`calculator.js` を変えたので、本人が 5 章の数行を流す〔期待：OK 29 件 / NG 0 件〕。結果は 9 章の表に書く。
+
+**段階 3 で、あとから頼まれて足した直し〔2026年11月24日・本人〕**
+
+1. **ついでの変更〔電卓とは別〕：取引の登録・編集の画面の上の「← 取引一覧に戻る」〔`p.back-link`〕を外した**。
+   - 理由：同じ行き先へは、ヘッダーの「取引一覧」と、右下の「キャンセル」で行ける。科目・取引先・支払方法の変更画面にもこのリンクはなく、外せばそろう。科目などが空でフォームを出さないときも、ヘッダーの「取引一覧」から戻れる。
+   - `.back-link` の CSS も外した〔`templates` を検索して、ほかの画面で使っていないことを確かめた。使っていたのは `transactions/form.html` だけ〕。
+   - 設計書 2.3〔登録画面の表示の表〕と 4.4.2〔`form.html` の行〕を直した。
+   - テスト：`TransactionFormLayoutTest` の 2 件を書きかえた〔戻るリンクがなく、ヘッダーの「取引一覧」から戻れること。科目などが空のときも同じで、`.back-link` の CSS がないこと〕。件数は同じ。
+   - issue 023 の手順書の段階 3〔保留〕の下書きに、「「← 取引一覧に戻る」は issue 035 で外した。変えるのは「キャンセル」だけになる」と書き足した。
+2. **電卓の説明の文を短くした**〔明細の上の説明の段落〔`data-amount-explain`〕は、段階 3 の最初に電卓の中へ移してあった。その文を短くし、2 つの段落にした〕。
+   - 文：「税込は、欄の金額を税抜として計算します（端数は切り捨て）。税率の違う品は、行を分けて登録してください。」「欄には 1280+398-300 のような式も打てます（Enter で計算）。」〔13px、`calc-note`。電卓のボタンの下。電卓と一緒に、JavaScript が動くときだけ見える〕。
+   - 理由：説明が長くなり、明細の上で場所を取っていた。税込と式は電卓に集まるので、使う所のそばに置く。「保存」の下に置くと、保存のあとに読むことになる。
+   - 設計書 2.3〔電卓の節の「説明」〕を直した。テスト：`TransactionCalculatorTest` の 1 件〔文と位置〕、`TransactionFormulaTest` の 1 件〔式の文〕を直した。件数は同じ。
+
+**テストを先に書かなかったことと、その代わりの確かめ〔2026年11月24日〕**
+- 上の 2 つの直し〔「← 取引一覧に戻る」を外す、説明の文を短くする〕は、**テストより先にコードを直した**〔決まりは「テストを先に書き、失敗を確かめてからコード」。順番を間違えた〕。そのため、コードの前に失敗したテストの件数はない。
+- 代わりに、本人の指示で、**直したあとのコードを一時的に前の形に戻して、テストが失敗することを確かめた**〔どれも確かめたあと元に戻した〕。
+
+**わざと壊して確かめた**〔2026年11月24日。どれも元に戻した〕
+
+| 壊したこと | 失敗したテスト | 結果 |
+|---|---|---|
+| `calculator-keys.js` に一時的に `innerHTML` を書いた〔段階 3 の候補 A〕 | `CalculatorKeysScriptTest.scriptDoesNotBuildHtmlOrRunStrings`、`StaticScriptSafetyTest.noScriptBuildsHtmlFromStringsOrRunsStrings` | 2 件が失敗〔新しいファイルも見張られている〕 |
+| `form.html` に「← 取引一覧に戻る」〔`p.back-link`〕を一時的に戻した | `TransactionFormLayoutTest.thereIsNoBackLinkAndCancelIsInsideTheFormBeforeTheSubmitButton`、`whenTheMastersAreEmptyAndNoFormIsShownTheHeaderStillLeadsBackToTheList` | 2 件が失敗 |
+| 電卓の中の説明の文を、一時的に前の長い文に戻した | `TransactionCalculatorTest.theShortExplanationIsInsideTheCalculatorBelowTheButtons` | 1 件が失敗 |
+
+- 戻したあと：関係する 4 クラス〔`StaticScriptSafetyTest`、`CalculatorKeysScriptTest`、`TransactionFormLayoutTest`、`TransactionCalculatorTest`〕の 48 件が通った。`.\mvnw clean test` は **3,043 件・失敗 0**〔件数は変わらない〕。
+- 戻したことは、ファイルを検索して確かめた〔`calculator-keys.js` に `innerHTML` がない、`form.html` に `back-link` と前の長い文がない〕。

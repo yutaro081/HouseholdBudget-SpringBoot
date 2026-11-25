@@ -8,7 +8,7 @@
 (function () {
     'use strict';
 
-    // 桁が多すぎる値は、数字でない扱いにする（amount-buttons.js、budget-total.js と同じ）。
+    // 桁が多すぎる値は、数字でない扱いにする（calculator.js、budget-total.js と同じ）。
     var MAX_DIGITS = 9;
 
     // 全角の数字（０〜９）を、半角の数字に直す。サーバーの StrictIntegerEditor と同じ。ほかの文字は直さない。
@@ -103,7 +103,7 @@
 
             // 行を消す（明細 2〜5 だけにある）：確認なしで、その行の科目・金額・摘要を空にして、行を隠す。
             // 欄に input のできごとを起こして、ほかの処理に「空になった」ことを知らせる
-            // （amount-buttons.js が「税込にする」を押せる状態に戻し、下の合計が計算し直す）。
+            // （calculator-keys.js が、その欄の電卓の「税込」を押せる状態に戻し、下の合計が計算し直す）。
             rows.forEach(function (row) {
                 var removeButton = row.querySelector('[data-split-remove]');
                 if (!removeButton) {
@@ -143,14 +143,10 @@
                     notNumberNote.hidden = !result.hasNotNumber;
                 }
             };
+            // 欄の input のできごとで計算し直す。電卓のボタン（calculator-keys.js）と式の計算（calculator.js）も、欄を書いたあとに
+            // input のできごとを起こして知らせるので、読む順に頼らない（issue 035 の段階 3 で、ボタンを押したときの計算し直しをやめた）。
             amountFields.forEach(function (field) {
                 field.addEventListener('input', update);
-            });
-            // 金額ボタン（足す・税込・クリア）が欄を書き換えても input イベントは起きないので、ボタンを押したあとにも計算し直す
-            rows.forEach(function (row) {
-                row.querySelectorAll('button[type="button"]').forEach(function (button) {
-                    button.addEventListener('click', update);
-                });
             });
             update();
             totalBox.hidden = false;

@@ -72,7 +72,18 @@ class SplitLinesScriptTest {
 		assertThat(code).doesNotContain("classList", "className", "getElementsByClassName", "querySelector('.", "querySelectorAll('.");
 	}
 
-	/** 金額の欄の読み方は、amount-buttons.js・budget-total.js と同じ（全角の数字を半角に直す。桁が多すぎる値は数字でない扱い） */
+	/**
+	 * 合計は、欄の input のできごとだけで計算し直す（issue 035 の段階 3）。電卓・式の計算が欄を書いたときも input を起こして知らせるので、
+	 * 行の中のボタンを押したときの計算し直し（前の金額ボタンのため）はやめた。読む順にも頼らない
+	 */
+	@Test
+	void theTotalIsRecalculatedOnlyByInputEvents() throws IOException {
+		String code = code();
+		assertThat(code).contains("field.addEventListener('input', update)");
+		assertThat(code).doesNotContain("button[type=\"button\"]", "addEventListener('click', update)", "amount-buttons");
+	}
+
+	/** 金額の欄の読み方は、calculator.js・budget-total.js と同じ（全角の数字を半角に直す。桁が多すぎる値は数字でない扱い） */
 	@Test
 	void scriptReadsAmountsLikeTheOtherScripts() throws IOException {
 		String code = code();

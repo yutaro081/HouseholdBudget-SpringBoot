@@ -218,11 +218,6 @@ main.form-wide {
     }
 }
 
-/* 上の「← 取引一覧に戻る」リンク */
-.back-link {
-    margin-bottom: var(--hb-space-3);
-}
-
 /* フォームの面：白いカード（背景 #F6F8F8 の上に置く）。1 列のときは内側の余白を少なくする */
 .form-card {
     background-color: var(--hb-input-bg);
@@ -312,11 +307,6 @@ main.form-wide {
     font-size: var(--hb-font-size-small);
 }
 
-/* 金額ボタンの説明（明細の上に 1 回だけ。issue 032） */
-.form-common + .amount-note {
-    margin-top: var(--hb-space-3);
-}
-
 /* 金額の欄：大きめの文字（見出しの 1.75rem）、ターコイズの枠（#0E9594。白との比 3.66 対 1）、数字は右寄せ。選んだとき（フォーカス）は .form-control:focus の枠が効く */
 .amount-input {
     border: 2px solid var(--hb-teal);
@@ -325,67 +315,73 @@ main.form-wide {
     text-align: right;
 }
 
-/* 金額を入れやすくするボタン（issue 009、issue 025 の段階 4 で 2 つのまとまりに）：「足す」と「税込にする」。左に 13px の灰色のラベル、右に、つながった 1 つの形のボタン（外枠 1 つ、間は線）。
-   「金額をクリア」は、税込にするのまとまりのすぐ右の、灰色の枠の小さいボタン（row-btn。issue 029 で、文字のリンクの見た目から変えた）。押せない（税込）ときは、灰色の地と文字。動きは amount-buttons.js（data- の印だけに頼る。クラス名には頼らない） */
-.amount-buttons {
+/*
+ * 金額の入力を助ける電卓（issue 035 の段階 3。設計書 2.3。issue 009 の金額ボタンの見た目を引きつぐ）。動きは calculator-keys.js（data- の印だけに頼る。クラス名には頼らない）。
+ * 入れ物：細い線の枠と角丸。992px 以上では、ページを下に動かしても見える（sticky。上から 16px）。992px 未満は、明細の下にふつうに並ぶ。
+ * ボタン：4 列の格子。白い地、灰色の枠、角丸。数字・記号は 20px、C と税込は 16px。押せない（税込）ときは、灰色の地と文字。新しい色は使わない。
+ */
+.calc {
+    border: 1px solid var(--hb-line);
+    border-radius: var(--hb-radius-card);
+    padding: var(--hb-space-4);
+}
+
+@media (min-width: 992px) {
+    .calc {
+        position: sticky;
+        top: var(--hb-space-4);
+    }
+}
+
+.calc-keys {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--hb-space-2);
+}
+
+.calc-tax {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--hb-space-2);
     margin-top: var(--hb-space-2);
 }
 
-.amount-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--hb-space-2) var(--hb-space-3);
-    margin-bottom: var(--hb-space-2);
-}
-
-.amount-row-label {
-    flex: 0 0 5.5em;
-    color: var(--hb-text-sub);
-    font-size: var(--hb-font-size-small);
-}
-
-.amount-group {
-    display: inline-flex;
+.calc-key {
+    padding: var(--hb-space-2) 0;
     border: 1px solid var(--hb-text-sub);
     border-radius: var(--hb-radius-control);
-    overflow: hidden;
     background-color: var(--hb-input-bg);
-}
-
-.amount-btn {
-    padding: 0.375rem 0.875rem;
-    border: 0;
-    background-color: transparent;
     color: var(--hb-text);
     font: inherit;
-    font-size: var(--hb-font-size-body);
+    font-size: var(--hb-font-size-h2);
     line-height: 1.5;
     cursor: pointer;
 }
 
-.amount-btn + .amount-btn {
-    border-left: 1px solid var(--hb-text-sub);
+.calc-key-small {
+    font-size: var(--hb-font-size-body);
 }
 
-.amount-btn:hover:not(:disabled) {
+.calc-key:hover:not(:disabled) {
     background-color: var(--hb-row-hover);
 }
 
-.amount-btn:focus-visible {
+.calc-key:focus-visible {
     outline: 2px solid var(--hb-teal-button);
-    outline-offset: -2px;
+    outline-offset: 2px;
 }
 
-.amount-btn:disabled {
+.calc-key:disabled {
     background-color: var(--hb-bg);
     color: var(--hb-text-sub);
     cursor: not-allowed;
 }
 
-/* 金額をクリア：見た目は .row-btn（灰色の枠、13px）。8% との間を、まとまりの間の 12px ＋ 4px で 16px にする（押し間違いを防ぐ。issue 029） */
-.amount-clear {
-    margin-left: var(--hb-space-1);
+/* 電卓の中の文（税込を押せないとき・説明）：13px の補足の色 */
+.calc-note {
+    margin: var(--hb-space-2) 0 0;
+    color: var(--hb-text-sub);
+    font-size: var(--hb-font-size-small);
 }
 
 /* 金額の欄の式が計算できないときの文（issue 035。設計書 2.3、Q035-1）：エラーの文（.field-error）と同じ赤と大きさ。
@@ -393,12 +389,6 @@ main.form-wide {
 .calc-error {
     margin: 0.25rem 0 0;
     color: var(--bs-danger, #c00);
-    font-size: var(--hb-font-size-small);
-}
-
-.amount-note {
-    margin: 0;
-    color: var(--hb-text-sub);
     font-size: var(--hb-font-size-small);
 }
 

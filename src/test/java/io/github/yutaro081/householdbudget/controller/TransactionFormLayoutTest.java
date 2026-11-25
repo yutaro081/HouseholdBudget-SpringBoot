@@ -128,17 +128,18 @@ class TransactionFormLayoutTest {
 		assertThat(errorPage()).as("入力エラーで表示し直した登録画面").containsPattern("<button type=\"submit\"[^>]*>保存</button>");
 	}
 
+	/**
+	 * 上の「← 取引一覧に戻る」は、issue 035 で外した（同じ行き先へは、ヘッダーの「取引一覧」と右下の「キャンセル」で行けるため。
+	 * 科目などの変更画面にもないので、そろう）。キャンセルはフォームの中、送信ボタンの前
+	 */
 	@Test
-	void backLinkIsAboveTheFormAndCancelIsInsideTheFormBeforeTheSubmitButton() throws Exception {
+	void thereIsNoBackLinkAndCancelIsInsideTheFormBeforeTheSubmitButton() throws Exception {
 		for (String body : new String[] { newPage(), editPage(), errorPage() }) {
-			int back = body.indexOf("← 取引一覧に戻る");
 			int form = formStart(body);
 			int cancel = body.indexOf("キャンセル");
 			int submit = body.indexOf("<button type=\"submit\"", form);
-			assertThat(back).as("上の戻るリンクがある").isPositive();
-			assertThat(body).containsPattern("<a [^>]*href=\"/transactions\"[^>]*>← 取引一覧に戻る</a>");
-			assertThat(body.indexOf("<h1")).as("見出しの上").isGreaterThan(back);
-			assertThat(form).as("戻るリンクはフォームの外（フォームの前）").isGreaterThan(back);
+			assertThat(body).as("上の戻るリンクはない").doesNotContain("取引一覧に戻る", "back-link");
+			assertThat(body).as("ヘッダーの「取引一覧」から戻れる").containsPattern("(?s)<a [^>]*href=\"/transactions\"[^>]*>(?:(?!</a>).)*取引一覧</a>");
 			assertThat(cancel).as("キャンセルはフォームの中").isGreaterThan(form);
 			assertThat(submit).as("キャンセルは送信ボタンの前（右下は、キャンセル → 送信の順）").isGreaterThan(cancel);
 			assertThat(body).containsPattern("<a [^>]*href=\"/transactions\"[^>]*>キャンセル</a>");
@@ -150,15 +151,18 @@ class TransactionFormLayoutTest {
 	void cancelIsALinkNotAButtonSoEnterStillSubmitsTheForm() throws Exception {
 		String body = newPage();
 		String formPart = body.substring(formStart(body), body.indexOf("</form>", formStart(body)));
-		assertThat(count(formPart, "<button")).as("フォームの中は、送信ボタン 1 つのほかは、金額ボタン（type=button）だけ").isEqualTo(count(formPart, "type=\"button\"") + 1);
+		assertThat(count(formPart, "<button")).as("フォームの中は、送信ボタン 1 つのほかは、type=button のボタン（電卓・行を足す・行を消す）だけ").isEqualTo(count(formPart, "type=\"button\"") + 1);
 	}
 
+	/** 科目などが空でフォームを出さないときも、ヘッダーの「取引一覧」から戻れる（上の戻るリンクは issue 035 で外した）。.back-link の CSS もなくした */
 	@Test
-	void backLinkIsShownEvenWhenTheMastersAreEmptyAndNoFormIsShown() throws Exception {
+	void whenTheMastersAreEmptyAndNoFormIsShownTheHeaderStillLeadsBackToTheList() throws Exception {
 		Long id = userRepository.save(new User("formlay2", "dummy-hash-for-test")).getId();
 		String body = mockMvc.perform(get("/transactions/new").with(user(new LoginUser(id, "formlay2", "x"))))
 				.andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-		assertThat(body).contains("← 取引一覧に戻る", "先に科目を追加してください").doesNotContain("キャンセル", "name=\"lines[0].amount\"");
+		assertThat(body).contains("先に科目を追加してください").doesNotContain("キャンセル", "name=\"lines[0].amount\"", "取引一覧に戻る");
+		assertThat(body).containsPattern("(?s)<a [^>]*href=\"/transactions\"[^>]*>(?:(?!</a>).)*取引一覧</a>");
+		assertThat(css()).doesNotContain(".back-link");
 	}
 
 	// ---- ラベルの横の印 ----
@@ -212,15 +216,15 @@ class TransactionFormLayoutTest {
 		assertThat(body).doesNotContain("円。1〜1000000の整数", "円。1〜");
 		assertThat(count(body, "1〜1,000,000 の整数")).as("金額の欄ごとに 1 つ").isEqualTo(5);
 		assertThat(body.indexOf("id=\"lines0.amount\"")).isLessThan(body.indexOf("1〜1,000,000 の整数"));
-		assertThat(body.indexOf("1〜1,000,000 の整数")).as("金額ボタンの前").isLessThan(body.indexOf("data-amount-buttons"));
+		assertThat(body.indexOf("1〜1,000,000 の整数")).as("計算できないときの文の前（issue 035。金額ボタンはなくした）").isLessThan(body.indexOf("data-calc-error"));
 		assertThat(count(newPage(), "class=\"field-error\"")).as("エラーがない画面に field-error はない").isZero();
 	}
 
 	// ---- 並び（HTML の順 = Tab の順。issue 032） ----
 
 	/**
-	 * 上に共通の項目（日付 → 取引先 → 支払方法）、その下に明細の行（行ごとに 科目 → 金額 → 金額ボタン → 摘要）、
-	 * そのあと「行を足す」（登録だけ）と明細の合計、最後に「キャンセル」「保存」。HTML の順が Tab で進む順
+	 * 上に共通の項目（日付 → 取引先 → 支払方法）、その下に明細の行（行ごとに 科目 → 金額 → 計算できないときの文 → 摘要）、
+	 * そのあと「行を足す」と電卓（issue 035。明細の右の列）、明細の合計、最後に「キャンセル」「保存」。HTML の順が Tab で進む順
 	 */
 	@Test
 	void commonFieldsComeFirstThenEachLineThenTheTotalThenTheButtons() throws Exception {
@@ -233,22 +237,22 @@ class TransactionFormLayoutTest {
 			int pay = body.indexOf("id=\"paymentMethodId\"");
 			assertThat(date).isPositive().isLessThan(vend);
 			assertThat(vend).isLessThan(pay);
-			int explain = body.indexOf("data-amount-explain");
-			assertThat(explain).as("金額ボタンの説明は、明細の上に 1 回だけ（issue 032）").isGreaterThan(pay);
-			int previous = explain;
+			int previous = pay;
 			for (int i = 0; i < lines; i++) {
 				int cat = body.indexOf("id=\"lines" + i + ".categoryId\"");
 				int amount = body.indexOf("id=\"lines" + i + ".amount\"");
-				int buttons = body.indexOf("data-amount-target=\"lines" + i + ".amount\"");
+				int calcError = body.indexOf("data-calc-target=\"lines" + i + ".amount\"");
 				int desc = body.indexOf("id=\"lines" + i + ".description\"");
 				assertThat(cat).as((i + 1) + " 行目の科目は、前の項目のあと").isGreaterThan(previous);
 				assertThat(amount).isGreaterThan(cat);
-				assertThat(buttons).as("金額ボタンは、金額の欄と摘要の間").isGreaterThan(amount).isLessThan(desc);
+				assertThat(calcError).as("計算できないときの文は、金額の欄と摘要の間").isGreaterThan(amount).isLessThan(desc);
 				previous = desc;
 			}
 			assertThat(body.indexOf("id=\"lines" + lines + ".categoryId\"")).as("行は " + lines + " つ").isNegative();
+			int calc = body.indexOf("<div class=\"calc\" data-calc");
+			assertThat(calc).as("電卓は、最後の行と「行を足す」のあと（右の列。issue 035）").isGreaterThan(previous).isGreaterThan(body.indexOf("data-split-add"));
 			int total = body.indexOf("data-split-total-box");
-			assertThat(total).as("明細の合計は、最後の行のあと").isGreaterThan(previous);
+			assertThat(total).as("明細の合計は、電卓のあと").isGreaterThan(calc);
 			assertThat(body.indexOf("<button type=\"submit\"", formStart(body))).as("送信ボタンは、合計のあと").isGreaterThan(total);
 		}
 	}
@@ -399,37 +403,38 @@ class TransactionFormLayoutTest {
 		assertThat(r).doesNotContain("--hb-font-size-h1");
 	}
 
-	/** 「足す」「税込にする」のまとまり：外枠 1 つ（1px。枠は #56625F）、角丸、ボタンの間は線。4 段の大きさだけ */
+	/**
+	 * 電卓のボタン（issue 035。issue 009 の金額ボタンの見た目を引きつぐ）：4 列の格子。白い地、灰色の枠（#56625F）、角丸。
+	 * 数字・記号は 20px、C と税込は 16px（4 段の大きさだけ）。押せないとき（税込）は、灰色の地と文字、押せない形のカーソル。新しい色は使わない
+	 */
 	@Test
-	void theGroupsAreOneConnectedShapeWithOneOuterBorderAndLinesBetween() throws Exception {
+	void theCalculatorKeysAreAGridOfOutlinedButtonsWithTheExistingColors() throws Exception {
 		String css = css();
-		String group = rule(css, ".amount-group");
-
-		assertThat(group).contains("display: inline-flex", "border: 1px solid var(--hb-text-sub)", "border-radius: var(--hb-radius-control)", "overflow: hidden",
-				"background-color: var(--hb-input-bg)");
-		String button = rule(css, ".amount-btn");
-		assertThat(button).contains("border: 0", "font-size: var(--hb-font-size-body)", "color: var(--hb-text)");
-		assertThat(rule(css, ".amount-btn + .amount-btn")).as("ボタンの間の線").contains("border-left: 1px solid var(--hb-text-sub)");
-		assertThat(rule(css, ".amount-btn:disabled")).as("押せないとき（税込）：灰色の地と文字、押せない形のカーソル").contains("cursor: not-allowed", "color: var(--hb-text-sub)");
-		assertThat(css).doesNotContain("btn-sm");
+		assertThat(rule(css, ".calc-keys")).contains("display: grid", "grid-template-columns: repeat(4, 1fr)", "gap: var(--hb-space-2)");
+		assertThat(rule(css, ".calc-tax")).contains("display: grid", "grid-template-columns: repeat(2, 1fr)");
+		String key = rule(css, ".calc-key");
+		assertThat(key).contains("border: 1px solid var(--hb-text-sub)", "border-radius: var(--hb-radius-control)", "background-color: var(--hb-input-bg)",
+				"color: var(--hb-text)", "font-size: var(--hb-font-size-h2)");
+		assertThat(key).doesNotContainPattern("#[0-9A-Fa-f]{3,6}");
+		assertThat(rule(css, ".calc-key-small")).contains("font-size: var(--hb-font-size-body)");
+		assertThat(rule(css, ".calc-key:hover:not(:disabled)")).contains("background-color: var(--hb-row-hover)");
+		assertThat(rule(css, ".calc-key:disabled")).as("押せないとき（税込）").contains("background-color: var(--hb-bg)", "color: var(--hb-text-sub)", "cursor: not-allowed");
+		assertThat(css).as("行ごとの金額ボタンの決まりは、なくした").doesNotContain(".amount-btn", ".amount-group", ".amount-row", ".amount-clear", ".amount-buttons");
 	}
 
 	/**
-	 * ラベル「足す」「税込にする」は 13px の灰色。説明は 13px。
-	 * 「金額をクリア」は、row-btn（灰色の枠、13px）の見た目で、文字のリンクの見た目（枠なし・下線）をやめる。
-	 * 8% との間は、まとまりの間（12px）＋ 左の 4px で 16px（押し間違いを防ぐため。issue 029）
+	 * 電卓の入れ物：細い線の枠と角丸。992px 以上では、ページを下に動かしても見える（position: sticky。上から 16px）。
+	 * 電卓の中の文（押せないとき・説明）は 13px の補足の色
 	 */
 	@Test
-	void theLabelsAreSmallGrayTheClearIsAnOutlinedButton16pxAwayAndTheNoteIs13px() throws Exception {
+	void theCalculatorSticksFrom992pxAndItsNotesAre13pxGray() throws Exception {
 		String css = css();
-
-		assertThat(rule(css, ".amount-row-label")).contains("font-size: var(--hb-font-size-small)", "color: var(--hb-text-sub)");
-		assertThat(rule(css, ".amount-row")).contains("gap: var(--hb-space-2) var(--hb-space-3)");
-		String clear = rule(css, ".amount-clear");
-		assertThat(clear).contains("margin-left: var(--hb-space-1)")
-				.doesNotContain("border: 0", "background: none", "text-decoration: underline");
-		assertThat(rule(css, ".row-btn")).contains("border: 1px solid var(--hb-text-sub)", "font-size: var(--hb-font-size-small)");
-		assertThat(rule(css, ".amount-note")).contains("font-size: var(--hb-font-size-small)", "color: var(--hb-text-sub)");
+		assertThat(rule(css, ".calc")).contains("border: 1px solid var(--hb-line)", "border-radius: var(--hb-radius-card)", "padding: var(--hb-space-4)");
+		Matcher media = Pattern.compile("(?s)@media \\(min-width: 992px\\) \\{\\s*\\.calc \\{([^}]*)\\}").matcher(css);
+		assertThat(media.find()).as("992px 以上の規則").isTrue();
+		assertThat(media.group(1)).contains("position: sticky", "top: var(--hb-space-4)");
+		assertThat(rule(css, ".calc").contains("sticky")).as("992px 未満では sticky にしない").isFalse();
+		assertThat(rule(css, ".calc-note")).contains("font-size: var(--hb-font-size-small)", "color: var(--hb-text-sub)");
 	}
 
 	/** 「キャンセル」「保存」の上に区切り線（1px、--hb-line） */

@@ -90,10 +90,18 @@ class CalculatorScriptTest {
 		assertThat(code()).contains("dispatchEvent(new Event('input'))");
 	}
 
-	/** Console で確かめるために、計算の関数だけを出す（画面の部品には触れない） */
+	/** Console で確かめるために、計算の関数だけを出す（画面の部品には触れない）。段階 3 で、税込（withTax）も出す。calculator-keys.js も、これを使う */
 	@Test
 	void onlyTheCalculationIsExposed() throws IOException {
-		assertThat(code()).contains("window.Calculator = { evaluate: evaluate }");
+		assertThat(code()).contains("window.Calculator = { evaluate: evaluate, withTax: withTax }");
+	}
+
+	/** 税込：式を先に計算し、整数だけで、110 か 108 を掛けて 100 で割り、端数を切り捨てる（今までの金額ボタンと同じ計算。issue 035 の段階 3） */
+	@Test
+	void withTaxCalculatesTheFormulaFirstAndRoundsDownWithIntegers() throws IOException {
+		String code = code();
+		assertThat(code).contains("var amount = evaluate(text)", "Math.floor(amount * percent / 100)");
+		assertThat(code).as("空・計算できない・0 以下は税込にしない").contains("amount === null || amount <= 0");
 	}
 
 }

@@ -3,12 +3,12 @@
 // 式は、文字列をプログラムとして実行する書き方を使わず、数字と記号に分けて、左から順に足し引きする。
 // 範囲（1〜1000000）は、ここでは判断しない。結果がマイナスや上限超えでも、そのまま書く。サーバーが、今までどおり入力チェックを行う。
 // 計算できない式は、欄を変えず、HTML に書いてある固定の文を見せる（文はここで作らない。見せる・隠すだけ）。サーバーとは通信しない。
-// 結果を書いたら input のできごとを起こす。明細の合計（split-lines.js）と、税込のボタンの押せる・押せない（amount-buttons.js）が、
-// そのできごとで新しい値に合わせて動く。そのため、ほかの JavaScript を読む順には頼らない。
+// 結果を書いたら input のできごとを起こす。明細の合計（split-lines.js）と、電卓の税込のボタンの押せる・押せない（calculator-keys.js）が、
+// そのできごとで新しい値に合わせて動く。電卓のボタン（calculator-keys.js）は、このファイルが出す window.Calculator を使うので、このファイルの後に読む。
 (function () {
     'use strict';
 
-    // 1 つの数字の桁の上限（先頭のゼロを除く。amount-buttons.js、split-lines.js と同じ）。
+    // 1 つの数字の桁の上限（先頭のゼロを除く。split-lines.js、budget-total.js と同じ）。
     var MAX_DIGITS = 9;
 
     // 全角の数字と ＋ を半角に直し、引く記号（全角の －、数学の −、日本語入力のまま「-」を打つと出る ー）を - にそろえ、
@@ -45,6 +45,16 @@
             total = (value === null) ? null : (parts[i] === '+' ? total + value : total - value);
         }
         return total;
+    }
+
+    // 税込にする（issue 035 の段階 3。電卓の「税込」が使う）。式を先に計算し、その数を税抜として percent / 100 倍にする（percent は 110 か 108）。
+    // 整数だけで計算し、端数は切り捨てる（前の金額ボタンと同じ）。空・計算できない式・0 以下は null（税込にしない）。
+    function withTax(text, percent) {
+        var amount = evaluate(text);
+        if (amount === null || amount <= 0) {
+            return null;
+        }
+        return Math.floor(amount * percent / 100);
     }
 
     // 欄の値が式か。空と、整数だけの値（1280、１２８０、-200）は、式と見なさない（何もせず、そのまま送る。サーバーが読む）。
@@ -87,8 +97,8 @@
                 compute();
             }
         });
-        // 欄から離れたとき（Tab、ほかの所やボタンを押したとき）にも計算する。
-        // 今の金額ボタン（足す・税込）を押すと、押した時点で欄から離れるので、先に式が計算されてから、ボタンが効く。
+        // 欄から離れたとき（Tab、ほかの所を押したとき）にも計算する。
+        // 電卓のボタンは、押してもカーソルを欄から動かさないので、ここは通らない（電卓の ＋ − 税込は、自分で先に計算する）。
         field.addEventListener('blur', compute);
         // 欄を書き換えたら、計算できないときの文を隠す。
         field.addEventListener('input', function () {
@@ -122,8 +132,9 @@
         }
     }
 
-    // Console で計算を確かめるために、計算の関数だけを出しておく（画面の部品には触れない。issue 035 の手順書 5 章）。
-    window.Calculator = { evaluate: evaluate };
+    // 計算の関数だけを出しておく（画面の部品には触れない）。Console で計算を確かめるため（issue 035 の手順書 5 章）と、
+    // 電卓のボタン（calculator-keys.js。このファイルの後に読む）が、同じ計算を使うため。
+    window.Calculator = { evaluate: evaluate, withTax: withTax };
 
     setUp();
 })();

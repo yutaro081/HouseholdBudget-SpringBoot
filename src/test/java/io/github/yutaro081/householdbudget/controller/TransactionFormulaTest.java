@@ -119,7 +119,7 @@ class TransactionFormulaTest {
 		for (String path : new String[] { "/transactions/new", "/transactions/" + transaction.getId() + "/edit" }) {
 			String body = page(path);
 			assertThat(body).as(path).contains("<script defer src=\"/js/calculator.js\"></script>");
-			assertThat(body).as(path + "：今の金額ボタンは残す（段階 2）").contains("src=\"/js/amount-buttons.js\"", "data-amount-add=\"1000\"");
+			assertThat(body).as(path + "：行ごとの金額ボタンは、段階 3 で電卓に置きかえた").doesNotContain("amount-buttons.js", "data-amount-add");
 			assertThat(body).as(path + "：HTML の中にスクリプトを書かない").doesNotContain("<script>", "onkeydown", "onblur", "onsubmit");
 		}
 	}
@@ -159,13 +159,12 @@ class TransactionFormulaTest {
 		assertThat(rule.group(1)).contains("color: var(--bs-danger, #c00)", "font-size: var(--hb-font-size-small)");
 	}
 
-	/** 説明の段落（JavaScript が動くときだけ見せる、明細の上の 1 回だけの段落）に、式が打てることの 1 文 */
+	/** 説明の文（段階 3 で、明細の上の段落から、電卓の中に移した。電卓ごと、JavaScript が動くときだけ見える）に、式が打てることの 1 文 */
 	@Test
 	void theExplanationTellsThatFormulasCanBeTyped() throws Exception {
 		String body = page("/transactions/new");
-		Matcher explain = Pattern.compile("(?s)<p [^>]*data-amount-explain[^>]*>(.*?)</p>").matcher(body);
-		assertThat(explain.find()).isTrue();
-		assertThat(explain.group(1)).contains("金額の欄には、1280+398-300 のような式も打てます（Enter で計算）。");
+		int explain = body.indexOf("<p class=\"calc-note\">欄には 1280+398-300 のような式も打てます（Enter で計算）。</p>");
+		assertThat(explain).as("電卓の中").isGreaterThan(body.indexOf("<div class=\"calc\" data-calc"));
 	}
 
 	// ---- サーバー（見張り役。式のまま送られても保存しない） ----

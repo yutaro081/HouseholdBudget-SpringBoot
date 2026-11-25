@@ -73,7 +73,7 @@ class BudgetTotalScriptTest {
 		assertThat(code()).contains("addEventListener('input'");
 	}
 
-	/** 全角の数字を半角に直して足す（amount-buttons.js と同じ読み方） */
+	/** 全角の数字を半角に直して足す（calculator.js・split-lines.js と同じ読み方） */
 	@Test
 	void scriptConvertsFullWidthDigits() throws IOException {
 		assertThat(code()).contains("[０-９]").contains("0xFF10");
